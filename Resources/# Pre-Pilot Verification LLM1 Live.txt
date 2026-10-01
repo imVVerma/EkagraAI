@@ -1,0 +1,338 @@
+# Pre-Pilot Verification: LLM1 Live Evaluation
+
+Phase 2 LLM1 integration is reported complete.
+
+Before any live API call is made, perform one final read-only verification and make only the fixes required below.
+
+Do NOT run live API calls.
+
+Do NOT require or ask for an API key.
+
+## 1. Verify Provider Configuration
+
+Inspect:
+
+* `backend/llm/config.py`
+* `backend/llm/provider_interface.py`
+* `backend/llm/providers/openrouter_adapter.py`
+* `backend/llm/providers/groq_adapter.py`
+* `backend/llm1_tutor.py`
+* `backend/server.py`
+
+Determine exactly which environment variables are required for:
+
+### OpenRouter
+
+and
+
+### Groq
+
+Document the exact variables.
+
+There must be no ambiguity between:
+
+```text
+EKAGRA_API_KEY
+EKAGRA_GROQ_API_KEY
+OPENROUTER_API_KEY
+```
+
+Use the architecture's provider-neutral configuration consistently.
+
+If the current implementation supports provider-specific keys, keep that design.
+
+Do not create duplicate or ambiguous credential paths unnecessarily.
+
+Verify that secrets are never printed or logged.
+
+---
+
+## 2. Verify Live Mode Does Not Silently Fall Back
+
+Inspect all LLM1 live-mode exception handling.
+
+The deterministic fallback currently mentioned in `backend/server.py` must NOT silently substitute deterministic behavior during a controlled experiment.
+
+Required behavior:
+
+### Development/application mode
+
+A deterministic fallback may remain if it is explicitly useful.
+
+### Controlled experiment mode
+
+If:
+
+```text
+EKAGRA_MODE=live
+```
+
+and the LLM call fails:
+
+```text
+provider failure
+timeout
+authentication error
+rate limit
+structured output error
+budget error
+network error
+```
+
+then:
+
+1. record the failure
+2. record the typed error
+3. record usage if available
+4. record the experiment/run ID
+5. mark the case as failed
+6. do NOT silently substitute deterministic tutor output
+
+The pilot must measure actual LLM1 behavior.
+
+A deterministic fallback must never be counted as successful LLM1 behavior.
+
+If necessary, introduce an explicit configuration such as:
+
+```text
+EKAGRA_ALLOW_DETERMINISTIC_FALLBACK=false
+```
+
+with safe default behavior.
+
+For controlled live experiments, it must be false.
+
+---
+
+## 3. Verify LLM1 → State Machine Boundary
+
+Trace one complete request through the code without making an API call:
+
+```text
+API
+→ LLM1 tutor
+→ context selector
+→ provider
+→ structured output
+→ scorer
+→ state machine
+→ decision trace
+→ usage store
+```
+
+Confirm that LLM1 cannot directly mutate:
+
+* SOLO level
+* transition
+* checkpoint status
+* retry count
+* scenario
+* pedagogy history
+
+The state machine must remain authoritative.
+
+---
+
+## 4. Verify Structured Output
+
+Inspect every LLM1 output schema.
+
+Verify that:
+
+* teaching output is validated
+* checkpoint output is validated
+* feedback output is validated
+* intervention output is validated
+* invalid JSON/schema produces `StructuredOutputError`
+* malformed output cannot silently enter the state machine
+
+Do not change schemas unless there is a concrete bug.
+
+---
+
+## 5. Verify Context Grounding
+
+For each LLM1 operation, verify that the selected context comes from:
+
+```text
+Resources/arthashastra-solo-knowledge-bank-v3.*
+```
+
+through `ContextSelector`.
+
+Confirm that the full knowledge bank is not unnecessarily passed to every call.
+
+Confirm that context provenance is available in the decision trace.
+
+---
+
+## 6. Verify Experiment Logging
+
+The pilot must record at minimum:
+
+```text
+experiment_id
+run_id
+provider
+role
+model
+requested_model
+request_id
+prompt_version
+knowledge_bank_release
+knowledge_bank_sha256
+input_tokens
+output_tokens
+total_tokens
+cost
+cost_source
+latency
+status
+error_type
+```
+
+Confirm that development logs cannot contaminate the pilot's experiment logs.
+
+---
+
+## 7. Verify Budget Enforcement
+
+Before any live call is possible, confirm:
+
+* request ceiling works
+* session ceiling works
+* experiment ceiling works
+* unknown pricing cannot bypass an active ceiling
+* failed calls are recorded
+* budget state survives process restart through the usage ledger
+
+Do not make a live request.
+
+---
+
+## 8. Inspect the Pilot
+
+Inspect:
+
+```text
+tools/l1_pilot.py
+```
+
+Verify that the 12 cases actually cover:
+
+* 3 scenarios
+* C1
+* C2
+* C3
+* C4
+* correct learner response
+* incorrect learner response
+* vague learner response
+* intervention
+* retry
+* checkpoint
+* progression
+* branching
+
+Confirm that the pilot does not accidentally use deterministic tutor output in place of LLM1.
+
+---
+
+## 9. Check the "Nemotron" Artifact
+
+The Phase 2 summary contains:
+
+```text
+Build·Nemotron 3 Ultra Free
+```
+
+Determine whether this is:
+
+* accidental output
+* an actual configured model
+* a benchmark artifact
+* an unintended modification
+
+Do not select or change models based on this text.
+
+Report exactly where it came from.
+
+---
+
+## 10. Offline Tests
+
+After any necessary fixes, rerun:
+
+```text
+V3 validation
+V2 validation
+LLM foundation tests
+REV1 E2E
+demo
+pilot dry-run
+```
+
+Do not run live APIs.
+
+---
+
+# Final Report
+
+Return:
+
+## A. Provider Configuration
+
+Exact variables required for OpenRouter and Groq.
+
+## B. Live Fallback Behavior
+
+Explain exactly what happens when an LLM1 call fails in live experiment mode.
+
+## C. State-Machine Boundary
+
+Confirm whether LLM1 can or cannot directly change progression.
+
+## D. Structured Output
+
+Schemas and validation status.
+
+## E. Logging
+
+Fields and experiment separation.
+
+## F. Budget
+
+Verification result.
+
+## G. Pilot
+
+Confirm the 12 cases and their coverage.
+
+## H. Nemotron Artifact
+
+Explain its origin.
+
+## I. Tests
+
+PASS/FAIL with exact counts.
+
+## J. Live-Pilot Readiness
+
+Give one of:
+
+```text
+READY FOR CONTROLLED LIVE PILOT
+```
+
+or
+
+```text
+NOT READY FOR LIVE PILOT
+```
+
+If not ready, identify the exact blocking issue.
+
+Do not make any live API calls during this task.
+Do not request an API key.
+Do not select a final model.
+Do not build LLM2.
