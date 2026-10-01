@@ -244,6 +244,7 @@ class OpenRouterClient:
         allow_model_mismatch: bool = False,
         prompt_version: Optional[str] = None,
         knowledge_bank_version: Optional[str] = None,
+        knowledge_bank_source: Optional[str] = None,
         test_case_id: Optional[str] = None,
         strict_model: Optional[bool] = None,
     ) -> Completion:
@@ -306,6 +307,7 @@ class OpenRouterClient:
                 status_code=exc.status,
                 prompt_version=prompt_version,
                 knowledge_bank_version=knowledge_bank_version,
+                knowledge_bank_source=knowledge_bank_source,
                 test_case_id=test_case_id,
             )
             raise
@@ -324,6 +326,7 @@ class OpenRouterClient:
                 status_code=exc.status,
                 prompt_version=prompt_version,
                 knowledge_bank_version=knowledge_bank_version,
+                knowledge_bank_source=knowledge_bank_source,
                 test_case_id=test_case_id,
             )
             raise
@@ -343,6 +346,7 @@ class OpenRouterClient:
                 latency_ms=latency_ms,
                 prompt_version=prompt_version,
                 knowledge_bank_version=knowledge_bank_version,
+                knowledge_bank_source=knowledge_bank_source,
                 test_case_id=test_case_id,
             )
             raise empty
@@ -401,6 +405,7 @@ class OpenRouterClient:
                 error="no usage returned; cost not established",
                 prompt_version=prompt_version,
                 knowledge_bank_version=knowledge_bank_version,
+                knowledge_bank_source=knowledge_bank_source,
                 test_case_id=test_case_id,
             )
             raise unattributed
@@ -429,6 +434,7 @@ class OpenRouterClient:
                 error="model substitution",
                 prompt_version=prompt_version,
                 knowledge_bank_version=knowledge_bank_version,
+                knowledge_bank_source=knowledge_bank_source,
                 test_case_id=test_case_id,
             )
             raise ModelSubstitutedError(
@@ -459,6 +465,7 @@ class OpenRouterClient:
             finish_reason=finish_reason,
             prompt_version=prompt_version,
             knowledge_bank_version=knowledge_bank_version,
+            knowledge_bank_source=knowledge_bank_source,
             test_case_id=test_case_id,
         )
 
@@ -489,6 +496,7 @@ class OpenRouterClient:
         status_code: Optional[int] = None,
         prompt_version: Optional[str] = None,
         knowledge_bank_version: Optional[str] = None,
+        knowledge_bank_source: Optional[str] = None,
         test_case_id: Optional[str] = None,
     ) -> None:
         """Write a log line for an attempt that produced no usable answer.
@@ -514,6 +522,7 @@ class OpenRouterClient:
             error=error[:2000],
             prompt_version=prompt_version,
             knowledge_bank_version=knowledge_bank_version,
+            knowledge_bank_source=knowledge_bank_source,
             test_case_id=test_case_id,
         )
 

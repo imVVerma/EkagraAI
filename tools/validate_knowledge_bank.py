@@ -416,13 +416,20 @@ def validate_loader(bank: dict, report: Report) -> None:
     report.equal(len(get_content_gaps(loaded)), len(bank["content_gaps"]),
                  "content_loader.get_content_gaps")
 
-    # The v1 path must still resolve and stay the runtime default.
-    from backend.content_loader import KNOWLEDGE_BANK_PATH  # noqa: PLC0415
-    v1_loaded = load_knowledge_bank()
+    # V1 must still exist and be readable — it is the REV1 suite's subject and the
+    # baseline V2 was derived from. It is no longer the runtime default: the live
+    # bank is V3, which supersedes it.
+    from backend.content_loader import KNOWLEDGE_BANK_PATH, KNOWLEDGE_BANK_V1_PATH  # noqa: PLC0415
+
+    v1_loaded = load_knowledge_bank(str(KNOWLEDGE_BANK_V1_PATH))
     report.equal(v1_loaded.get("metadata", {}).get("version"), None,
-                 "default KNOWLEDGE_BANK_PATH still loads v1")
+                 "the v1 bank still carries no version field")
     report.check("version" not in v1_loaded.get("metadata", {}),
                  "v1 bank was not overwritten with the v2 payload")
+    report.check("v3" in str(KNOWLEDGE_BANK_PATH).lower(),
+                 "the runtime default bank is v3, not v1 or v2")
+    report.note("v1 remains readable at KNOWLEDGE_BANK_V1_PATH; the runtime "
+                "default moved to v3 by decision, not by content loss")
 
 
 def main() -> int:

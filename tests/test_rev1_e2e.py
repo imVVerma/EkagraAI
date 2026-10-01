@@ -31,6 +31,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from backend.content_loader import KNOWLEDGE_BANK_PATH  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "http://localhost:8123"
 API = BASE + "/api"
@@ -226,8 +229,13 @@ def main():
         ok, tr = call("/transition")
         for field in ("transition_id", "transition_idx", "solo_from", "solo_to", "case_count"):
             check(f"transition exposes {field} for the research view", field in tr)
+        # Compared against the bank the server actually loaded, not a path
+        # hardcoded here: the intent is "the goal is the bank's own wording, never
+        # a string baked into the server", which holds for whichever release is
+        # live and is a stronger check than pinning one file.
+        live_bank = json.load(open(KNOWLEDGE_BANK_PATH, encoding="utf-8"))
         check("learner-facing goal is the bank's own concept statement",
-              tr.get("concept_to_master") == bank["transitions"][tr["transition_idx"]]["concept_to_master"])
+              tr.get("concept_to_master") == live_bank["transitions"][tr["transition_idx"]]["concept_to_master"])
         check("no learner-facing path step is served",
               "learning_label" not in tr and "learning_path" not in tr)
 

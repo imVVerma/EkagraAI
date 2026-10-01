@@ -9,12 +9,25 @@ import os
 from typing import Any, Dict, List, Optional
 
 
-KNOWLEDGE_BANK_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "Resources", "arthashastra-solo-knowledge-bank.json"
+RESOURCES_DIR = os.path.join(os.path.dirname(__file__), "..", "Resources")
+
+# Every released bank, by version. Each file stays in place so an evaluation can
+# still be re-run against the exact content it saw.
+KNOWLEDGE_BANK_V1_PATH = os.path.join(
+    RESOURCES_DIR, "arthashastra-solo-knowledge-bank.json"
 )
 KNOWLEDGE_BANK_V2_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "Resources", "arthashastra-solo-knowledge-bank-v2.json"
+    RESOURCES_DIR, "arthashastra-solo-knowledge-bank-v2.json"
 )
+KNOWLEDGE_BANK_V3_PATH = os.path.join(
+    RESOURCES_DIR, "arthashastra-solo-knowledge-bank-v3.json"
+)
+
+# The live bank. V3 supersedes V2 and the gap-closure addendum, and is the only
+# one of the three that carries the checkpoint/branching-rule structure the tutor
+# is built against. V1 and V2 stay addressable above for the validators and the
+# REV1 suite, which deliberately pin older content.
+KNOWLEDGE_BANK_PATH = KNOWLEDGE_BANK_V3_PATH
 
 
 def load_knowledge_bank(path: Optional[str] = None) -> Dict[str, Any]:

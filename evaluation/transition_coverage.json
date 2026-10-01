@@ -1,0 +1,155 @@
+{
+  "_comment": [
+    "What the evaluation must exercise before its coverage may be called complete.",
+    "",
+    "A run is 'complete' only when every requirement in `global` holds and every",
+    "per-transition requirement in `transitions` holds. The coverage report (see",
+    "coverage_report.schema.json) is judged against this file, not against a raw",
+    "count of executed cases.",
+    "",
+    "The numbers here are the v3 bank's numbers and are re-checked by the validator",
+    "against the bank at load time; if the bank changes, these requirements become",
+    "stale and the harness must fail loudly rather than silently under-test."
+  ],
+
+  "schema_version": "ekagra-transition-coverage-v1",
+  "knowledge_bank": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+
+  "global": {
+    "all_transitions_executed": {"ids": ["C1", "C2", "C3", "C4"], "min": 4},
+    "all_cases_executed": {
+      "ids": ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C", "4A", "4B", "4C"],
+      "min": 12
+    },
+    "all_pedagogies_executed": {
+      "ids": ["Worked Example", "Guided Questioning", "Contrasting Cases"],
+      "min_per_transition": 3
+    },
+    "all_solo_levels_observed": {
+      "ids": ["prestructural", "unistructural", "multistructural", "relational", "extended_abstract"],
+      "min": 5
+    },
+    "all_global_rules_exercised": {
+      "ids": [
+        "refusal_or_meta_answer",
+        "copy_paste_case",
+        "overlong_non_answer",
+        "correct_vocabulary_wrong_application",
+        "moral_objection"
+      ],
+      "min": 5
+    },
+    "all_recovery_outcomes_observed": {
+      "ids": ["pass_to_next_transition", "fail_retry_new_pedagogy", "intervention", "manual_review", "session_complete"],
+      "min": 5
+    },
+    "pass_path_per_transition": true,
+    "fail_path_per_transition": true,
+    "retry_path_per_transition": true,
+    "pedagogy_exhaustion_per_transition": true,
+    "intervention_then_manual_review_per_transition": true
+  },
+
+  "transitions": [
+    {
+      "id": "C1",
+      "from_level": "prestructural",
+      "to_level": "unistructural",
+      "anchor": "Saptanga",
+      "concept_gate": "names one specific, case-relevant policy tool, engaged as a real decision",
+      "checkpoints": [
+        {"id": "CP1", "name": "Agency"},
+        {"id": "CP2", "name": "One tool"}
+      ],
+      "cases": [
+        {"id": "1A", "title": "Border Aggression", "scenario_text_origin": "v2_markdown"},
+        {"id": "1B", "title": "Internal Rebellion", "scenario_text_origin": "v2_markdown"},
+        {"id": "1C", "title": "Trade Dispute", "scenario_text_origin": "v2_markdown"}
+      ],
+      "required_profiles": {
+        "passes": ["unistructural_single_tool", "multistructural_tool_list", "relational_reconciliation", "extended_abstract_with_condition"],
+        "fails": ["refusal_meta_answer", "prestructural_transduction", "prestructural_denial"]
+      },
+      "required_pedagogies": ["Worked Example", "Guided Questioning", "Contrasting Cases"],
+      "required_recovery": ["intervention", "manual_review"]
+    },
+    {
+      "id": "C2",
+      "from_level": "unistructural",
+      "to_level": "multistructural",
+      "anchor": "Sama-dana-bheda-danda",
+      "concept_gate": "names at least three distinct policy tools, or the upaya framework as a set",
+      "checkpoints": [
+        {"id": "CP1", "name": "Second tool"},
+        {"id": "CP2", "name": "Tool set"}
+      ],
+      "cases": [
+        {"id": "2A", "title": "Border Aggression", "scenario_text_origin": "authored_for_v2"},
+        {"id": "2B", "title": "Internal Rebellion", "scenario_text_origin": "authored_for_v2"},
+        {"id": "2C", "title": "Trade Dispute", "scenario_text_origin": "authored_for_v2"}
+      ],
+      "required_profiles": {
+        "passes": ["multistructural_tool_list", "relational_reconciliation", "extended_abstract_with_condition"],
+        "fails": ["unistructural_single_tool", "overlong_hedge"]
+      },
+      "required_pedagogies": ["Worked Example", "Guided Questioning", "Contrasting Cases"],
+      "required_recovery": ["intervention", "manual_review"]
+    },
+    {
+      "id": "C3",
+      "from_level": "multistructural",
+      "to_level": "relational",
+      "anchor": "Mandala theory",
+      "concept_gate": "one coherent recommendation that weighs at least two factors against the complication",
+      "checkpoints": [
+        {"id": "CP1", "name": "Trade-offs"},
+        {"id": "CP2", "name": "Positioning logic"},
+        {"id": "CP3", "name": "Reconciliation"}
+      ],
+      "cases": [
+        {"id": "3A", "title": "Border Aggression", "scenario_text_origin": "v2_markdown"},
+        {"id": "3B", "title": "Internal Rebellion", "scenario_text_origin": "v2_markdown"},
+        {"id": "3C", "title": "Trade Dispute", "scenario_text_origin": "v2_markdown"}
+      ],
+      "required_profiles": {
+        "passes": ["relational_reconciliation", "extended_abstract_with_condition"],
+        "fails": ["multistructural_tool_list", "relational_without_complication", "overlong_hedge"]
+      },
+      "required_pedagogies": ["Worked Example", "Guided Questioning", "Contrasting Cases"],
+      "required_recovery": ["intervention", "manual_review"]
+    },
+    {
+      "id": "C4",
+      "from_level": "relational",
+      "to_level": "extended_abstract",
+      "anchor": "Raja dharma",
+      "concept_gate": "names the general principle, its assumption, and a specific condition under which the conclusion changes",
+      "checkpoints": [
+        {"id": "CP1", "name": "Generalization"},
+        {"id": "CP2", "name": "Assumption"},
+        {"id": "CP3", "name": "Boundary condition"}
+      ],
+      "cases": [
+        {"id": "4A", "title": "Border Aggression", "scenario_text_origin": "authored_for_v2"},
+        {"id": "4B", "title": "Internal Rebellion", "scenario_text_origin": "authored_for_v2"},
+        {"id": "4C", "title": "Trade Dispute", "scenario_text_origin": "authored_for_v2"}
+      ],
+      "required_profiles": {
+        "passes": ["extended_abstract_with_condition"],
+        "fails": ["relational_reconciliation", "vague_depends_extended_abstract", "relational_without_complication"]
+      },
+      "required_pedagogies": ["Worked Example", "Guided Questioning", "Contrasting Cases"],
+      "required_recovery": ["intervention", "manual_review"]
+    }
+  ],
+
+  "shared_level_examples": {
+    "_comment": "v3 writes out only 6 of the 12 level-example sets; the other 6 are references. Coverage must resolve references to the origin case before judging.",
+    "2A": "1A",
+    "2B": "1B",
+    "2C": "1C",
+    "4A": "3A",
+    "4B": "3B",
+    "4C": "3C"
+  }
+}

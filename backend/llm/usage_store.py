@@ -91,6 +91,7 @@ class UsageRecord:
     error: Optional[str] = None
     prompt_version: Optional[str] = None
     knowledge_bank_version: Optional[str] = None
+    knowledge_bank_source: Optional[str] = None
     test_case_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:

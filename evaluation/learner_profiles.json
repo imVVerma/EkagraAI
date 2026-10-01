@@ -1,0 +1,363 @@
+{
+  "_comment": [
+    "Simulated learner profiles for the two-LLM evaluation.",
+    "",
+    "A profile is what LLM2 (the evaluator role in backend/llm/config.py) is told to",
+    "play when it generates a learner turn for LLM1 (the tutor). Each profile is",
+    "pinned to an expected SOLO level and to the transitions whose target signature",
+    "it does or does not satisfy, so the harness can score the tutor without a human",
+    "in the loop.",
+    "",
+    "Where a `sample_response` is marked bank_level_example it is copied verbatim",
+    "from the v3 bank's own level_examples, which is the closest thing this domain",
+    "has to ground truth. Everything else is an evaluation fixture: it belongs to",
+    "the test harness, never to the knowledge bank, and must not be fed to the tutor",
+    "as domain content.",
+    "",
+    "`baseline_divergence` records where the current deterministic scorer in",
+    "backend/scoring_service.py disagrees with the expected outcome. These are",
+    "recorded, not hidden: they are the gap between the reference implementation and",
+    "the bank, and the tutor is judged against the bank, not against the reference.",
+    "",
+    "Level pass expectations are monotone, matching the transition ladder C1..C4:",
+    "  prestructural     -> passes none",
+    "  unistructural     -> C1",
+    "  multistructural   -> C1, C2",
+    "  relational        -> C1, C2, C3",
+    "  extended_abstract -> C1, C2, C3, C4"
+  ],
+
+  "schema_version": "ekagra-learner-profiles-v1",
+  "knowledge_bank": {
+    "path": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+    "source_markdown": "Resources/arthashastra-solo-knowledge-bank-v3.md",
+    "levels": [
+      "prestructural",
+      "unistructural",
+      "multistructural",
+      "relational",
+      "extended_abstract"
+    ],
+    "global_rules": [
+      "refusal_or_meta_answer",
+      "copy_paste_case",
+      "overlong_non_answer",
+      "correct_vocabulary_wrong_application",
+      "moral_objection"
+    ],
+    "pass_order": {
+      "prestructural": [],
+      "unistructural": ["C1"],
+      "multistructural": ["C1", "C2"],
+      "relational": ["C1", "C2", "C3"],
+      "extended_abstract": ["C1", "C2", "C3", "C4"]
+    }
+  },
+
+  "profiles": [
+    {
+      "id": "refusal_meta_answer",
+      "label": "Refuser / meta-answer",
+      "persona": "A learner who declares the question out of scope instead of attempting it.",
+      "simulator_instruction": "Decline to engage: say you do not know enough about Arthashastra to answer, or that the question is too difficult. Do not name any policy tool.",
+      "expected": {
+        "solo_level": "prestructural",
+        "global_rule": "refusal_or_meta_answer",
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "I don't know enough about Arthashastra to answer that.",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[0]",
+        "note": "Exercises bank §8 rule 1."
+      },
+      "checks": [
+        "harness classifies prestructural before any tool counting",
+        "tutor redirects to the case rather than accepting the refusal"
+      ]
+    },
+    {
+      "id": "copy_paste_case",
+      "label": "Copy-paster",
+      "persona": "A learner who echoes the scenario text back without adding reasoning.",
+      "simulator_instruction": "Repeat the case scenario back as your answer, adding no policy tool and no reasoning.",
+      "expected": {
+        "solo_level": "prestructural",
+        "global_rule": "copy_paste_case",
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "A neighboring kingdom's army has started massing troops near your shared border. What should the king do?",
+      "sample_response_case": "1A",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[1]",
+        "note": "Uses the 1A scenario verbatim as the tautological answer."
+      },
+      "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has a copy_paste_case branch that is a no-op (`if len(response) < 30: pass`); the reference scorer does not currently detect this rule.",
+      "checks": [
+        "harness flags the tautology as checkpoint-not-met",
+        "tutor does not credit the echoed scenario as an answer"
+      ]
+    },
+    {
+      "id": "prestructural_transduction",
+      "label": "Transductive answerer",
+      "persona": "A learner who reaches a conclusion via a tangential fact unconnected to the case.",
+      "simulator_instruction": "Answer with an irrelevant but confident fact or action that has nothing to do with the policy decision (for example, celebrating a harvest while an army masses).",
+      "expected": {
+        "solo_level": "prestructural",
+        "global_rule": null,
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "He should throw a feast to celebrate the harvest.",
+      "sample_response_case": "1A",
+      "source_basis": {
+        "type": "bank_level_example",
+        "pointer": "transitions[C1].cases[1A].level_examples.prestructural[1]",
+        "note": "Bank annotates this example as 'transduction'."
+      },
+      "checks": [
+        "harness classifies prestructural",
+        "tutor does not treat the tangential fact as a policy tool"
+      ]
+    },
+    {
+      "id": "prestructural_denial",
+      "label": "Fatalist / denier",
+      "persona": "A learner who denies the king has any agency.",
+      "simulator_instruction": "Claim the outcome is outside the king's control; name no policy tool.",
+      "expected": {
+        "solo_level": "prestructural",
+        "global_rule": null,
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "Nothing, kings can't control armies.",
+      "sample_response_case": "1A",
+      "source_basis": {
+        "type": "bank_level_example",
+        "pointer": "transitions[C1].cases[1A].level_examples.prestructural[0]"
+      },
+      "checks": [
+        "harness classifies prestructural",
+        "tutor's C1 checkpoint CP1 (Agency) is not met"
+      ]
+    },
+    {
+      "id": "overlong_hedge",
+      "label": "Vague hedger",
+      "persona": "A learner whose answer sounds sophisticated but commits to nothing.",
+      "simulator_instruction": "Hedge at length without committing: say it depends on many factors and that there are many considerations, but name no specific condition and no specific tool.",
+      "expected": {
+        "solo_level": "capped_at_multistructural",
+        "global_rule": "overlong_non_answer",
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "It depends on many factors; there are many considerations and it is difficult to say what the king should do.",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[2]",
+        "note": "Must never be credited as relational or extended_abstract; the VAT is explicitly excluded by the bank."
+      },
+      "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has an overlong_non_answer branch that is a no-op; the reference scorer relies on reconciliation keywords instead.",
+      "checks": [
+        "harness caps the level at multistructural",
+        "must not be credited as relational or extended_abstract",
+        "tutor asks for the specific condition rather than accepting the hedge"
+      ]
+    },
+    {
+      "id": "correct_vocabulary_wrong_application",
+      "label": "Vocabulary trap",
+      "persona": "A learner who uses the right doctrinal word for the wrong action.",
+      "simulator_instruction": "Use a real doctrinal term but describe an action that belongs to a different upaya (for example, call an armed attack 'sandhi').",
+      "expected": {
+        "solo_level": "reclassify_by_substance",
+        "global_rule": "correct_vocabulary_wrong_application",
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "The king should use sandhi, which means attacking the enemy with force.",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[3]",
+        "note": "Bank rule 4 reclassifies by described substance, not by term used."
+      },
+      "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has a correct_vocabulary_wrong_application branch that is a no-op, and DOCTRINAL_TOOLS counts the surface term. The reference scorer can score this as relational/unistructural on the word 'sandhi'.",
+      "checks": [
+        "harness classifies by the substance (danda), not the surface term (sandhi)",
+        "tutor corrects the mislabelled tool"
+      ]
+    },
+    {
+      "id": "moral_objection",
+      "label": "Moral objector",
+      "persona": "A learner who rejects Kautilyan realism on ethical grounds.",
+      "simulator_instruction": "Object that deception and bribery are morally wrong and should never be used, whatever the consequences. Do not reason through the case.",
+      "expected": {
+        "solo_level": "reclassify_by_reasoning_structure",
+        "global_rule": "moral_objection",
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "Kautilya's realism is morally wrong; a king should never deceive or bribe anyone, whatever the consequences.",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[4]",
+        "note": "Bank rule 5: valid engagement, but scored on reasoning structure, not agreement."
+      },
+      "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has a moral_objection branch that is a no-op; the reference scorer judges this only on tool words.",
+      "checks": [
+        "harness does not penalise disagreement with the doctrine",
+        "harness scores the reasoning structure only"
+      ]
+    },
+    {
+      "id": "unistructural_single_tool",
+      "label": "Single-tool learner",
+      "persona": "A learner who names exactly one relevant tool with minimal justification.",
+      "simulator_instruction": "Name one specific, case-relevant policy tool and give a one-line reason. Do not add a second tool.",
+      "expected": {
+        "solo_level": "unistructural",
+        "global_rule": null,
+        "passes_transitions": ["C1"],
+        "target_signature_met": true
+      },
+      "sample_response": "He should attack them first.",
+      "sample_response_case": "1A",
+      "source_basis": {
+        "type": "bank_level_example",
+        "pointer": "transitions[C1].cases[1A].level_examples.unistructural[0]",
+        "note": "Bank annotates this example as 'danda only'."
+      },
+      "checks": [
+        "passes C1 target (one tool, engaged)",
+        "fails C2 target (needs three tools)",
+        "fails C3 target (needs reconciliation)",
+        "fails C4 target (needs generalisation)"
+      ]
+    },
+    {
+      "id": "multistructural_tool_list",
+      "label": "List-only learner",
+      "persona": "A learner who lists several tools without reconciling them.",
+      "simulator_instruction": "List at least three distinct tools side by side, with no reasoning that weighs them against each other and no single recommendation.",
+      "expected": {
+        "solo_level": "multistructural",
+        "global_rule": null,
+        "passes_transitions": ["C1", "C2"],
+        "target_signature_met": true
+      },
+      "sample_response": "He could go to war, or try peace, or bribe their commanders.",
+      "sample_response_case": "1A",
+      "source_basis": {
+        "type": "bank_level_example",
+        "pointer": "transitions[C1].cases[1A].level_examples.multistructural[0]",
+        "note": "Bank annotates this example as '3 tools, unreconciled'."
+      },
+      "checks": [
+        "passes C2 target (three tools, no consistency required)",
+        "fails C3 target (a list is explicitly not a reconciled judgement)",
+        "fails C4 target"
+      ]
+    },
+    {
+      "id": "relational_reconciliation",
+      "label": "Reconciler",
+      "persona": "A learner who weighs multiple factors into one coherent recommendation.",
+      "simulator_instruction": "Account for the case's complication, weigh at least two factors against each other, and commit to a single internally consistent recommendation.",
+      "expected": {
+        "solo_level": "relational",
+        "global_rule": null,
+        "passes_transitions": ["C1", "C2", "C3"],
+        "target_signature_met": true
+      },
+      "sample_response": "Since the aggressor's other neighbor is already hostile to them, mandala theory says that neighbor is a natural ally — I'd seek that alliance first, using dana to stall the aggressor while it forms, holding danda in reserve.",
+      "sample_response_case": "3A",
+      "source_basis": {
+        "type": "bank_level_example",
+        "pointer": "transitions[C3].cases[3A].level_examples.relational[0]",
+        "note": "Shared verbatim with 4A by the bank's level_examples reference."
+      },
+      "checks": [
+        "passes C3 target (reconciled, complication-grounded)",
+        "fails C4 target (no named principle/assumption/condition)"
+      ]
+    },
+    {
+      "id": "relational_without_complication",
+      "label": "Reconciler who ignores the complication",
+      "persona": "A learner who talks about trade-offs but does not use the case's complication to choose.",
+      "simulator_instruction": "Describe risks and trade-offs in general terms, then assert that the king should just pick the strongest option and act. Do not reference the complication the scenario introduced.",
+      "expected": {
+        "solo_level": "multistructural",
+        "solo_level_note": "The bank branches this profile on C3 checkpoints ('CP1 met only'), not on a single level, so the assigned level is secondary to target_signature_met=false.",
+        "global_rule": null,
+        "passes_transitions": ["C1", "C2"],
+        "target_signature_met": false,
+        "expected_checkpoints": {
+          "C3": {"CP1": true, "CP2": false, "CP3": false}
+        }
+      },
+      "sample_response": "There are risks either way, but he should just pick the strongest option and act.",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "note": "Mirrors the C3 branching rule 'Acknowledges complication, doesn't use it to choose -> CP1 met only'. This is the C3 false-positive the bank says to catch."
+      },
+      "baseline_divergence": "The reference scorer has no complication-aware path; it may classify this as relational on the presence of 'risks'.",
+      "checks": [
+        "C3 CP1 met only; CP2 and CP3 not met",
+        "must not advance out of C3"
+      ]
+    },
+    {
+      "id": "extended_abstract_with_condition",
+      "label": "Principle-generaliser",
+      "persona": "A learner who names the general principle, its assumption, and a boundary condition.",
+      "simulator_instruction": "Name the general principle the case instantiates, state an assumption the principle depends on, and give one specific condition under which the conclusion would change. Do not use a vague 'it depends'.",
+      "expected": {
+        "solo_level": "extended_abstract",
+        "global_rule": null,
+        "passes_transitions": ["C1", "C2", "C3", "C4"],
+        "target_signature_met": true
+      },
+      "sample_response": "This is a balance-of-power problem; mandala theory assumes rivalry is driven by territorial adjacency. If the conflict were ideological rather than territorial, an adjacent kingdom wouldn't act as a natural ally just from geography — the prediction would fail.",
+      "sample_response_case": "4A",
+      "source_basis": {
+        "type": "bank_level_example",
+        "pointer": "transitions[C4].cases[4A].level_examples.extended_abstract[0]",
+        "note": "Shared verbatim with 3A by the bank's level_examples reference."
+      },
+      "checks": [
+        "passes C4 target (principle + assumption + specific condition)",
+        "harness confirms the condition is specific, not a bare 'it depends'"
+      ]
+    },
+    {
+      "id": "vague_depends_extended_abstract",
+      "label": "Vague-generaliser",
+      "persona": "A learner who reaches for a generalisation but never names a condition.",
+      "simulator_instruction": "Gesture at a general principle and say the answer would depend on the situation, but name no specific condition under which the conclusion changes.",
+      "expected": {
+        "solo_level": "capped_at_multistructural",
+        "global_rule": "overlong_non_answer",
+        "passes_transitions": [],
+        "target_signature_met": false
+      },
+      "sample_response": "In general this depends on the situation, but generally the strongest side wins.",
+      "source_basis": {
+        "type": "evaluation_fixture",
+        "note": "Bank's extended_abstract definition: \"A vague 'it depends' without a named condition does NOT qualify.\""
+      },
+      "checks": [
+        "C4 CP3 not met (no specific condition)",
+        "must not be credited as extended_abstract",
+        "must not be credited as relational"
+      ]
+    }
+  ]
+}

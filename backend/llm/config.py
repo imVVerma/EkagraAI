@@ -347,6 +347,38 @@ def knowledge_bank_version(path: Optional[str] = None) -> str:
     return f"sha256:{digest[:16]}"
 
 
+def knowledge_bank_provenance(path: Optional[str] = None) -> Dict[str, Any]:
+    """Return the version, source path and content hash of a knowledge bank.
+
+    :func:`knowledge_bank_version` deliberately stamps only a hash: that is the
+    one identifier that cannot drift from the content, because it is computed
+    from the bytes rather than declared in them. A run also has to be
+    attributable to a *file*, though, and a hash alone does not say which
+    release produced it. So this reads rather than declares: the version comes
+    from the bank's own metadata (absent on V1, reported as "unversioned") and
+    the source is the path resolved against the project root, so a record stays
+    meaningful when the repository is moved.
+
+    Both values are derived, never hand-maintained, which is what makes them
+    safe to stamp on every record.
+    """
+    import hashlib
+    import json
+
+    from backend.content_loader import KNOWLEDGE_BANK_PATH
+
+    target = os.path.abspath(path or KNOWLEDGE_BANK_PATH)
+    with open(target, "rb") as fh:
+        raw = fh.read()
+    metadata = json.loads(raw.decode("utf-8")).get("metadata", {})
+    version = metadata.get("version")
+    return {
+        "version": str(version) if version is not None else "unversioned",
+        "source": os.path.relpath(target, PROJECT_ROOT).replace(os.sep, "/"),
+        "sha256": f"sha256:{hashlib.sha256(raw).hexdigest()[:16]}",
+    }
+
+
 def prompt_version_default() -> str:
     """Version stamp for prompts built by this foundation."""
     return "ekagra-llm-foundation-v1"
@@ -356,6 +388,7 @@ __all__: Dict[str, Any] = {
     "Config": Config,
     "load_config": load_config,
     "knowledge_bank_version": knowledge_bank_version,
+    "knowledge_bank_provenance": knowledge_bank_provenance,
     "prompt_version_default": prompt_version_default,
     "PROJECT_ROOT": PROJECT_ROOT,
     "AGENT_TUTOR": AGENT_TUTOR,

@@ -1,0 +1,248 @@
+{
+  "_comment": [
+    "Deterministic exhaustion scenarios for the teach -> checkpoint -> score -> recover",
+    "loop in backend/state_machine.py and backend/server.py.",
+    "",
+    "The bound on recovery is the bank, not an arbitrary retry cap: a transition has",
+    "three cases, and each case offers the three pedagogies once. So the sequence per",
+    "case is at most: teach with a pedagogy -> fail -> teach with a different pedagogy",
+    "-> fail -> teach with the last pedagogy -> fail -> recover.",
+    "",
+    "Recovery depends on where the learner is in the transition's case list:",
+    "  case_idx < case_count-1 -> intervention (advance to the next case, reset pool)",
+    "  case_idx == case_count-1 (last case) -> manual_review (terminal, non-destructive)",
+    "",
+    "Pedagogy order is random by design (state_machine.select_pedagogy draws from the",
+    "remaining pool), so a scenario asserts the *set* of pedagogies used, never the",
+    "order. Each scenario below therefore lists all three and checks distinctness."
+  ],
+
+  "schema_version": "ekagra-pedagogy-failure-cases-v1",
+  "knowledge_bank": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+
+  "failing_profile_by_transition": {
+    "C1": "prestructural_transduction",
+    "C2": "unistructural_single_tool",
+    "C3": "multistructural_tool_list",
+    "C4": "relational_reconciliation"
+  },
+
+  "scenarios": [
+    {
+      "id": "PF-C1-1A-intervention",
+      "transition_id": "C1",
+      "case_id": "1A",
+      "case_index": 0,
+      "profile_id": "prestructural_transduction",
+      "expected_sequence": [
+        {"step": "teach", "pedagogy": "any-of-3"},
+        {"step": "fail", "pedagogy_available": true, "status": "fail"},
+        {"step": "teach", "pedagogy": "any-remaining"},
+        {"step": "fail", "pedagogy_available": true, "status": "fail"},
+        {"step": "teach", "pedagogy": "last-remaining"},
+        {"step": "fail", "pedagogy_available": false, "status": "fail"}
+      ],
+      "expected_recovery": {
+        "kind": "intervention",
+        "next_case_id": "1B",
+        "pedagogy_pool_reset": true,
+        "used_pool_after": 0,
+        "interventions_incremented": 1
+      },
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C1-1B-intervention",
+      "transition_id": "C1",
+      "case_id": "1B",
+      "case_index": 1,
+      "profile_id": "prestructural_transduction",
+      "expected_recovery": {
+        "kind": "intervention",
+        "next_case_id": "1C",
+        "pedagogy_pool_reset": true,
+        "used_pool_after": 0,
+        "interventions_incremented": 2
+      },
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C1-1C-manual-review",
+      "transition_id": "C1",
+      "case_id": "1C",
+      "case_index": 2,
+      "profile_id": "prestructural_transduction",
+      "expected_recovery": {
+        "kind": "manual_review",
+        "next_case_id": null,
+        "session_complete": true,
+        "session_preserved": true,
+        "history_preserved": true
+      },
+      "expected_case_change": false,
+      "expected_scenario_change": false
+    },
+    {
+      "id": "PF-C2-2A-intervention",
+      "transition_id": "C2",
+      "case_id": "2A",
+      "case_index": 0,
+      "profile_id": "unistructural_single_tool",
+      "expected_recovery": {"kind": "intervention", "next_case_id": "2B", "pedagogy_pool_reset": true},
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C2-2B-intervention",
+      "transition_id": "C2",
+      "case_id": "2B",
+      "case_index": 1,
+      "profile_id": "unistructural_single_tool",
+      "expected_recovery": {"kind": "intervention", "next_case_id": "2C", "pedagogy_pool_reset": true},
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C2-2C-manual-review",
+      "transition_id": "C2",
+      "case_id": "2C",
+      "case_index": 2,
+      "profile_id": "unistructural_single_tool",
+      "expected_recovery": {"kind": "manual_review", "next_case_id": null, "session_complete": true, "session_preserved": true},
+      "expected_case_change": false,
+      "expected_scenario_change": false
+    },
+    {
+      "id": "PF-C3-3A-intervention",
+      "transition_id": "C3",
+      "case_id": "3A",
+      "case_index": 0,
+      "profile_id": "multistructural_tool_list",
+      "expected_recovery": {"kind": "intervention", "next_case_id": "3B", "pedagogy_pool_reset": true},
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C3-3B-intervention",
+      "transition_id": "C3",
+      "case_id": "3B",
+      "case_index": 1,
+      "profile_id": "multistructural_tool_list",
+      "expected_recovery": {"kind": "intervention", "next_case_id": "3C", "pedagogy_pool_reset": true},
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C3-3C-manual-review",
+      "transition_id": "C3",
+      "case_id": "3C",
+      "case_index": 2,
+      "profile_id": "multistructural_tool_list",
+      "expected_recovery": {"kind": "manual_review", "next_case_id": null, "session_complete": true, "session_preserved": true},
+      "expected_case_change": false,
+      "expected_scenario_change": false
+    },
+    {
+      "id": "PF-C4-4A-intervention",
+      "transition_id": "C4",
+      "case_id": "4A",
+      "case_index": 0,
+      "profile_id": "relational_reconciliation",
+      "expected_recovery": {"kind": "intervention", "next_case_id": "4B", "pedagogy_pool_reset": true},
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C4-4B-intervention",
+      "transition_id": "C4",
+      "case_id": "4B",
+      "case_index": 1,
+      "profile_id": "relational_reconciliation",
+      "expected_recovery": {"kind": "intervention", "next_case_id": "4C", "pedagogy_pool_reset": true},
+      "expected_case_change": true,
+      "expected_scenario_change": true
+    },
+    {
+      "id": "PF-C4-4C-manual-review",
+      "transition_id": "C4",
+      "case_id": "4C",
+      "case_index": 2,
+      "profile_id": "relational_reconciliation",
+      "expected_recovery": {"kind": "manual_review", "next_case_id": null, "session_complete": true, "session_preserved": true},
+      "expected_case_change": false,
+      "expected_scenario_change": false
+    }
+  ],
+
+  "retry_then_pass": [
+    {
+      "id": "RTP-C1-1A",
+      "transition_id": "C1",
+      "case_id": "1A",
+      "profile_sequence": ["prestructural_transduction", "unistructural_single_tool"],
+      "expected": {
+        "first_outcome": "not_yet",
+        "second_outcome": "pass",
+        "same_case_throughout": true,
+        "pedagogies_distinct": true,
+        "next_transition": "C2",
+        "pedagogy_pool_reset_on_advance": true
+      }
+    },
+    {
+      "id": "RTP-C2-2A",
+      "transition_id": "C2",
+      "case_id": "2A",
+      "profile_sequence": ["unistructural_single_tool", "multistructural_tool_list"],
+      "expected": {
+        "first_outcome": "not_yet",
+        "second_outcome": "pass",
+        "same_case_throughout": true,
+        "pedagogies_distinct": true,
+        "next_transition": "C3",
+        "pedagogy_pool_reset_on_advance": true
+      }
+    },
+    {
+      "id": "RTP-C3-3A",
+      "transition_id": "C3",
+      "case_id": "3A",
+      "profile_sequence": ["multistructural_tool_list", "relational_reconciliation"],
+      "expected": {
+        "first_outcome": "not_yet",
+        "second_outcome": "pass",
+        "same_case_throughout": true,
+        "pedagogies_distinct": true,
+        "next_transition": "C4",
+        "pedagogy_pool_reset_on_advance": true
+      }
+    },
+    {
+      "id": "RTP-C4-4A-session-complete",
+      "transition_id": "C4",
+      "case_id": "4A",
+      "profile_sequence": ["relational_reconciliation", "extended_abstract_with_condition"],
+      "expected": {
+        "first_outcome": "not_yet",
+        "second_outcome": "pass",
+        "same_case_throughout": true,
+        "pedagogies_distinct": true,
+        "next_transition": null,
+        "session_complete": true
+      }
+    }
+  ],
+
+  "assertions": [
+    "At most three distinct pedagogies are tried on a single case before recovery.",
+    "The same pedagogy is never drawn twice within one case attempt cycle.",
+    "A case is abandoned only by an intervention; failure alone does not change the case.",
+    "manual_review is reached only from the last case of a transition.",
+    "manual_review preserves the session: no reset, no loss of history.",
+    "intervention resets the pedagogy pool and clears used_pool.",
+    "interventions per transition increments once per intervention and never resets on advance.",
+    "attempt_number is counted per transition, so it starts at 1 again after a pass."
+  ]
+}

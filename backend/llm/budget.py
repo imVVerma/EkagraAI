@@ -290,6 +290,7 @@ class BudgetGuard:
         error: Optional[str] = None,
         prompt_version: Optional[str] = None,
         knowledge_bank_version: Optional[str] = None,
+        knowledge_bank_source: Optional[str] = None,
         test_case_id: Optional[str] = None,
     ) -> UsageRecord:
         """Write one call's actual cost to the log and re-check the ceiling.
@@ -326,6 +327,7 @@ class BudgetGuard:
             error=error,
             prompt_version=prompt_version,
             knowledge_bank_version=knowledge_bank_version,
+            knowledge_bank_source=knowledge_bank_source,
             test_case_id=test_case_id,
         )
         self.store.append(record)

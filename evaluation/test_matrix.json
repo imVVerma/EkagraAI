@@ -1,0 +1,202 @@
+{
+  "_comment": [
+    "The evaluation test matrix for the two-LLM experiment against the v3 bank.",
+    "",
+    "This file is the index and the grid; the supporting definitions live in sibling",
+    "files and are referenced by `sources` below, so there is exactly one definition",
+    "of each thing and the matrix cannot drift from the profiles it claims to test.",
+    "",
+    "A cell is one scripted teach -> checkpoint -> respond -> score -> recover cycle,",
+    "driven by a simulated learner profile. The harness plays LLM2 from the profile,",
+    "lets LLM1 (the tutor, once wired) produce the turn, then asserts the expected",
+    "outcome. Until the tutor is wired, cells can be run against the deterministic",
+    "reference in backend/scoring_service.py as a baseline; cells that diverge there",
+    "are recorded, not counted as tutor failures.",
+    "",
+    "Nothing here is wired into backend/server.py. The deterministic runtime keeps",
+    "loading the v1 bank; these artifacts target the v3 bank by explicit path.",
+    "",
+    "Run order is deliberate: level progression first (does the tutor teach at all),",
+    "then global rules (does it handle the edge turns), then pedagogy coverage (can",
+    "each approach carry a pass), then retry and exhaustion (does it fail forward)."
+  ],
+
+  "schema_version": "ekagra-test-matrix-v1",
+  "name": "EkagraAI tutor evaluation matrix (v3 bank)",
+  "knowledge_bank": {
+    "path": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+    "source_markdown": "Resources/arthashastra-solo-knowledge-bank-v3.md",
+    "version": "3",
+    "counts": {
+      "anchors": 6,
+      "recall_items": 31,
+      "transitions": 4,
+      "cases": 12,
+      "checkpoints": 10,
+      "branching_rules": 14,
+      "assessment_sets": 36,
+      "global_rules": 5
+    }
+  },
+
+  "sources": {
+    "learner_profiles": "evaluation/learner_profiles.json",
+    "transition_coverage": "evaluation/transition_coverage.json",
+    "pedagogy_failure_cases": "evaluation/pedagogy_failure_cases.json",
+    "retry_checks": "evaluation/retry_checks.json",
+    "progression_rules": "evaluation/progression_rules.json",
+    "coverage_report_schema": "evaluation/coverage_report.schema.json"
+  },
+
+  "llm_foundation": {
+    "_comment": "Roles and version stamps the harness must attach to every run record.",
+    "roles": {
+      "tutor": {"env": "EKAGRA_TUTOR_MODEL", "agent": "tutor", "description": "LLM1, the tutor"},
+      "evaluator": {"env": "EKAGRA_EVALUATOR_MODEL", "agent": "evaluator", "description": "LLM2, the simulated learner / judge"}
+    },
+    "prompt_version_default": "ekagra-llm-foundation-v1",
+    "knowledge_bank_version_fn": "backend.llm.config.knowledge_bank_version",
+    "usage_log": "logs/api_usage.jsonl",
+    "cost_summary": "logs/cost_summary.json",
+    "budget_env": {
+      "request": "EKAGRA_MAX_REQUEST_COST_USD",
+      "session": "EKAGRA_MAX_SESSION_COST_USD",
+      "experiment": "EKAGRA_MAX_EXPERIMENT_COST_USD"
+    }
+  },
+
+  "dimensions": {
+    "transitions": ["C1", "C2", "C3", "C4"],
+    "pedagogies": ["Worked Example", "Guided Questioning", "Contrasting Cases"],
+    "cases_by_transition": {
+      "C1": ["1A", "1B", "1C"],
+      "C2": ["2A", "2B", "2C"],
+      "C3": ["3A", "3B", "3C"],
+      "C4": ["4A", "4B", "4C"]
+    },
+    "profiles_source": "evaluation/learner_profiles.json#profiles[].id",
+    "global_rules": [
+      "refusal_or_meta_answer",
+      "copy_paste_case",
+      "overlong_non_answer",
+      "correct_vocabulary_wrong_application",
+      "moral_objection"
+    ]
+  },
+
+  "cell_schema": {
+    "id": "string, unique within the matrix",
+    "group": "one of level_progression | global_rules | pedagogy_coverage | retry_pass | exhaustion | scenario_retry",
+    "transition_id": "C1..C4",
+    "case_id": "case id, or null when the cell starts at the transition's first case",
+    "pedagogy": "a pedagogy name, or 'any' when order is random",
+    "profile_id": "a profile id from learner_profiles.json",
+    "runner": "deterministic | llm",
+    "expected": {
+      "target_signature_met": "boolean, or null when only the recovery outcome is asserted",
+      "assigned_solo_level": "expected level, or null when not asserted",
+      "status": "pass | fail | intervention | manual_review | session_complete",
+      "recovery": "null | intervention | manual_review",
+      "same_case_on_retry": "boolean or null",
+      "pedagogies_distinct": "boolean or null",
+      "next_transition": "transition id or null"
+    },
+    "expected_invariants": "list of progression rule ids that must hold for this cell",
+    "checks": "list of assertion strings the harness records per cell"
+  },
+
+  "cells": [
+    {"id": "A-C1-pass", "group": "level_progression", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": true, "assigned_solo_level": "unistructural", "status": "pass", "recovery": null, "next_transition": "C2"}, "expected_invariants": ["PROG-PASS-ADVANCE", "PROG-ATTEMPT-COUNT"]},
+    {"id": "A-C1-fail", "group": "level_progression", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "prestructural", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY", "PROG-SCENARIO-FIXED"]},
+    {"id": "A-C2-pass", "group": "level_progression", "transition_id": "C2", "case_id": "2A", "pedagogy": "any", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": true, "assigned_solo_level": "multistructural", "status": "pass", "recovery": null, "next_transition": "C3"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "A-C2-fail", "group": "level_progression", "transition_id": "C2", "case_id": "2A", "pedagogy": "any", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "unistructural", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"]},
+    {"id": "A-C3-pass", "group": "level_progression", "transition_id": "C3", "case_id": "3A", "pedagogy": "any", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": true, "assigned_solo_level": "relational", "status": "pass", "recovery": null, "next_transition": "C4"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "A-C3-fail", "group": "level_progression", "transition_id": "C3", "case_id": "3A", "pedagogy": "any", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "multistructural", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"]},
+    {"id": "A-C3-false-positive", "group": "level_progression", "transition_id": "C3", "case_id": "3A", "pedagogy": "any", "profile_id": "relational_without_complication", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"], "checks": ["C3 CP1 met, CP2/CP3 not met", "must not advance out of C3"]},
+    {"id": "A-C4-pass", "group": "level_progression", "transition_id": "C4", "case_id": "4A", "pedagogy": "any", "profile_id": "extended_abstract_with_condition", "runner": "llm", "expected": {"target_signature_met": true, "assigned_solo_level": "extended_abstract", "status": "session_complete", "recovery": null, "next_transition": null}, "expected_invariants": ["PROG-PASS-COMPLETE"]},
+    {"id": "A-C4-fail", "group": "level_progression", "transition_id": "C4", "case_id": "4A", "pedagogy": "any", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "relational", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"]},
+
+    {"id": "B-refusal", "group": "global_rules", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "refusal_meta_answer", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "prestructural", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"]},
+    {"id": "B-copy-paste", "group": "global_rules", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "copy_paste_case", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "prestructural", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"]},
+    {"id": "B-overlong-hedge", "group": "global_rules", "transition_id": "C3", "case_id": "3A", "pedagogy": "any", "profile_id": "overlong_hedge", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "capped_at_multistructural", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"], "checks": ["never credited relational or extended_abstract"]},
+    {"id": "B-vocab-trap", "group": "global_rules", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "correct_vocabulary_wrong_application", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "reclassify_by_substance", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"], "checks": ["classify by described substance (danda), not surface term (sandhi)"]},
+    {"id": "B-moral-objection", "group": "global_rules", "transition_id": "C4", "case_id": "4A", "pedagogy": "any", "profile_id": "moral_objection", "runner": "llm", "expected": {"target_signature_met": false, "assigned_solo_level": "reclassify_by_reasoning_structure", "status": "fail", "recovery": null}, "expected_invariants": ["PROG-FAIL-RETRY"], "checks": ["scored on reasoning structure, not agreement with the doctrine"]},
+
+    {"id": "C-C1-Worked-Example", "group": "pedagogy_coverage", "transition_id": "C1", "case_id": "1A", "pedagogy": "Worked Example", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C2"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C1-Guided-Questioning", "group": "pedagogy_coverage", "transition_id": "C1", "case_id": "1A", "pedagogy": "Guided Questioning", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C2"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C1-Contrasting-Cases", "group": "pedagogy_coverage", "transition_id": "C1", "case_id": "1A", "pedagogy": "Contrasting Cases", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C2"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C2-Worked-Example", "group": "pedagogy_coverage", "transition_id": "C2", "case_id": "2A", "pedagogy": "Worked Example", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C3"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C2-Guided-Questioning", "group": "pedagogy_coverage", "transition_id": "C2", "case_id": "2A", "pedagogy": "Guided Questioning", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C3"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C2-Contrasting-Cases", "group": "pedagogy_coverage", "transition_id": "C2", "case_id": "2A", "pedagogy": "Contrasting Cases", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C3"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C3-Worked-Example", "group": "pedagogy_coverage", "transition_id": "C3", "case_id": "3A", "pedagogy": "Worked Example", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C4"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C3-Guided-Questioning", "group": "pedagogy_coverage", "transition_id": "C3", "case_id": "3A", "pedagogy": "Guided Questioning", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C4"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C3-Contrasting-Cases", "group": "pedagogy_coverage", "transition_id": "C3", "case_id": "3A", "pedagogy": "Contrasting Cases", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": true, "status": "pass", "recovery": null, "next_transition": "C4"}, "expected_invariants": ["PROG-PASS-ADVANCE"]},
+    {"id": "C-C4-Worked-Example", "group": "pedagogy_coverage", "transition_id": "C4", "case_id": "4A", "pedagogy": "Worked Example", "profile_id": "extended_abstract_with_condition", "runner": "llm", "expected": {"target_signature_met": true, "status": "session_complete", "recovery": null, "next_transition": null}, "expected_invariants": ["PROG-PASS-COMPLETE"]},
+    {"id": "C-C4-Guided-Questioning", "group": "pedagogy_coverage", "transition_id": "C4", "case_id": "4A", "pedagogy": "Guided Questioning", "profile_id": "extended_abstract_with_condition", "runner": "llm", "expected": {"target_signature_met": true, "status": "session_complete", "recovery": null, "next_transition": null}, "expected_invariants": ["PROG-PASS-COMPLETE"]},
+    {"id": "C-C4-Contrasting-Cases", "group": "pedagogy_coverage", "transition_id": "C4", "case_id": "4A", "pedagogy": "Contrasting Cases", "profile_id": "extended_abstract_with_condition", "runner": "llm", "expected": {"target_signature_met": true, "status": "session_complete", "recovery": null, "next_transition": null}, "expected_invariants": ["PROG-PASS-COMPLETE"]},
+
+    {"id": "D-C1-retry-pass", "group": "retry_pass", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true, "pedagogies_distinct": true}, "expected_invariants": ["PROG-FAIL-RETRY", "PROG-SCENARIO-FIXED"]},
+    {"id": "D-C2-retry-pass", "group": "retry_pass", "transition_id": "C2", "case_id": "2A", "pedagogy": "any", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true, "pedagogies_distinct": true}, "expected_invariants": ["PROG-FAIL-RETRY", "PROG-SCENARIO-FIXED"]},
+    {"id": "D-C3-retry-pass", "group": "retry_pass", "transition_id": "C3", "case_id": "3A", "pedagogy": "any", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true, "pedagogies_distinct": true}, "expected_invariants": ["PROG-FAIL-RETRY", "PROG-SCENARIO-FIXED"]},
+    {"id": "D-C4-retry-pass", "group": "retry_pass", "transition_id": "C4", "case_id": "4A", "pedagogy": "any", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true, "pedagogies_distinct": true}, "expected_invariants": ["PROG-FAIL-RETRY", "PROG-SCENARIO-FIXED"]},
+
+    {"id": "E-C1-1A-intervention", "group": "exhaustion", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "intervention", "recovery": "intervention", "same_case_on_retry": false}, "expected_invariants": ["PROG-FAIL-INTERVENE"]},
+    {"id": "E-C1-1C-manual-review", "group": "exhaustion", "transition_id": "C1", "case_id": "1C", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "manual_review", "recovery": "manual_review", "same_case_on_retry": true}, "expected_invariants": ["PROG-FAIL-MANUAL-REVIEW"]},
+    {"id": "E-C2-2A-intervention", "group": "exhaustion", "transition_id": "C2", "case_id": "2A", "pedagogy": "any", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": false, "status": "intervention", "recovery": "intervention", "same_case_on_retry": false}, "expected_invariants": ["PROG-FAIL-INTERVENE"]},
+    {"id": "E-C2-2C-manual-review", "group": "exhaustion", "transition_id": "C2", "case_id": "2C", "pedagogy": "any", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": false, "status": "manual_review", "recovery": "manual_review", "same_case_on_retry": true}, "expected_invariants": ["PROG-FAIL-MANUAL-REVIEW"]},
+    {"id": "E-C3-3A-intervention", "group": "exhaustion", "transition_id": "C3", "case_id": "3A", "pedagogy": "any", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": false, "status": "intervention", "recovery": "intervention", "same_case_on_retry": false}, "expected_invariants": ["PROG-FAIL-INTERVENE"]},
+    {"id": "E-C3-3C-manual-review", "group": "exhaustion", "transition_id": "C3", "case_id": "3C", "pedagogy": "any", "profile_id": "multistructural_tool_list", "runner": "llm", "expected": {"target_signature_met": false, "status": "manual_review", "recovery": "manual_review", "same_case_on_retry": true}, "expected_invariants": ["PROG-FAIL-MANUAL-REVIEW"]},
+    {"id": "E-C4-4A-intervention", "group": "exhaustion", "transition_id": "C4", "case_id": "4A", "pedagogy": "any", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": false, "status": "intervention", "recovery": "intervention", "same_case_on_retry": false}, "expected_invariants": ["PROG-FAIL-INTERVENE"]},
+    {"id": "E-C4-4C-manual-review", "group": "exhaustion", "transition_id": "C4", "case_id": "4C", "pedagogy": "any", "profile_id": "relational_reconciliation", "runner": "llm", "expected": {"target_signature_met": false, "status": "manual_review", "recovery": "manual_review", "same_case_on_retry": true}, "expected_invariants": ["PROG-FAIL-MANUAL-REVIEW"]},
+
+    {"id": "F-RETRY-01", "group": "scenario_retry", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true}, "expected_invariants": ["PROG-SCENARIO-FIXED"], "checks": ["scenario_text byte-stable across two failures"]},
+    {"id": "F-RETRY-03", "group": "scenario_retry", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true}, "expected_invariants": ["PROG-SCENARIO-FIXED"], "checks": ["question variants rotate round-robin without repeats"]},
+    {"id": "F-RETRY-04", "group": "scenario_retry", "transition_id": "C1", "case_id": "1A", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "intervention", "recovery": "intervention", "same_case_on_retry": false}, "expected_invariants": ["PROG-FAIL-INTERVENE"], "checks": ["intervention changes case to 1B and scenario differs"]},
+    {"id": "F-RETRY-05", "group": "scenario_retry", "transition_id": "C1", "case_id": "1C", "pedagogy": "any", "profile_id": "prestructural_transduction", "runner": "llm", "expected": {"target_signature_met": false, "status": "manual_review", "recovery": "manual_review", "same_case_on_retry": true}, "expected_invariants": ["PROG-FAIL-MANUAL-REVIEW"], "checks": ["manual_review freezes case and scenario"]},
+    {"id": "F-RETRY-06", "group": "scenario_retry", "transition_id": "C2", "case_id": "2A", "pedagogy": "any", "profile_id": "unistructural_single_tool", "runner": "llm", "expected": {"target_signature_met": false, "status": "fail", "recovery": null, "same_case_on_retry": true}, "expected_invariants": ["PROG-SCENARIO-FIXED"], "checks": ["scenario fixed across the retry; pass advances transition, not case"]}
+  ],
+
+  "coverage_requirements": {
+    "source": "evaluation/transition_coverage.json",
+    "rule": "A run is complete only when every global and per-transition requirement in that file holds; cells_run alone is not coverage.",
+    "planned_cells": 43
+  },
+
+  "runner": {
+    "deterministic": {
+      "description": "Baseline: feed each profile's sample_response to backend/scoring_service.score_response with the transition's target_signature and the case's level_examples.",
+      "entry_point": "backend.scoring_service.score_response",
+      "network": false,
+      "api_key_required": false
+    },
+    "llm": {
+      "description": "Two-agent run: LLM1 produces the teaching/checkpoint/intervention turn; LLM2 plays the profile and/or judges the turn. Requires wiring, which is out of scope for this artifact.",
+      "entry_point": "backend.llm.openrouter_client.OpenRouterClient (not yet wired to the tutor loop)",
+      "network": true,
+      "api_key_required": true,
+      "guarded_by": "backend.llm.budget.BudgetGuard",
+      "stamps": ["knowledge_bank.sha256", "prompt_version", "tutor_model", "evaluator_model"]
+    }
+  },
+
+  "scoring": {
+    "gate": "target_signature_met from the transition, not the SOLO label",
+    "per_cell_checks": [
+      "expected.target_signature_met",
+      "expected.assigned_solo_level when not null",
+      "expected.status and expected.recovery",
+      "every progression rule id in expected_invariants",
+      "each assertion string in checks"
+    ],
+    "tutor_verdict": "Only runner='llm' cells decide the tutor. runner='deterministic' cells populate baseline_divergences_observed and never count as tutor failures.",
+    "output": "evaluation/coverage_report.schema.json"
+  },
+
+  "out_of_scope": [
+    "wiring the tutor or evaluator into backend/server.py",
+    "changing the default knowledge bank loaded by backend/content_loader.py",
+    "editing the v3 markdown or the v3 JSON by hand",
+    "using openrouter/free or any model id absent from config/benchmark.json",
+    "treating the deterministic scorer's divergences as tutor regressions"
+  ]
+}

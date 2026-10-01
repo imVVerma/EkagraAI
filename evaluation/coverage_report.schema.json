@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ekagraai.local/evaluation/coverage_report.schema.json",
+  "title": "EkagraAI evaluation coverage report",
+  "description": "Format of the report a run of evaluation/test_matrix.json emits. Coverage is reported as a numerator and a denominator against transition_coverage.json, never as a bare pass count, so a run that skips C4 by passing early cannot look complete. Provenance is part of the format: a coverage figure that cannot be tied to a bank hash, a prompt version and a model pair is not comparable to another run.",
+  "_comment": [
+    "The report answers one question first: did the run exercise everything the",
+    "coverage requirements demand? Provenance is stamped at run time because the",
+    "bank may change between runs; two runs with different bank hashes must never be",
+    "aggregated as if they measured the same content."
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "generated_at",
+    "provenance",
+    "summary",
+    "coverage",
+    "per_transition",
+    "failures"
+  ],
+  "properties": {
+    "schema_version": {"const": "ekagra-coverage-report-v1"},
+    "run_id": {
+      "type": "string",
+      "description": "Stable identifier for this run; used to correlate logs/api_usage.jsonl entries."
+    },
+    "generated_at": {"type": "string", "format": "date-time"},
+    "duration_seconds": {"type": "number", "minimum": 0},
+
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["knowledge_bank", "prompt_version", "tutor_model", "evaluator_model"],
+      "properties": {
+        "knowledge_bank": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "version"],
+          "properties": {
+            "path": {"type": "string"},
+            "version": {"type": "string"},
+            "sha256": {
+              "type": "string",
+              "description": "Hash of the bank bytes at run time, as returned by backend.llm.config.knowledge_bank_version for an explicit path."
+            }
+          }
+        },
+        "prompt_version": {"type": "string"},
+        "tutor_model": {"type": "string", "description": "EKAGRA_TUTOR_MODEL (LLM1)."},
+        "evaluator_model": {"type": "string", "description": "EKAGRA_EVALUATOR_MODEL (LLM2)."}
+      }
+    },
+
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cells_planned", "cells_run", "cells_passed", "cells_failed", "coverage_complete"],
+      "properties": {
+        "cells_planned": {"type": "integer", "minimum": 0},
+        "cells_run": {"type": "integer", "minimum": 0},
+        "cells_passed": {"type": "integer", "minimum": 0},
+        "cells_failed": {"type": "integer", "minimum": 0},
+        "cells_error": {"type": "integer", "minimum": 0, "description": "Cells that raised before producing an outcome."},
+        "pass_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "coverage_complete": {
+          "type": "boolean",
+          "description": "True only when every requirement in transition_coverage.json is satisfied."
+        }
+      }
+    },
+
+    "coverage": {
+      "type": "object",
+      "description": "Each dimension reports required, observed and missing ids.",
+      "additionalProperties": false,
+      "required": ["transitions", "cases", "pedagogies", "solo_levels", "global_rules", "recovery_outcomes", "profiles"],
+      "patternProperties": {
+        "^(transitions|cases|pedagogies|solo_levels|global_rules|recovery_outcomes|profiles)$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "observed", "missing", "complete"],
+          "properties": {
+            "required": {"type": "array", "items": {"type": "string"}},
+            "observed": {"type": "array", "items": {"type": "string"}},
+            "missing": {"type": "array", "items": {"type": "string"}},
+            "complete": {"type": "boolean"}
+          }
+        }
+      }
+    },
+
+    "per_transition": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["transition_id", "cases", "pedagogies", "pass_path", "fail_path", "retry_path", "intervention_path", "manual_review_path"],
+        "properties": {
+          "transition_id": {"enum": ["C1", "C2", "C3", "C4"]},
+          "cases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "executed", "pass_observed", "fail_observed", "scenario_stable_on_retry"],
+              "properties": {
+                "case_id": {"type": "string"},
+                "executed": {"type": "boolean"},
+                "pass_observed": {"type": "boolean"},
+                "fail_observed": {"type": "boolean"},
+                "scenario_stable_on_retry": {"type": ["boolean", "null"]},
+                "intervention_observed": {"type": "boolean"},
+                "manual_review_observed": {"type": "boolean"}
+              }
+            }
+          },
+          "pedagogies": {
+            "type": "object",
+            "additionalProperties": {"type": "boolean"},
+            "description": "Pedagogy name -> observed."
+          },
+          "pass_path": {"type": "boolean"},
+          "fail_path": {"type": "boolean"},
+          "retry_path": {"type": "boolean"},
+          "intervention_path": {"type": "boolean"},
+          "manual_review_path": {"type": "boolean"}
+        }
+      }
+    },
+
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cell_id", "expected", "actual"],
+        "properties": {
+          "cell_id": {"type": "string"},
+          "transition_id": {"type": "string"},
+          "case_id": {"type": "string"},
+          "profile_id": {"type": "string"},
+          "rule_id": {"type": "string"},
+          "expected": {"type": "object"},
+          "actual": {"type": "object"},
+          "detail": {"type": "string"}
+        }
+      }
+    },
+
+    "baseline_divergences_observed": {
+      "type": "array",
+      "description": "Profiles where the deterministic scorer disagreed with the bank's label, carried up from learner_profiles.json.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["profile_id", "expected", "scorer"],
+        "properties": {
+          "profile_id": {"type": "string"},
+          "expected": {"type": "string"},
+          "scorer": {"type": "string"},
+          "detail": {"type": "string"}
+        }
+      }
+    },
+
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": {"type": "integer", "minimum": 0},
+        "tokens_prompt": {"type": "integer", "minimum": 0},
+        "tokens_completion": {"type": "integer", "minimum": 0},
+        "cost_usd": {"type": "number", "minimum": 0},
+        "cost_source": {
+          "type": "string",
+          "description": "One of the COST_SOURCE_* constants in backend/llm/usage_store.py.",
+          "enum": [
+            "openrouter_usage",
+            "openrouter_generation",
+            "estimated_from_pricing",
+            "unpriced"
+          ]
+        },
+        "budget_exceeded": {"type": "boolean"},
+        "within_request_ceiling": {"type": "boolean"},
+        "within_session_ceiling": {"type": "boolean"},
+        "within_experiment_ceiling": {"type": "boolean"}
+      }
+    },
+
+    "notes": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+
+  "examples": [
+    {
+      "schema_version": "ekagra-coverage-report-v1",
+      "run_id": "2026-10-01T06:30:00Z-c1-qwen",
+      "generated_at": "2026-10-01T06:31:12Z",
+      "duration_seconds": 72.4,
+      "provenance": {
+        "knowledge_bank": {
+          "path": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+          "version": "3",
+          "sha256": "sha256:0000000000000000"
+        },
+        "prompt_version": "ekagra-llm-foundation-v1",
+        "tutor_model": "qwen/qwen3.8-27b:free",
+        "evaluator_model": "google/gemma-4-31b-it:free"
+      },
+      "summary": {
+        "cells_planned": 43,
+        "cells_run": 43,
+        "cells_passed": 40,
+        "cells_failed": 3,
+        "cells_error": 0,
+        "pass_rate": 0.9268,
+        "coverage_complete": true
+      },
+      "coverage": {
+        "transitions": {"required": ["C1", "C2", "C3", "C4"], "observed": ["C1", "C2", "C3", "C4"], "missing": [], "complete": true},
+        "cases": {"required": ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C", "4A", "4B", "4C"], "observed": ["1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C", "4A", "4B", "4C"], "missing": [], "complete": true},
+        "pedagogies": {"required": ["Worked Example", "Guided Questioning", "Contrasting Cases"], "observed": ["Worked Example", "Guided Questioning", "Contrasting Cases"], "missing": [], "complete": true},
+        "solo_levels": {"required": ["prestructural", "unistructural", "multistructural", "relational", "extended_abstract"], "observed": ["prestructural", "unistructural", "multistructural", "relational", "extended_abstract"], "missing": [], "complete": true},
+        "global_rules": {"required": ["refusal_or_meta_answer", "copy_paste_case", "overlong_non_answer", "correct_vocabulary_wrong_application", "moral_objection"], "observed": ["refusal_or_meta_answer", "copy_paste_case", "overlong_non_answer", "correct_vocabulary_wrong_application", "moral_objection"], "missing": [], "complete": true},
+        "recovery_outcomes": {"required": ["pass_to_next_transition", "fail_retry_new_pedagogy", "intervention", "manual_review", "session_complete"], "observed": ["pass_to_next_transition", "fail_retry_new_pedagogy", "intervention", "manual_review", "session_complete"], "missing": [], "complete": true},
+        "profiles": {"required": ["refusal_meta_answer", "unistructural_single_tool", "relational_reconciliation", "extended_abstract_with_condition"], "observed": ["refusal_meta_answer", "unistructural_single_tool", "relational_reconciliation", "extended_abstract_with_condition"], "missing": [], "complete": true}
+      },
+      "per_transition": [],
+      "failures": [],
+      "budget": {
+        "requests": 164,
+        "tokens_prompt": 120000,
+        "tokens_completion": 41000,
+        "cost_usd": 0.0,
+        "cost_source": "openrouter_usage",
+        "budget_exceeded": false,
+        "within_request_ceiling": true,
+        "within_session_ceiling": true,
+        "within_experiment_ceiling": true
+      },
+      "notes": [
+        "3 failures all in the C4 boundary-condition checkpoint."
+      ]
+    }
+  ]
+}

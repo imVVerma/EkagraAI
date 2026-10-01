@@ -1,0 +1,160 @@
+{
+  "_comment": [
+    "Expected progression rules for the deterministic loop, expressed as machine-",
+    "checkable pre/post conditions. The harness drives the loop with a simulated",
+    "learner and asserts these after every turn.",
+    "",
+    "The single decision variable is `target_signature_met`, returned by",
+    "backend/scoring_service.score_response. The assigned SOLO level is recorded for",
+    "research but does not gate progression; the transition's target_signature does.",
+    "",
+    "Rules are ordered by priority: the first matching rule is the one the harness",
+    "expects, so a later rule never masks an earlier one."
+  ],
+
+  "schema_version": "ekagra-progression-rules-v1",
+  "knowledge_bank": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+
+  "decision_variable": {
+    "name": "target_signature_met",
+    "type": "boolean",
+    "produced_by": "backend/scoring_service.score_response",
+    "note": "Promotion is gated on the transition's own target_signature, not on the SOLO label."
+  },
+
+  "level_ladder": {
+    "_comment": "Each transition advances exactly one SOLO level; the bank enforces this.",
+    "C1": {"from": "prestructural", "to": "unistructural"},
+    "C2": {"from": "unistructural", "to": "multistructural"},
+    "C3": {"from": "multistructural", "to": "relational"},
+    "C4": {"from": "relational", "to": "extended_abstract"}
+  },
+
+  "rules": [
+    {
+      "id": "PROG-PASS-ADVANCE",
+      "priority": 1,
+      "when": "target_signature_met == true AND transition_idx < transition_count-1",
+      "then": {
+        "status": "pass",
+        "outcome": "pass",
+        "transition_idx": "previous + 1",
+        "pedagogy_pool": "fresh 3",
+        "used_pool": "empty",
+        "attempt_number": 1,
+        "pending_recovery": "cleared",
+        "next_transition": "the next transition id"
+      }
+    },
+    {
+      "id": "PROG-PASS-COMPLETE",
+      "priority": 2,
+      "when": "target_signature_met == true AND transition_idx == transition_count-1",
+      "then": {
+        "status": "pass",
+        "outcome": "pass",
+        "session_complete": true,
+        "next_transition": null
+      }
+    },
+    {
+      "id": "PROG-FAIL-RETRY",
+      "priority": 3,
+      "when": "target_signature_met == false AND has_available_pedagogy() == true",
+      "then": {
+        "status": "fail",
+        "outcome": "not_yet",
+        "pedagogy": "a pedagogy from the remaining pool, held pending",
+        "case_id": "unchanged",
+        "scenario_text": "unchanged",
+        "session_complete": false
+      }
+    },
+    {
+      "id": "PROG-FAIL-INTERVENE",
+      "priority": 4,
+      "when": "target_signature_met == false AND has_available_pedagogy() == false AND case_idx < case_count-1",
+      "then": {
+        "status": "intervention",
+        "outcome": "not_yet",
+        "kind": "intervention",
+        "case_id": "next case in the transition",
+        "scenario_text": "changed (new case)",
+        "pedagogy_pool": "fresh 3",
+        "used_pool": "empty",
+        "interventions": "incremented by 1",
+        "session_complete": false
+      }
+    },
+    {
+      "id": "PROG-FAIL-MANUAL-REVIEW",
+      "priority": 5,
+      "when": "target_signature_met == false AND has_available_pedagogy() == false AND case_idx == case_count-1",
+      "then": {
+        "status": "manual_review",
+        "outcome": "not_yet",
+        "kind": "manual_review",
+        "case_id": "unchanged",
+        "scenario_text": "unchanged",
+        "session_complete": true,
+        "session_preserved": true
+      }
+    },
+    {
+      "id": "PROG-ATTEMPT-COUNT",
+      "priority": 6,
+      "when": "a response is scored",
+      "then": {
+        "attempt_number": "responses scored on the current transition so far",
+        "resets": "only when the transition id changes"
+      }
+    },
+    {
+      "id": "PROG-PEDAGOGY-BOUND",
+      "priority": 7,
+      "when": "drawing a pedagogy within one case attempt cycle",
+      "then": {
+        "max_distinct_pedagogies": 3,
+        "no_repeats": true,
+        "source": "backend/state_machine.ALL_PEDAGOGIES"
+      }
+    },
+    {
+      "id": "PROG-SCENARIO-FIXED",
+      "priority": 8,
+      "when": "retrying or reteaching within one case",
+      "then": {
+        "case_id": "unchanged",
+        "scenario_text": "byte-identical",
+        "only_changing": ["pedagogy", "assessment question-set", "variant"]
+      }
+    },
+    {
+      "id": "PROG-RELOAD-SAFE",
+      "priority": 9,
+      "when": "the client reloads and calls GET /api/next",
+      "then": {
+        "pending_step": "served from server state",
+        "repeat_decision": false,
+        "stranded_on_dead_end": false
+      }
+    },
+    {
+      "id": "PROG-INTERVENTION-COUNT",
+      "priority": 10,
+      "when": "an intervention fires on a transition",
+      "then": {
+        "interventions[transition_id]": "previous + 1",
+        "reset_on_transition_change": false
+      }
+    }
+  ],
+
+  "forbidden_outcomes": [
+    "advancing without target_signature_met == true",
+    "changing the case on an ordinary retry (no intervention)",
+    "repeating a pedagogy within one case attempt cycle",
+    "serving a fourth pedagogy instead of recovering",
+    "resetting or destroying session history on manual_review"
+  ]
+}

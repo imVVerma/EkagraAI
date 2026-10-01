@@ -1,0 +1,130 @@
+{
+  "_comment": [
+    "Same-scenario retry checks.",
+    "",
+    "The v3 bank's architecture note 3 is the contract: 'Scenario stays fixed within",
+    "a transition even across pedagogy switches after a failed assessment; only",
+    "pedagogy style and assessment question-set change.'",
+    "",
+    "A retry is a failure followed by another teaching turn, not a new case. The case",
+    "may only change when the pedagogy pool is exhausted and the tutor intervenes; at",
+    "that point the scenario is *supposed* to change because the learner moves to the",
+    "next case in the transition.",
+    "",
+    "These checks compare the exact scenario_text bytes and the case id across turns,",
+    "and verify the question variant rotates instead of repeating."
+  ],
+
+  "schema_version": "ekagra-retry-checks-v1",
+  "knowledge_bank": "Resources/arthashastra-solo-knowledge-bank-v3.json",
+
+  "invariants": {
+    "scenario_fixed_on_retry": true,
+    "case_id_fixed_on_retry": true,
+    "title_fixed_on_retry": true,
+    "pedagogy_changes_on_retry": true,
+    "question_variant_rotates_on_retry": true,
+    "question_variant_never_repeats_until_exhausted": true,
+    "scenario_changes_on_intervention": true,
+    "scenario_unchanged_on_manual_review": true
+  },
+
+  "checks": [
+    {
+      "id": "RETRY-01-scenario-byte-stable",
+      "transition_id": "C1",
+      "case_id": "1A",
+      "profile_id": "prestructural_transduction",
+      "action": "fail the C1 target twice with two different pedagogies",
+      "assertions": [
+        "case_id == '1A' after the first failure and after the second",
+        "scenario_text after the second failure is byte-identical to after the first",
+        "title == 'Border Aggression' throughout"
+      ],
+      "source": "backend/server.py checkpoint_payload + state_machine.current_case; v3 architecture_notes[2]"
+    },
+    {
+      "id": "RETRY-02-pedagogy-distinct",
+      "transition_id": "C1",
+      "case_id": "1A",
+      "profile_id": "prestructural_transduction",
+      "action": "fail until the pedagogy pool is exhausted",
+      "assertions": [
+        "the three teaching turns use three distinct pedagogy names",
+        "the fourth draw returns None / 'All pedagogies tried'",
+        "used_pool has three entries and no duplicates"
+      ],
+      "source": "backend/state_machine.py select_pedagogy"
+    },
+    {
+      "id": "RETRY-03-variant-rotation",
+      "transition_id": "C1",
+      "case_id": "1A",
+      "profile_id": "prestructural_transduction",
+      "action": "collect the checkpoint question on four successive visits to the same case",
+      "assertions": [
+        "the first three questions are the case's three question_variants, each once",
+        "the fourth visit wraps to the first variant (round-robin after exhaustion)",
+        "no variant repeats before all three have been served"
+      ],
+      "source": "backend/server.py select_question_variant"
+    },
+    {
+      "id": "RETRY-04-intervention-changes-scenario",
+      "transition_id": "C1",
+      "case_seq": ["1A", "1B", "1C"],
+      "profile_id": "prestructural_transduction",
+      "action": "exhaust all three pedagogies on each case in turn",
+      "assertions": [
+        "after intervention on 1A the case_id becomes '1B' and the scenario_text differs",
+        "after intervention on 1B the case_id becomes '1C' and the scenario_text differs",
+        "the reused question index is cleared for the new case",
+        "after intervention the pedagogy pool is a fresh 3 and used_pool is empty"
+      ],
+      "source": "backend/server.py build_intervention + state_machine.next_case/reset_pedagogy_pool"
+    },
+    {
+      "id": "RETRY-05-manual-review-freezes-scenario",
+      "transition_id": "C1",
+      "case_id": "1C",
+      "profile_id": "prestructural_transduction",
+      "action": "exhaust all three pedagogies on the last case of the transition",
+      "assertions": [
+        "recovery kind is 'manual_review'",
+        "case_id is still '1C' and scenario_text is unchanged",
+        "session is preserved: history and prior attempts remain readable",
+        "no further teaching turn is served"
+      ],
+      "source": "backend/server.py build_manual_review + raise_recovery"
+    },
+    {
+      "id": "RETRY-06-scenario-fixed-across-transition",
+      "transition_id": "C2",
+      "case_id": "2A",
+      "profile_id": "unistructural_single_tool",
+      "action": "fail the C2 target, then pass on a second pedagogy",
+      "assertions": [
+        "case_id remains '2A' across the retry",
+        "scenario_text is byte-identical across the retry",
+        "the passing retry advances to C2's next transition (C3), not to 2B"
+      ],
+      "source": "backend/server.py do_POST advance_transition branch"
+    }
+  ],
+
+  "question_variant_case_samples": {
+    "_comment": "Every case must supply at least three variants for rotation to be observable.",
+    "1A": 3,
+    "1B": 3,
+    "1C": 3,
+    "2A": 3,
+    "2B": 3,
+    "2C": 3,
+    "3A": 3,
+    "3B": 3,
+    "3C": 3,
+    "4A": 3,
+    "4B": 3,
+    "4C": 3
+  }
+}

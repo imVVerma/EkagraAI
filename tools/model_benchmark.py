@@ -31,7 +31,12 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from backend.content_loader import load_knowledge_bank  # noqa: E402
-from backend.llm.config import PROJECT_ROOT, knowledge_bank_version, load_config  # noqa: E402
+from backend.llm.config import (  # noqa: E402
+    PROJECT_ROOT,
+    knowledge_bank_provenance,
+    knowledge_bank_version,
+    load_config,
+)
 from backend.llm.errors import (  # noqa: E402
     BudgetExceededError,
     EkagraLLMError,
@@ -93,6 +98,7 @@ def usd(value, places: int = 4) -> str:
 
 
 def run_one(client, task: Task, model: str, *, session_id: str, kb_version: str,
+            kb_provenance: dict,
             results_path: str, allow_fallback_on_400: bool = True) -> dict:
     """Run one task against one model and return its result record.
 
@@ -110,6 +116,8 @@ def run_one(client, task: Task, model: str, *, session_id: str, kb_version: str,
         "task_name": task.name,
         "prompt_version": PROMPT_VERSION,
         "knowledge_bank_version": kb_version,
+        "knowledge_bank_release": kb_provenance["version"],
+        "knowledge_bank_source": kb_provenance["source"],
         "session_id": session_id,
         "input": {"system": task.system, "user": task.user},
         "max_tokens": task.max_tokens,
@@ -138,6 +146,7 @@ def run_one(client, task: Task, model: str, *, session_id: str, kb_version: str,
             strict_model=True,
             prompt_version=PROMPT_VERSION,
             knowledge_bank_version=kb_version,
+            knowledge_bank_source=kb_provenance["source"],
             test_case_id=task.task_id,
         )
 
@@ -216,7 +225,7 @@ def run_one(client, task: Task, model: str, *, session_id: str, kb_version: str,
     return record
 
 
-def aggregate(records, models, tasks, kb_version) -> dict:
+def aggregate(records, models, tasks, kb_version, kb_provenance) -> dict:
     """Per-model aggregate plus an overall comparison table."""
     per_model = {}
     for model in models:
@@ -249,6 +258,8 @@ def aggregate(records, models, tasks, kb_version) -> dict:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "knowledge_bank_version": kb_version,
+        "knowledge_bank_release": kb_provenance["version"],
+        "knowledge_bank_source": kb_provenance["source"],
         "prompt_version": PROMPT_VERSION,
         "task_count": len(tasks),
         "categories": list(CATEGORIES),
@@ -315,7 +326,9 @@ def _rank(per_model):
 
 def render_plan(tasks, config, candidates) -> str:
     lines = ["EkagraAI Benchmark Plan", "=" * 22, ""]
-    lines.append(f"Knowledge bank version : {knowledge_bank_version()}")
+    prov = knowledge_bank_provenance()
+    lines.append(f"Knowledge bank release : {prov['version']} ({prov['source']})")
+    lines.append(f"Knowledge bank hash    : {knowledge_bank_version()}")
     lines.append(f"Prompt version         : {PROMPT_VERSION}")
     lines.append(f"Tasks                  : {len(tasks)}")
     lines.append("")
@@ -347,7 +360,8 @@ def render_plan(tasks, config, candidates) -> str:
 
 def render_summary(report, budget_note: str = "") -> str:
     lines = ["EkagraAI Benchmark Results", "=" * 24, ""]
-    lines.append(f"Knowledge bank : {report['knowledge_bank_version']}")
+    lines.append(f"Knowledge bank : {report['knowledge_bank_release']} "
+                 f"({report['knowledge_bank_source']}, {report['knowledge_bank_version']})")
     lines.append(f"Prompt version  : {report['prompt_version']}")
     lines.append(f"Tasks per model : {report['task_count']}")
     lines.append("")
@@ -440,11 +454,14 @@ def main(argv=None) -> int:
     bank = load_knowledge_bank()
     tasks = select_tasks(build_tasks(bank), args.categories, args.limit_tasks)
     kb_version = knowledge_bank_version()
+    kb_provenance = knowledge_bank_provenance()
 
     if args.dry_run:
         print(json.dumps({"tasks": [t.to_dict() for t in tasks],
                           "candidates": candidates,
                           "knowledge_bank_version": kb_version,
+                          "knowledge_bank_release": kb_provenance["version"],
+                          "knowledge_bank_source": kb_provenance["source"],
                           "prompt_version": PROMPT_VERSION},
                          ensure_ascii=False, indent=2) if args.json
               else render_plan(tasks, file_config, candidates))
@@ -523,14 +540,15 @@ def main(argv=None) -> int:
             if not args.json:
                 print(f"  {model}  [{index}/{len(tasks)}] {task.task_id}", file=sys.stderr)
             record = run_one(client, task, model, session_id=session_id,
-                             kb_version=kb_version, results_path=results_path)
+                             kb_version=kb_version, kb_provenance=kb_provenance,
+                             results_path=results_path)
             records.append(record)
             if record["status"] == STATUS_BUDGET_REFUSED:
                 # Hard boundary: stop the whole run, do not continue quietly.
                 halted = record.get("error")
                 break
 
-    report = aggregate(records, usable, tasks, kb_version)
+    report = aggregate(records, usable, tasks, kb_version, kb_provenance)
     report["session_id"] = session_id
     report["skipped_candidates"] = problems
     report["halted_by_budget"] = halted
