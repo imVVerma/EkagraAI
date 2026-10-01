@@ -1,0 +1,469 @@
+We need to revise the current EkagraAI frontend after actually reviewing it in the browser.
+
+The current implementation works functionally, but the learner-facing UI exposes too much of the underlying adaptive-learning machinery.
+
+IMPORTANT:
+Read these files before making changes:
+- Resources/Frontend DIscussion.md
+- frontend/index.html
+- frontend/styles.css
+- frontend/app.js
+- backend/server.py
+- backend/state_machine.py
+- backend/tutor_service.py
+- backend/scoring_service.py
+- Resources/arthashastra-solo-knowledge-bank.json
+
+The goal is NOT to rebuild the backend architecture. The goal is to make the frontend feel like a natural adaptive tutor for a learner.
+
+==================================================
+1. CORE UX PRINCIPLE
+==================================================
+
+The learner should primarily see:
+
+- What am I learning?
+- What is being taught to me right now?
+- What question am I being asked?
+- What did I answer?
+- Was my answer sufficient?
+- What happens next?
+
+The learner should NOT need to understand the internal adaptive-learning machinery.
+
+The frontend currently exposes too much information about:
+- learning path
+- pedagogy
+- transitions
+- SOLO mechanics
+- research/session internals
+
+Reduce this substantially.
+
+==================================================
+2. REMOVE THE VISIBLE LEARNING PATH
+==================================================
+
+Do NOT show the four-step learning path to the learner.
+
+Remove or hide the prominent UI showing:
+- Recognize
+- Connect
+- Relate
+- Generalize
+or equivalent transition progression.
+
+The learner does not need to know the complete path beforehand.
+
+The adaptive system should determine what comes next.
+
+The backend state machine must continue using all four transitions exactly as it currently does.
+
+Do NOT remove the underlying state.
+
+==================================================
+3. DE-EMPHASIZE PEDAGOGY
+==================================================
+
+Do not prominently show:
+
+"Today's learning method"
+or a large pedagogy card.
+
+The learner does not need to know that the tutor is using:
+- Worked Example
+- Guided Questioning
+- Contrasting Cases
+
+The pedagogy can still be subtly exposed if useful, but it should be secondary.
+
+Possible treatment:
+
+Near the top of the learning area, use a very small, quiet label such as:
+
+"Learning approach: Guided questioning"
+
+or simply:
+
+"Guided questioning"
+
+Use subdued styling and small typography.
+
+It should never compete visually with:
+- the teaching content
+- the question
+- the response area
+
+The adaptive pedagogy should feel like part of the tutor, not like a technical implementation detail.
+
+==================================================
+4. RESEARCH VIEW
+==================================================
+
+Keep Research View available because this project is being demonstrated to professors.
+
+However:
+
+- Keep it collapsed by default.
+- It should be clearly secondary.
+- Do not make it part of the learner's main flow.
+- It can contain transition, SOLO target, pedagogy, attempt information, etc.
+- It should be positioned as a researcher/instructor inspection tool.
+
+The learner should be able to completely ignore it.
+
+==================================================
+5. CHANGE THE EXPERIENCE TO A SCROLLABLE SESSION
+==================================================
+
+This is important.
+
+Do NOT make the experience feel like a sequence of completely separate screens.
+
+Instead, create a vertically scrollable learning session.
+
+Think of it as a conversation/learning journal:
+
+------------------------------------------------
+Ekagra
+What you're learning
+------------------------------------------------
+
+Teaching content
+
+...
+
+Checkpoint
+
+Question:
+...
+
+Your response:
+...
+
+[Submit response]
+
+------------------------------------------------
+Response Review
+------------------------------------------------
+
+Your response:
+...
+
+Tutor feedback:
+...
+
+Next:
+
+[new teaching content]
+
+------------------------------------------------
+Next checkpoint
+------------------------------------------------
+
+...
+
+The learner should be able to scroll upward and review previous attempts.
+
+Previous attempts should remain visible in the session history.
+
+Do NOT continuously replace the previous question/answer with the next state.
+
+The session should accumulate.
+
+==================================================
+6. ATTEMPT HISTORY
+==================================================
+
+Every meaningful interaction should become part of the scrollable session.
+
+For example:
+
+Attempt 1
+Teaching
+Question
+Learner response
+Feedback
+
+Attempt 2
+New teaching approach
+Question
+Learner response
+Feedback
+
+Attempt 3
+New teaching approach
+Question
+Learner response
+Feedback
+
+If the learner passes:
+
+Attempt N
+Response Review
+Passed
+Next concept begins below
+
+The learner should be able to scroll back and understand how their reasoning developed.
+
+This is especially important for demonstrating adaptive learning.
+
+==================================================
+7. QUESTIONS MUST NOT FEEL HARDCODED
+==================================================
+
+Currently the frontend appears to make the questions and responses feel hardcoded.
+
+Investigate why.
+
+The frontend must render whatever case/question/teaching content is returned by the backend.
+
+Do NOT embed specific Arthashastra questions directly in:
+- index.html
+- app.js
+- CSS
+- frontend constants
+
+The knowledge bank remains the source of truth.
+
+The frontend should consume API data.
+
+If the backend currently exposes only a limited fixed question structure, improve the API contract minimally so the frontend receives the actual current case/question/variants from the knowledge bank.
+
+Do NOT duplicate the knowledge bank in JavaScript.
+
+==================================================
+8. FAILED ALL-THREE-PEDAGOGIES FALLBACK
+==================================================
+
+There is currently a serious UX/state problem:
+
+When the learner fails all three pedagogies at a transition, the session gets stuck and effectively requires restarting.
+
+Do NOT silently restart the session.
+
+Do NOT loop indefinitely.
+
+Design a proper fallback.
+
+The state machine currently has three pedagogies:
+- Worked Example
+- Guided Questioning
+- Contrasting Cases
+
+If all three are exhausted for the same transition:
+
+The learner should receive a clear intervention such as:
+
+"We're going to approach this concept differently."
+
+Then provide a recovery path.
+
+For the current deterministic prototype, implement a sensible fallback such as:
+
+1. Show a concise explanation of the concept.
+2. Show a fully worked example.
+3. Present a fresh checkpoint/case if available.
+4. Reset the pedagogy pool for the transition only after the fallback intervention.
+5. Continue the session without restarting the entire session.
+
+IMPORTANT:
+Do not arbitrarily invent new pedagogy behavior.
+
+First inspect state_machine.py and the master build prompt to determine the intended policy for all-three-failure.
+
+If the master specification explicitly leaves this as manual review, implement a graceful "manual review / tutor intervention" state rather than restarting the session.
+
+The frontend must never look broken or force the learner to restart.
+
+==================================================
+9. PASS/FAIL SHOULD BE NATURAL
+==================================================
+
+Avoid technical language such as:
+
+"Target signature met: true"
+
+"SOLO level: Multistructural"
+
+"Pool: ..."
+
+in the learner-facing interface.
+
+Instead:
+
+PASS:
+"Good. You've connected the relevant ideas."
+
+or whatever feedback is actually returned by the tutor/scoring layer.
+
+FAIL:
+"You're on the right track. Let's approach this from another angle."
+
+The exact content should come from the backend where possible.
+
+Research View can expose the technical details.
+
+==================================================
+10. SOLO SHOULD BE SUBTLE
+==================================================
+
+Do not make SOLO terminology a major part of the learner experience.
+
+If shown at all, it should be subtle.
+
+The learner should experience progression through increasingly sophisticated questions rather than feeling like they are being graded on a five-level taxonomy.
+
+The underlying SOLO classification must remain intact in the backend.
+
+==================================================
+11. TOP-LEVEL LAYOUT
+==================================================
+
+Keep:
+
+Ekagra
+Adaptive Learning through AI
+
+Then:
+
+Current topic / learning goal
+
+Then the learning session.
+
+The main visual hierarchy should be:
+
+1. Topic
+2. Teaching
+3. Question
+4. Response
+5. Feedback
+6. Next teaching/question
+
+Everything else is secondary.
+
+==================================================
+12. VISUAL DIRECTION
+==================================================
+
+Keep the existing restrained academic aesthetic, but make the interface feel more like a sophisticated learning environment and less like an analytics dashboard.
+
+Use:
+- generous whitespace
+- strong typography
+- readable content width
+- clear question/answer distinction
+- subtle borders/cards
+- restrained use of accent colour
+- smooth but minimal transitions
+- responsive layout
+
+Avoid:
+- excessive cards
+- excessive badges
+- dashboards
+- large progress indicators
+- unnecessary icons
+- decorative elements that don't aid learning
+
+==================================================
+13. DO NOT BREAK THE BACKEND
+==================================================
+
+Do not modify:
+- state-machine progression logic
+- pedagogy selection logic
+- scoring logic
+- knowledge-bank structure
+
+unless a minimal API change is genuinely required for the frontend.
+
+The deterministic backend is already verified.
+
+After implementation, run all existing tests again.
+
+==================================================
+14. END-TO-END TEST
+==================================================
+
+Test at minimum:
+
+A. New session
+B. Teaching appears
+C. Checkpoint appears only after teaching
+D. Learner submits response
+E. Failed response remains in session history
+F. New teaching approach appears below it
+G. New checkpoint appears after new teaching
+H. Passing response advances to the next concept
+I. Previous attempts remain scrollable
+J. All-three-failure does not restart the entire session
+K. Research View remains available but secondary
+L. No domain questions are hardcoded into frontend code
+
+At the end, report:
+- files changed
+- UX changes
+- API changes
+- fallback behavior implemented
+- tests run
+- any remaining limitations
+The key conceptual change
+
+I would aim for something closer to this:
+
+                         EKAGRA
+                 Adaptive Learning through AI
+
+                    Kautilya's Arthashastra
+                  Understanding statecraft
+
+────────────────────────────────────────────────────
+
+TEACHING
+
+[ Tutor explains the concept ]
+
+...
+
+QUESTION
+
+A neighboring kingdom's army has started
+massing troops near your shared border.
+
+What should the king do?
+
+┌───────────────────────────────────────────────┐
+│ Write your response...                        │
+│                                               │
+└───────────────────────────────────────────────┘
+
+                    [ Submit ]
+
+────────────────────────────────────────────────────
+
+RESPONSE REVIEW
+
+Your response
+"................."
+
+Tutor
+"Good. You've identified a relevant policy tool..."
+
+                    ✓ Continue
+
+────────────────────────────────────────────────────
+
+TEACHING
+
+[ New teaching based on what you just did ]
+
+...
+
+QUESTION
+
+[ Next checkpoint ]
+
+...
+
+That is much closer to the actual research idea: the interface hides the mechanism while making the adaptation observable through the tutor's behavior.

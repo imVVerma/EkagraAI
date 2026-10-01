@@ -1,0 +1,2285 @@
+{
+  "metadata": {
+    "version": "2",
+    "domain": "Historical Statecraft & Governance Systems",
+    "subtopic_id": "arthashastra",
+    "subtopic": "Kautilya's Arthashastra",
+    "period": "~4th century BCE",
+    "purpose": "Source content for the AI tutor and assessment pipeline",
+    "consumers": "an LLM tutor (teaching loop, via OpenRouter) + an assessment/classification layer",
+    "source_markdown": "Resources/arthashastra-solo-knowledge-bank-v2.md",
+    "derived_from": "Resources/arthashastra-solo-knowledge-bank.json",
+    "carried_forward_from_v1": [
+      "solo_levels",
+      "usage_instructions",
+      "metadata.period",
+      "cases[].scenario_text (only where v2 supplies no fragment; see content_gaps)"
+    ],
+    "architecture_notes": [
+      "A transition (Pre→Uni, Uni→Multi, Multi→Rel, Rel→EA) is broken into explicit checkpoints — small, individually-detectable concepts the learner must demonstrate before the transition's assessment unlocks.",
+      "A pedagogy is drawn at random for the transition. The tutor delivers content, asks a question, the learner responds, and the tutor adapts its next move based on that response — this file gives the decision rules for that adaptation, not scripted dialogue, since the actual turn is LLM-generated.",
+      "Scenario stays fixed within a transition even if the pedagogy is switched after a failed assessment. Only the pedagogy's teaching style and the assessment question-set change on switch — never the scenario. This is why every scenario needs full teaching content in all 3 pedagogies, and up to 3 assessment question-sets (one per possible pedagogy attempt).",
+      "3 scenarios run in parallel through this structure: Border Aggression, Internal Rebellion, Trade Dispute."
+    ],
+    "source_status": {
+      "doctrinal_content_vetted": false,
+      "case_scenarios_are_original_pedagogical_constructions": true,
+      "reviewed_by_subject_matter_source": false,
+      "unverified_recall_item_ids": [
+        11
+      ],
+      "notes": [
+        "Doctrinal content (saptanga, shadgunya, mandala theory, upayas, raja dharma, espionage apparatus) is grounded in Shamasastry's translation and the overview document — should hold up to scrutiny, with the sole exception of the \"twelve kings in Rajmandala\" recall item (Section 2, #11), flagged for a second-source check.",
+        "All case scenarios (Border Aggression, Internal Rebellion, Trade Dispute) and their complications remain original pedagogical constructions, not verbatim historical events — present them to learners as illustrative (\"imagine a situation where...\"), not as documented history.",
+        "This file has not yet been reviewed by a subject-matter source or the rest of the team — flag for a pass before the chatbot goes live."
+      ]
+    }
+  },
+  "doctrinal_anchors": [
+    {
+      "name": "Saptanga",
+      "v2_name": "Saptanga",
+      "description": "seven limbs of the state: swami (king), amatya (ministers), janapada (territory/people), durga (fort), kosha (treasury), danda/bala (army), mitra (ally)"
+    },
+    {
+      "name": "Shadgunya",
+      "v2_name": "Shadgunya",
+      "description": "six-fold foreign policy: sandhi (peace), vigraha (war), asana (neutrality), yana (marching/mobilization), samshraya (seeking a stronger protector), dvaidhibhava (dual policy — peace with one, war with another)"
+    },
+    {
+      "name": "Mandala theory",
+      "v2_name": "Mandala theory",
+      "description": "vijigishu (the ambitious king, center), ari (immediate neighbor, natural rival), mitra (neighbor's neighbor, natural ally), madhyama (a middle power able to tip the balance), udasina (a detached, neutral outside power)"
+    },
+    {
+      "name": "Sama-dana-bheda-danda",
+      "v2_name": "Upayas",
+      "description": "sama (conciliation), dana (gifts/bribery), bheda (sowing dissension), danda (force)"
+    },
+    {
+      "name": "Raja dharma",
+      "v2_name": "Raja dharma",
+      "description": "the king's duty to protect the state and subjects, which can override conventional morality in Kautilya's realist frame"
+    },
+    {
+      "name": "Espionage apparatus",
+      "v2_name": "Espionage apparatus",
+      "description": "a structured spy network (ascetics, merchants, students, and others used as covert agents) for internal and external intelligence"
+    }
+  ],
+  "solo_levels": {
+    "prestructural": "Denies/repeats the question, or reaches a conclusion via an irrelevant/tangential fact (transduction).",
+    "unistructural": "Reaches a conclusion using exactly one relevant piece of evidence/tool.",
+    "multistructural": "Uses multiple relevant pieces of evidence/tools, but does not reconcile them; they sit side by side, sometimes inconsistently.",
+    "relational": "Reconciles multiple pieces of evidence into one coherent, internally consistent judgment.",
+    "extended_abstract": "Treats the case as an instance of a general principle; generalizes beyond the given case, entertains hypotheticals, and holds conclusions open."
+  },
+  "prerequisite_recall_layer": {
+    "purpose": "A short factual-literacy check before Prestructural→Unistructural teaching begins — confirms basic orientation, not judgment. Drawn from the University of Mumbai MCQ set, cross-checked:",
+    "gate_rule": "Gate rule: learner must clear a majority (e.g. ≥20/31, tune later) before Transition 1 begins. This is recall, not reasoning — a low score here means \"orient the learner first,\" not \"reject them.\"",
+    "item_count": 31,
+    "items": [
+      {
+        "id": 1,
+        "prompt": "Most popular ancient Indian polity guidebook",
+        "answer": "Kautiliya Arthashastra",
+        "flag": null
+      },
+      {
+        "id": 2,
+        "prompt": "Closest modern term for \"Arthashastra\"",
+        "answer": "Economics",
+        "flag": null
+      },
+      {
+        "id": 3,
+        "prompt": "Number of limbs of the state (saptanga)",
+        "answer": "Seven",
+        "flag": null
+      },
+      {
+        "id": 4,
+        "prompt": "Term for treasury",
+        "answer": "Kosha",
+        "flag": null
+      },
+      {
+        "id": 5,
+        "prompt": "\"Rajadharma\" means",
+        "answer": "Duties of a king",
+        "flag": null
+      },
+      {
+        "id": 6,
+        "prompt": "Sanskrit term for treaty",
+        "answer": "Sandhi",
+        "flag": null
+      },
+      {
+        "id": 7,
+        "prompt": "Ancient Indian polity rested on the foundation of",
+        "answer": "Wealth",
+        "flag": null
+      },
+      {
+        "id": 8,
+        "prompt": "Primary meaning of \"Dharma\"",
+        "answer": "Duty",
+        "flag": null
+      },
+      {
+        "id": 9,
+        "prompt": "A king was expected to look after the welfare of",
+        "answer": "His kingdom",
+        "flag": null
+      },
+      {
+        "id": 10,
+        "prompt": "The concept of Raja (king) emerged from the need for",
+        "answer": "Protection",
+        "flag": null
+      },
+      {
+        "id": 11,
+        "prompt": "Kings in the Rajmandala concept",
+        "answer": "Twelve",
+        "flag": "verify against a second source before deployment"
+      },
+      {
+        "id": 12,
+        "prompt": "\"Samanta\" indicates",
+        "answer": "King of a neighbouring state",
+        "flag": null
+      },
+      {
+        "id": 13,
+        "prompt": "Main subdivision of the text",
+        "answer": "Adhikarana (the 15 Books)",
+        "flag": null
+      },
+      {
+        "id": 14,
+        "prompt": "First topic in the Arthashastra",
+        "answer": "Education of the prince (Book 1)",
+        "flag": null
+      },
+      {
+        "id": 15,
+        "prompt": "Chapter on education of princes",
+        "answer": "Vinayadhikarikam",
+        "flag": null
+      },
+      {
+        "id": 16,
+        "prompt": "Chapter on department-head duties",
+        "answer": "Adhyakshaprachara",
+        "flag": null
+      },
+      {
+        "id": 17,
+        "prompt": "Adhyakshaprachara deals with",
+        "answer": "Internal administration",
+        "flag": null
+      },
+      {
+        "id": 18,
+        "prompt": "Kantakashodhana deals with",
+        "answer": "Anti-social elements (Removal of Thorns)",
+        "flag": null
+      },
+      {
+        "id": 19,
+        "prompt": "Final chapter's subject",
+        "answer": "Techniques of writing a treatise (Tantrayukti)",
+        "flag": null
+      },
+      {
+        "id": 20,
+        "prompt": "Kautilya's birth name",
+        "answer": "Vishnugupta",
+        "flag": null
+      },
+      {
+        "id": 21,
+        "prompt": "Another name for Kautilya",
+        "answer": "Chanakya",
+        "flag": null
+      },
+      {
+        "id": 22,
+        "prompt": "Chanakya's role in the Mauryan empire",
+        "answer": "Minister",
+        "flag": null
+      },
+      {
+        "id": 23,
+        "prompt": "Dynasty during which Kautilya was insulted",
+        "answer": "Nanda",
+        "flag": null
+      },
+      {
+        "id": 24,
+        "prompt": "Who insulted him",
+        "answer": "Dhanananda",
+        "flag": null
+      },
+      {
+        "id": 25,
+        "prompt": "Dynasty preceding the Mauryas",
+        "answer": "Nanda",
+        "flag": null
+      },
+      {
+        "id": 26,
+        "prompt": "Start of Chandragupta Maurya's reign",
+        "answer": "321 BCE",
+        "flag": null
+      },
+      {
+        "id": 27,
+        "prompt": "Capital of the Mauryan empire",
+        "answer": "Pataliputra",
+        "flag": null
+      },
+      {
+        "id": 28,
+        "prompt": "Kalinga is present-day",
+        "answer": "Odisha",
+        "flag": null
+      },
+      {
+        "id": 29,
+        "prompt": "Who found/first translated the manuscript",
+        "answer": "R. Shama Shastri",
+        "flag": null
+      },
+      {
+        "id": 30,
+        "prompt": "Megasthenes's nationality",
+        "answer": "Greek",
+        "flag": null
+      },
+      {
+        "id": 31,
+        "prompt": "Title of Megasthenes's account",
+        "answer": "Indica",
+        "flag": null
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "id": "C1",
+      "from_level": "prestructural",
+      "to_level": "unistructural",
+      "prerequisite": "Cleared the recall gate (Section 2). No prior judgment-level reasoning required.",
+      "concept_to_master": "Demonstrate every checkpoint of this transition: CP1 (Agency) — learner engages with the case as a real decision, not a denial/deflection (\"the king should just wait and see,\" \"there's nothing to do\" = not met). CP2 (One tool) — learner names one specific, case-relevant policy tool or fact (e.g., danda, espionage, taxation enforcement) as part of a conclusion.",
+      "target_signature": "Response meets all checkpoints of this transition: CP1, CP2. Advancement condition, from the transition's final branching rule: Both checkpoints met",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Agency",
+          "criterion": "learner engages with the case as a real decision, not a denial/deflection (\"the king should just wait and see,\" \"there's nothing to do\" = not met)"
+        },
+        {
+          "id": "CP2",
+          "name": "One tool",
+          "criterion": "learner names one specific, case-relevant policy tool or fact (e.g., danda, espionage, taxation enforcement) as part of a conclusion"
+        }
+      ],
+      "teaching_content_note": null,
+      "branching_rules": [
+        {
+          "condition": "Response = denial/refusal/off-topic",
+          "outcome": "CP1 not met",
+          "tutor_action": "Tutor reframes the case as a real decision and re-asks; does not proceed.",
+          "source_text": "Response = denial/refusal/off-topic → CP1 not met. Tutor reframes the case as a real decision and re-asks; does not proceed."
+        },
+        {
+          "condition": "Response names a tool but with no reasoning (\"war.\" with nothing else)",
+          "outcome": "CP1 met, CP2 partially met",
+          "tutor_action": "Tutor asks \"why would that help here?\" to confirm the tool is understood, not guessed.",
+          "source_text": "Response names a tool but with no reasoning (\"war.\" with nothing else) → CP1 met, CP2 partially met. Tutor asks \"why would that help here?\" to confirm the tool is understood, not guessed."
+        },
+        {
+          "condition": "Response names one clear, relevant tool with a one-line reason",
+          "outcome": "Both checkpoints met",
+          "tutor_action": "Proceed to Uni→Multi.",
+          "source_text": "Response names one clear, relevant tool with a one-line reason → Both checkpoints met. Proceed to Uni→Multi."
+        }
+      ],
+      "cases": [
+        {
+          "id": "1A",
+          "title": "Border Aggression",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which of the following is a valid single policy response to a massing rival army?",
+                "options": [
+                  {
+                    "text": "Ignore it",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Mobilize the army (danda)",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Consult astrologers",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Declare friendship by decree",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What should the king do, and why?",
+                "pass_criteria": "pass = names one relevant tool + a reason."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "A king facing a massing rival force has which of these as a legitimate single-step response?",
+                "options": [
+                  {
+                    "text": "Do nothing and hope",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Send envoys to negotiate (sandhi)",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Abandon the border fort",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Wait for the rival to attack first",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "If you were advising the king, what is one thing he could do right now?",
+                "pass_criteria": "pass = one relevant tool, stated as advice."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Of the following, which represents one concrete action available to the king?",
+                "options": [
+                  {
+                    "text": "Fortify the border garrison (danda-adjacent)",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Deny the threat exists",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ask the merchants for help",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Disband the army",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one thing the king could realistically do about this threat.",
+                "pass_criteria": "pass = one relevant, case-specific tool."
+              }
+            }
+          ],
+          "scenario_text": "rival troops massing at the border",
+          "scenario_text_origin": "v2_markdown",
+          "question_variants": [
+            "What should the king do, and why?",
+            "If you were advising the king, what is one thing he could do right now?",
+            "Name one thing the king could realistically do about this threat."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Which of the following is a valid single policy response to a massing rival army?",
+            "options": [
+              {
+                "text": "Ignore it",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Mobilize the army (danda)",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Consult astrologers",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Declare friendship by decree",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Walk through a fully solved mini-version: \"Here's how a king might reason: he has an army (danda) as one option — he could mobilize it to deter further advance.\" Then ask the learner to restate the reasoning in their own words.",
+            "Guided Questioning": "Ask: \"What resources does a king have that he could use here?\" If no answer, narrow: \"Does the king have an army? What could he do with it?\"",
+            "Contrasting Cases": "Show two one-line reactions: (A) \"He panics and does nothing.\" (B) \"He orders the border garrison to prepare.\" Ask which is a real response and why."
+          }
+        },
+        {
+          "id": "1B",
+          "title": "Internal Rebellion",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "What is the most appropriate first step?",
+                "options": [
+                  {
+                    "text": "Public execution",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Deploy the spy network to verify",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore it",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ask the public directly",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What should the king do about the governor?",
+                "pass_criteria": "pass = one relevant tool + reason."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which of these is a legitimate single response to suspicion of disloyalty?",
+                "options": [
+                  {
+                    "text": "Immediate exile",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Quiet surveillance",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Public accusation",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do nothing",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "If you were the king's advisor, what's one step you'd suggest?",
+                "pass_criteria": "pass = one relevant tool."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "One reasonable single action the king could take is:",
+                "options": [
+                  {
+                    "text": "Confirm loyalty via spies",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Assume guilt outright",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Promote the governor",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Disregard the report",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one action the king could take here.",
+                "pass_criteria": "pass = one relevant tool."
+              }
+            }
+          ],
+          "scenario_text": "governor suspected of inciting unrest",
+          "scenario_text_origin": "v2_markdown",
+          "question_variants": [
+            "What should the king do about the governor?",
+            "If you were the king's advisor, what's one step you'd suggest?",
+            "Name one action the king could take here."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "What is the most appropriate first step?",
+            "options": [
+              {
+                "text": "Public execution",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Deploy the spy network to verify",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignore it",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Ask the public directly",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Solved example: \"A king suspicious of an official might use his spy network to investigate before acting.\" Ask learner to restate.",
+            "Guided Questioning": "Ask: \"What might a cautious king want to know before punishing the governor?\" Narrow to: \"Does Kautilya's state have any way to gather secret information?\"",
+            "Contrasting Cases": "Show: (A) \"The king executes him immediately.\" (B) \"The king sends a spy to confirm the suspicion first.\" Ask which fits a realist ruler and why."
+          }
+        },
+        {
+          "id": "1C",
+          "title": "Trade Dispute",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "What is a valid single response to tax-evading merchants?",
+                "options": [
+                  {
+                    "text": "Ignore them",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Fine them",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Declare war on their kingdom",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do nothing",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What should the king do, and why?",
+                "pass_criteria": "pass = one relevant tool + reason."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which is a legitimate first response?",
+                "options": [
+                  {
+                    "text": "Impose a fine or penalty",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Expel all merchants from the kingdom",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore the smuggling",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Reward the merchants",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "If advising the king, what's one thing he could do?",
+                "pass_criteria": "pass = one relevant tool."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "One concrete single-step response is:",
+                "options": [
+                  {
+                    "text": "Enforce the existing tax law",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Abolish all taxation",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do nothing",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Attack the merchants' home kingdom",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one action available to the king.",
+                "pass_criteria": "pass = one relevant tool."
+              }
+            }
+          ],
+          "scenario_text": "merchants smuggling to avoid tax",
+          "scenario_text_origin": "v2_markdown",
+          "question_variants": [
+            "What should the king do, and why?",
+            "If advising the king, what's one thing he could do?",
+            "Name one action available to the king."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "What is a valid single response to tax-evading merchants?",
+            "options": [
+              {
+                "text": "Ignore them",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Fine them",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Declare war on their kingdom",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Do nothing",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Solved example: \"A king could simply fine the smugglers — using state authority to enforce the tax law.\" Ask learner to restate.",
+            "Guided Questioning": "Ask: \"What is the state's basic tool for enforcing its tax laws?\"",
+            "Contrasting Cases": "Show: (A) \"He ignores it, trade isn't his concern.\" (B) \"He fines the merchants.\" Ask which reflects real statecraft."
+          }
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "from_level": "unistructural",
+      "to_level": "multistructural",
+      "prerequisite": "Both Pre→Uni checkpoints met (learner names one relevant tool with reasoning).",
+      "concept_to_master": "Demonstrate every checkpoint of this transition: CP1 (Second tool) — learner names a second, distinct tool beyond the first (shows awareness that more than one option exists). CP2 (Tool set) — learner names a third tool, or explicitly references the upaya framework (sama/dana/bheda/danda) as a set — even without relating the tools to each other.",
+      "target_signature": "Response meets all checkpoints of this transition: CP1, CP2. Advancement condition, from the transition's final branching rule: Both checkpoints met",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Second tool",
+          "criterion": "learner names a second, distinct tool beyond the first (shows awareness that more than one option exists)"
+        },
+        {
+          "id": "CP2",
+          "name": "Tool set",
+          "criterion": "learner names a third tool, or explicitly references the upaya framework (sama/dana/bheda/danda) as a set — even without relating the tools to each other"
+        }
+      ],
+      "teaching_content_note": null,
+      "branching_rules": [
+        {
+          "condition": "Response repeats the same tool from Pre→Uni in different words",
+          "outcome": "CP1 not met",
+          "tutor_action": "Tutor explicitly prompts for a different kind of response (\"what's a non-military option?\").",
+          "source_text": "Response repeats the same tool from Pre→Uni in different words → CP1 not met. Tutor explicitly prompts for a different kind of response (\"what's a non-military option?\")."
+        },
+        {
+          "condition": "Response names exactly 2 distinct tools",
+          "outcome": "CP1 met, CP2 not yet",
+          "tutor_action": "Tutor asks \"is there anything else in the king's toolkit?\"",
+          "source_text": "Response names exactly 2 distinct tools → CP1 met, CP2 not yet. Tutor asks \"is there anything else in the king's toolkit?\""
+        },
+        {
+          "condition": "Response names ≥3 tools, or explicitly names the upaya framework",
+          "outcome": "Both checkpoints met",
+          "tutor_action": "Internal consistency between the tools is not required at this stage — inconsistency is expected and acceptable here.",
+          "source_text": "Response names ≥3 tools, or explicitly names the upaya framework → Both checkpoints met. Internal consistency between the tools is not required at this stage — inconsistency is expected and acceptable here."
+        }
+      ],
+      "cases": [
+        {
+          "id": "2A",
+          "title": "Border Aggression",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which pair represents two distinct upayas available to the king?",
+                "options": [
+                  {
+                    "text": "Danda and sandhi",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Danda and danda restated",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignoring the threat and hoping",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Waiting and waiting longer",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "List the different ways the king could respond.",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which of the following best reflects the range of options in Kautilyan doctrine?",
+                "options": [
+                  {
+                    "text": "Only war is ever appropriate",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "War, negotiation, and bribery are all valid tools",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only diplomacy is valid",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The king has no real options",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What are some different approaches the king could take?",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Kautilya's four upayas include which pair?",
+                "options": [
+                  {
+                    "text": "Sama and bheda",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Danda and danda",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Silence and denial",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name a few options available to the king besides your first answer.",
+                "pass_criteria": "pass = ≥2 additional distinct tools."
+              }
+            }
+          ],
+          "scenario_text": "The neighboring kingdom's army is massing near the shared border. Consider the different policy options available to the king.",
+          "scenario_text_origin": "carried_forward_from_v1",
+          "question_variants": [
+            "List the different ways the king could respond.",
+            "What are some different approaches the king could take?",
+            "Name a few options available to the king besides your first answer."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Which pair represents two distinct upayas available to the king?",
+            "options": [
+              {
+                "text": "Danda and sandhi",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Danda and danda restated",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignoring the threat and hoping",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Waiting and waiting longer",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Extend the solved example: \"Besides mobilizing the army (danda), the king could also try sandhi — offering peace terms — or dana, sending gifts to calm the rival.\"",
+            "Guided Questioning": "Ask: \"Besides fighting, what else could the king try?\" then \"Is there a way to buy time or goodwill instead of force?\"",
+            "Contrasting Cases": "Show a list-style response (\"war, or peace, or bribery — all options\") vs. a single-tool response; ask what's different about the list version."
+          }
+        },
+        {
+          "id": "2B",
+          "title": "Internal Rebellion",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which two are distinct tools for handling a suspect official?",
+                "options": [
+                  {
+                    "text": "Espionage and removal",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Espionage restated twice",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignoring and ignoring",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "None",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "List different ways the king could handle this.",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which combination reflects real options?",
+                "options": [
+                  {
+                    "text": "Surveillance, dismissal, or covert division-sowing",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only public execution",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only inaction",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only promotion",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What other approaches could the king take?",
+                "pass_criteria": "pass = ≥2 tools."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Kautilya's toolkit for this situation would include:",
+                "options": [
+                  {
+                    "text": "Bheda and danda",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignoring the issue twice",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Just one fixed option",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Beyond your first idea, what else could the king try?",
+                "pass_criteria": "pass = ≥2 additional tools."
+              }
+            }
+          ],
+          "scenario_text": "The governor is suspected of encouraging local unrest. Consider multiple ways the king could respond.",
+          "scenario_text_origin": "carried_forward_from_v1",
+          "question_variants": [
+            "List different ways the king could handle this.",
+            "What other approaches could the king take?",
+            "Beyond your first idea, what else could the king try?"
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Which two are distinct tools for handling a suspect official?",
+            "options": [
+              {
+                "text": "Espionage and removal",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Espionage restated twice",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignoring and ignoring",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "None",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Extend: \"Besides spying, the king could also consider removing the governor outright (danda-adjacent), or quietly turning his allies against him (bheda).\"",
+            "Guided Questioning": "Ask: \"Is spying the only option, or are there other ways to handle a disloyal official?\"",
+            "Contrasting Cases": "Contrast a one-tool response with a multi-tool list; ask what's added in the second."
+          }
+        },
+        {
+          "id": "2C",
+          "title": "Trade Dispute",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which pair are distinct valid responses?",
+                "options": [
+                  {
+                    "text": "Fines and renegotiation",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Fines restated twice",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignoring twice",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "None",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "List the king's options here.",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which combination reflects real options for this case?",
+                "options": [
+                  {
+                    "text": "Penalty, negotiation, or trade suspension",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only ignoring it",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only war",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only reward",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What other approaches could the king consider?",
+                "pass_criteria": "pass = ≥2 tools."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Kautilya's framework would suggest which pair as options here?",
+                "options": [
+                  {
+                    "text": "Sama and danda",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Danda restated",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "No options exist",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Beyond your first answer, name another option.",
+                "pass_criteria": "pass = ≥2 additional tools."
+              }
+            }
+          ],
+          "scenario_text": "Merchants are smuggling goods to avoid taxation. Consider multiple policy options.",
+          "scenario_text_origin": "carried_forward_from_v1",
+          "question_variants": [
+            "List the king's options here.",
+            "What other approaches could the king consider?",
+            "Beyond your first answer, name another option."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Which pair are distinct valid responses?",
+            "options": [
+              {
+                "text": "Fines and renegotiation",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Fines restated twice",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignoring twice",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "None",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Extend: \"Besides fining them, the king could renegotiate the trade terms (sama), or threaten to cut off trade entirely (vigraha-adjacent).\"",
+            "Guided Questioning": "Ask: \"Is a fine the only tool here, or could the king try something else?\"",
+            "Contrasting Cases": "Contrast a single-tool vs. multi-tool response; ask what's added."
+          }
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "from_level": "multistructural",
+      "to_level": "relational",
+      "prerequisite": "≥3 tools/the upaya set named (unreconciled).",
+      "concept_to_master": "Demonstrate every checkpoint of this transition: CP1 (Trade-offs) — learner recognizes the tools aren't equally good here — some carry more risk/cost than others in this specific case. CP2 (Positioning logic) — learner applies mandala-theory-style reasoning — identifies who the natural rival/ally is based on relative position, not just tool availability. CP3 (Reconciliation) — learner produces ONE coherent recommendation that explicitly weighs ≥2 factors together (not a list — an integrated judgment).",
+      "target_signature": "Response meets all checkpoints of this transition: CP1, CP2, CP3. Advancement condition, from the transition's final branching rule: All 3 checkpoints met",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Trade-offs",
+          "criterion": "learner recognizes the tools aren't equally good here — some carry more risk/cost than others in this specific case"
+        },
+        {
+          "id": "CP2",
+          "name": "Positioning logic",
+          "criterion": "learner applies mandala-theory-style reasoning — identifies who the natural rival/ally is based on relative position, not just tool availability"
+        },
+        {
+          "id": "CP3",
+          "name": "Reconciliation",
+          "criterion": "learner produces ONE coherent recommendation that explicitly weighs ≥2 factors together (not a list — an integrated judgment)"
+        }
+      ],
+      "teaching_content_note": "Each scenario is now given an added complicating detail, per the original v1 design, to force reconciliation.",
+      "branching_rules": [
+        {
+          "condition": "Response still just lists tools with no connection to the complicating detail",
+          "outcome": "No checkpoints met",
+          "tutor_action": "Tutor explicitly points to the added detail and re-asks how it changes the picture.",
+          "source_text": "Response still just lists tools with no connection to the complicating detail → No checkpoints met. Tutor explicitly points to the added detail and re-asks how it changes the picture."
+        },
+        {
+          "condition": "Response acknowledges the complication but doesn't use it to choose between tools",
+          "outcome": "CP1 met only",
+          "tutor_action": "Tutor asks \"given that, which option looks better or worse now?\"",
+          "source_text": "Response acknowledges the complication but doesn't use it to choose between tools → CP1 met only. Tutor asks \"given that, which option looks better or worse now?\""
+        },
+        {
+          "condition": "Response uses the complication to identify a relational/positional consideration (who's a natural ally, what the dependency implies) but doesn't yet commit to one integrated plan",
+          "outcome": "CP1+CP2 met",
+          "tutor_action": "Tutor asks for a single recommendation that ties it together.",
+          "source_text": "Response uses the complication to identify a relational/positional consideration (who's a natural ally, what the dependency implies) but doesn't yet commit to one integrated plan → CP1+CP2 met. Tutor asks for a single recommendation that ties it together."
+        },
+        {
+          "condition": "Response gives one coherent, integrated recommendation explicitly weighing ≥2 factors",
+          "outcome": "All 3 checkpoints met",
+          "tutor_action": "",
+          "source_text": "Response gives one coherent, integrated recommendation explicitly weighing ≥2 factors → All 3 checkpoints met."
+        }
+      ],
+      "cases": [
+        {
+          "id": "3A",
+          "title": "Border Aggression",
+          "complication": "the aggressor's other neighbor has historically been hostile to them",
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Given the aggressor's other neighbor is hostile to them, what is mandala theory's most coherent recommendation?",
+                "options": [
+                  {
+                    "text": "Attack immediately with no allies",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Seek alliance with that hostile neighbor first",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Use all four upayas simultaneously",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Wait indefinitely",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What is the single best course of action here, and why?",
+                "pass_criteria": "pass = one integrated recommendation citing ≥2 factors."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which reasoning best reflects relational (not just listed) thinking?",
+                "options": [
+                  {
+                    "text": "War or peace, pick one",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Since their other neighbor is hostile to them, that's our natural ally — approach them before escalating",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Use every tool at once",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore positioning entirely",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "How should the king weigh his options, given the neighboring rivalry?",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "What is the key factor that should shape the king's single recommended action?",
+                "options": [
+                  {
+                    "text": "The size of his own army only",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The aggressor's relationship with their other neighbor",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The weather",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Nothing external matters",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Give one coherent plan, explaining how it accounts for the wider political picture.",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            }
+          ],
+          "scenario_text": "the aggressor's other neighbor has historically been hostile to them",
+          "scenario_text_origin": "v2_markdown",
+          "question_variants": [
+            "What is the single best course of action here, and why?",
+            "How should the king weigh his options, given the neighboring rivalry?",
+            "Give one coherent plan, explaining how it accounts for the wider political picture."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Given the aggressor's other neighbor is hostile to them, what is mandala theory's most coherent recommendation?",
+            "options": [
+              {
+                "text": "Attack immediately with no allies",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Seek alliance with that hostile neighbor first",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Use all four upayas simultaneously",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Wait indefinitely",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Fully solved: \"Since the aggressor's other neighbor is already hostile to them, mandala theory says that neighbor is a natural ally (mitra) — I'd seek an alliance there first, using dana to stall the aggressor while that alliance forms, holding danda in reserve.\"",
+            "Guided Questioning": "Ask: \"Who is the aggressor's other neighbor to them — friend or rival? What does that suggest about who we should approach?\" Narrow toward mandala logic if stuck.",
+            "Contrasting Cases": "Show two full responses: (A) lists all 4 tools with no connection between them. (B) explicitly uses the aggressor's other-neighbor relationship to justify one sequenced plan. Ask what B does that A doesn't."
+          }
+        },
+        {
+          "id": "3B",
+          "title": "Internal Rebellion",
+          "complication": "the governor is popular locally; abrupt removal risks triggering the unrest it's meant to prevent",
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Given the governor's popularity, what is the most coherent single approach?",
+                "options": [
+                  {
+                    "text": "Remove him immediately",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Covertly weaken his support via bheda before acting",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore the suspicion entirely",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Publicly accuse him at once",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What's the single best course of action, and why?",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which response best reflects reconciled reasoning?",
+                "options": [
+                  {
+                    "text": "Just remove him",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Because he's popular, removing him abruptly risks unrest — weaken him quietly first",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do everything at once",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Nothing matters here",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "How should the king balance the risk of unrest against the need to act?",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "What factor most changes the right response here?",
+                "options": [
+                  {
+                    "text": "The governor's local popularity",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The weather",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The price of grain",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Nothing",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Give one coherent recommendation that accounts for his popularity.",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            }
+          ],
+          "scenario_text": "the governor is popular locally; abrupt removal risks triggering the unrest it's meant to prevent",
+          "scenario_text_origin": "v2_markdown",
+          "question_variants": [
+            "What's the single best course of action, and why?",
+            "How should the king balance the risk of unrest against the need to act?",
+            "Give one coherent recommendation that accounts for his popularity."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Given the governor's popularity, what is the most coherent single approach?",
+            "options": [
+              {
+                "text": "Remove him immediately",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Covertly weaken his support via bheda before acting",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignore the suspicion entirely",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Publicly accuse him at once",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Fully solved: \"Since removing him outright risks the very unrest we want to avoid, bheda — quietly isolating his allies first — lets us weaken him without the visible trigger of a sudden removal.\"",
+            "Guided Questioning": "Ask: \"What happens if the king removes him too quickly, given he's popular? What tool avoids that risk?\"",
+            "Contrasting Cases": "Contrast a \"just remove him\" answer with one that explicitly weighs his popularity before acting."
+          }
+        },
+        {
+          "id": "3C",
+          "title": "Trade Dispute",
+          "complication": "this kingdom supplies a resource we can't easily replace",
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Given the resource dependency, what is the most coherent approach?",
+                "options": [
+                  {
+                    "text": "Heavy fines regardless of relationship",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Renegotiate terms to preserve the relationship",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Cut off trade entirely",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore the smuggling",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What's the single best course of action, and why?",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which reflects reconciled reasoning?",
+                "options": [
+                  {
+                    "text": "Fine them, simple",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Since we depend on them, punitive fines risk the relationship — renegotiate instead",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do everything at once",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Nothing matters",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "How should the king weigh enforcement against the trade relationship?",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "What factor should most shape the response?",
+                "options": [
+                  {
+                    "text": "Our dependency on this resource",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The weather",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Unrelated court gossip",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Nothing",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Give one coherent plan accounting for the dependency.",
+                "pass_criteria": "pass = integrated judgment."
+              }
+            }
+          ],
+          "scenario_text": "this kingdom supplies a resource we can't easily replace",
+          "scenario_text_origin": "v2_markdown",
+          "question_variants": [
+            "What's the single best course of action, and why?",
+            "How should the king weigh enforcement against the trade relationship?",
+            "Give one coherent plan accounting for the dependency."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Given the resource dependency, what is the most coherent approach?",
+            "options": [
+              {
+                "text": "Heavy fines regardless of relationship",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Renegotiate terms to preserve the relationship",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Cut off trade entirely",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignore the smuggling",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Fully solved: \"Because we depend on this kingdom for an irreplaceable resource, punitive fines risk the relationship we need — sama (renegotiating terms) protects the resource flow while still addressing the smuggling.\"",
+            "Guided Questioning": "Ask: \"What do we risk if we punish them too harshly, given we depend on them?\"",
+            "Contrasting Cases": "Contrast \"fine them heavily\" vs. \"renegotiate terms\" and ask which accounts for the dependency."
+          }
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "from_level": "relational",
+      "to_level": "extended_abstract",
+      "prerequisite": "One coherent, reconciled judgment produced for the specific case (3.3's target).",
+      "concept_to_master": "Demonstrate every checkpoint of this transition: CP1 (Generalization) — learner names the general principle the case is an instance of (balance-of-power / realist statecraft / etc.), not just the specific case's answer. CP2 (Assumption) — learner identifies an assumption the principle depends on (e.g., mandala assumes rivalry is territorial). CP3 (Boundary condition) — learner names a specific condition under which the earlier conclusion would change or fail — not a vague \"it depends,\" but a named condition.",
+      "target_signature": "Response meets all checkpoints of this transition: CP1, CP2, CP3. Advancement condition, from the transition's final branching rule: All 3 checkpoints met",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Generalization",
+          "criterion": "learner names the general principle the case is an instance of (balance-of-power / realist statecraft / etc.), not just the specific case's answer"
+        },
+        {
+          "id": "CP2",
+          "name": "Assumption",
+          "criterion": "learner identifies an assumption the principle depends on (e.g., mandala assumes rivalry is territorial)"
+        },
+        {
+          "id": "CP3",
+          "name": "Boundary condition",
+          "criterion": "learner names a specific condition under which the earlier conclusion would change or fail — not a vague \"it depends,\" but a named condition"
+        }
+      ],
+      "teaching_content_note": null,
+      "branching_rules": [
+        {
+          "condition": "Response stays fully case-specific with no attempt to generalize",
+          "outcome": "No checkpoints met",
+          "tutor_action": "Tutor explicitly asks \"have you seen this kind of problem show up elsewhere, even outside Arthashastra?\"",
+          "source_text": "Response stays fully case-specific with no attempt to generalize → No checkpoints met. Tutor explicitly asks \"have you seen this kind of problem show up elsewhere, even outside Arthashastra?\""
+        },
+        {
+          "condition": "Response names the general principle but doesn't examine its assumptions",
+          "outcome": "CP1 met only",
+          "tutor_action": "",
+          "source_text": "Response names the general principle but doesn't examine its assumptions → CP1 met only."
+        },
+        {
+          "condition": "Response identifies an assumption but gives only a vague \"it depends\" without naming a specific condition",
+          "outcome": "CP1+CP2 met, CP3 explicitly not met",
+          "tutor_action": "this is the most important false-positive to catch; the tutor should directly ask \"under exactly what condition would this change?\" rather than accept the vague answer.",
+          "source_text": "Response identifies an assumption but gives only a vague \"it depends\" without naming a specific condition → CP1+CP2 met, CP3 explicitly not met — this is the most important false-positive to catch; the tutor should directly ask \"under exactly what condition would this change?\" rather than accept the vague answer."
+        },
+        {
+          "condition": "Response names the principle, an assumption, and a specific condition that would change the outcome",
+          "outcome": "All 3 checkpoints met",
+          "tutor_action": "",
+          "source_text": "Response names the principle, an assumption, and a specific condition that would change the outcome → All 3 checkpoints met."
+        }
+      ],
+      "cases": [
+        {
+          "id": "4A",
+          "title": "Border Aggression",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Mandala theory assumes rivalry is driven by territorial adjacency. Under which condition would its prediction most likely fail?",
+                "options": [
+                  {
+                    "text": "Similar army sizes",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ideological/religious rather than territorial rivalry",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Same language",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Prior trade history",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Is mandala theory always the right lens here? When might it fail?",
+                "pass_criteria": "pass = names a specific condition, not just \"it depends.\""
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "This case is best understood as an instance of which general pattern?",
+                "options": [
+                  {
+                    "text": "Random chance",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Balance-of-power / realist alliance-formation",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Religious doctrine",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Pure economics",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What does this case tell us about statecraft in general?",
+                "pass_criteria": "pass = names the general principle explicitly."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Which of these is a genuine boundary condition, not a vague hedge?",
+                "options": [
+                  {
+                    "text": "It depends on the situation",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "It fails if the rivalry is ideological, not territorial",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Sometimes things change",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Anything could happen",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one specific condition under which your earlier recommendation would change.",
+                "pass_criteria": "pass = named, specific condition."
+              }
+            }
+          ],
+          "scenario_text": "Consider whether the mandala-based recommendation in the border aggression case always generalizes.",
+          "scenario_text_origin": "carried_forward_from_v1",
+          "question_variants": [
+            "Is mandala theory always the right lens here? When might it fail?",
+            "What does this case tell us about statecraft in general?",
+            "Name one specific condition under which your earlier recommendation would change."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "Mandala theory assumes rivalry is driven by territorial adjacency. Under which condition would its prediction most likely fail?",
+            "options": [
+              {
+                "text": "Similar army sizes",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Ideological/religious rather than territorial rivalry",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Same language",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Prior trade history",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Fully solved generalization: \"This is really a balance-of-power problem — mandala theory is one version of a pattern seen across history (allying with your rival's rival). It assumes rivalry is driven by territorial adjacency. If the conflict were ideological rather than territorial, an adjacent kingdom wouldn't necessarily act as a natural ally just from geography — the prediction would fail.\"",
+            "Guided Questioning": "Ask: \"Is this really only about this king and this rival, or is it an example of something bigger?\" Then: \"What does mandala theory assume is true about why kingdoms fight? When might that assumption not hold?\"",
+            "Contrasting Cases": "Show a vague \"it depends on the situation\" answer vs. one naming a specific condition (e.g., ideological vs. territorial conflict) that would flip the conclusion. Ask which one is actually useful."
+          }
+        },
+        {
+          "id": "4B",
+          "title": "Internal Rebellion",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "The bheda-based solution assumes the king has which resource?",
+                "options": [
+                  {
+                    "text": "A large army",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "A functioning covert-influence/spy network",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Popular support",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Foreign allies",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "When might this approach fail?",
+                "pass_criteria": "pass = names a specific condition (e.g., no spy network)."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "This case is an instance of which general governance problem?",
+                "options": [
+                  {
+                    "text": "Managing popular-but-disloyal officials in a centralized state",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Currency policy",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Foreign trade",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Religious doctrine",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What does this tell us about governance more broadly?",
+                "pass_criteria": "pass = names the general pattern."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Which is a genuine boundary condition?",
+                "options": [
+                  {
+                    "text": "It depends",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "It fails without an effective spy network",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Maybe",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Who knows",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name a specific condition that would change your recommendation.",
+                "pass_criteria": "pass = specific, named condition."
+              }
+            }
+          ],
+          "scenario_text": "Consider the broader principle illustrated by managing a popular but disloyal official.",
+          "scenario_text_origin": "carried_forward_from_v1",
+          "question_variants": [
+            "When might this approach fail?",
+            "What does this tell us about governance more broadly?",
+            "Name a specific condition that would change your recommendation."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "The bheda-based solution assumes the king has which resource?",
+            "options": [
+              {
+                "text": "A large army",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "A functioning covert-influence/spy network",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Popular support",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Foreign allies",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Fully solved: \"This is an instance of managing popular-but-disloyal officials — a pattern in any centralized state with charismatic local leaders. Kautilya's bheda solution assumes a functioning covert-influence network exists; without one, this approach fails and something like co-optation might work better.\"",
+            "Guided Questioning": "Ask: \"Is this only about this one governor, or a pattern you'd see elsewhere?\" Then: \"What does this solution assume the king has access to? What if he didn't?\"",
+            "Contrasting Cases": "Contrast a vague \"it depends\" with a specific named condition (no spy network → solution fails)."
+          }
+        },
+        {
+          "id": "4C",
+          "title": "Trade Dispute",
+          "complication": null,
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "The recommendation to renegotiate rather than punish assumes what?",
+                "options": [
+                  {
+                    "text": "We depend on them for a scarce resource",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "They depend on us entirely",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "No trade exists",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Prices are fixed",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "When might punitive action actually be the better choice?",
+                "pass_criteria": "pass = names a specific condition (e.g., reversed dependency)."
+              }
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "This case is an instance of which general tension?",
+                "options": [
+                  {
+                    "text": "Short-term extraction vs. long-term relationship preservation under unequal leverage",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Religious conflict",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Military doctrine",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What general principle does this case illustrate?",
+                "pass_criteria": "pass = names the pattern explicitly."
+              }
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Which is a genuine boundary condition here?",
+                "options": [
+                  {
+                    "text": "It depends on luck",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "It flips if we become the irreplaceable supplier instead",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Anything's possible",
+                    "is_correct": false,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Never changes",
+                    "is_correct": false,
+                    "distractor_type": null
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name a specific condition under which your recommendation would reverse.",
+                "pass_criteria": "pass = specific, named condition."
+              }
+            }
+          ],
+          "scenario_text": "Consider the broader tension between revenue extraction and relationship preservation in asymmetric trade.",
+          "scenario_text_origin": "carried_forward_from_v1",
+          "question_variants": [
+            "When might punitive action actually be the better choice?",
+            "What general principle does this case illustrate?",
+            "Name a specific condition under which your recommendation would reverse."
+          ],
+          "level_examples": {},
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "The recommendation to renegotiate rather than punish assumes what?",
+            "options": [
+              {
+                "text": "We depend on them for a scarce resource",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "They depend on us entirely",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "No trade exists",
+                "is_correct": false,
+                "distractor_type": null
+              },
+              {
+                "text": "Prices are fixed",
+                "is_correct": false,
+                "distractor_type": null
+              }
+            ]
+          },
+          "teaching_content": {
+            "Worked Example": "Fully solved: \"This reflects the general tension between short-term revenue extraction and long-term relationship preservation, which shows up whenever a state has unequal trade leverage. If the dependency were reversed — if we were the irreplaceable supplier — punitive tariffs would carry much less risk.\"",
+            "Guided Questioning": "Ask: \"Is this only about this trade partner, or a bigger pattern in how states handle unequal dependencies?\" Then: \"What would have to be different for punitive action to become the right call instead?\"",
+            "Contrasting Cases": "Contrast a vague answer with one naming the specific condition (reversed dependency) that flips the recommendation."
+          }
+        }
+      ]
+    }
+  ],
+  "global_response_handling_rules": [
+    {
+      "pattern": "refusal_or_meta_answer",
+      "source_label": "Refusal/meta-answers",
+      "examples": [
+        "I don't know enough"
+      ],
+      "classification": null,
+      "instruction": "treat as checkpoint-not-met; redirect to the case, don't accept as a valid attempt.",
+      "source_text": "Refusal/meta-answers (\"I don't know enough\") → treat as checkpoint-not-met; redirect to the case, don't accept as a valid attempt."
+    },
+    {
+      "pattern": "copy_paste_case",
+      "source_label": "Copy-paste of the case text",
+      "examples": [],
+      "classification": null,
+      "instruction": "checkpoint not met (tautology).",
+      "source_text": "Copy-paste of the case text with no reasoning added → checkpoint not met (tautology)."
+    },
+    {
+      "pattern": "overlong_non_answer",
+      "source_label": "Vague hedging that sounds sophisticated but commits to nothing",
+      "examples": [
+        "it depends",
+        "many factors"
+      ],
+      "classification": null,
+      "instruction": "never credit as Relational or Extended Abstract; require the specific reconciling judgment (3.3 CP3) or the specific boundary condition (3.4 CP3) before advancing.",
+      "source_text": "Vague hedging that sounds sophisticated but commits to nothing (\"it depends,\" \"many factors\") → never credit as Relational or Extended Abstract; require the specific reconciling judgment (3.3 CP3) or the specific boundary condition (3.4 CP3) before advancing."
+    },
+    {
+      "pattern": "correct_vocabulary_wrong_application",
+      "source_label": "Correct vocabulary, wrong substance",
+      "examples": [
+        "sandhi"
+      ],
+      "classification": null,
+      "instruction": "classify by the substance of the described action, not the term used.",
+      "source_text": "Correct vocabulary, wrong substance (names \"sandhi\" but describes an action that's actually danda) → classify by the substance of the described action, not the term used."
+    },
+    {
+      "pattern": "moral_objection",
+      "source_label": "Moral/ethical objections to Kautilyan realism",
+      "examples": [],
+      "classification": null,
+      "instruction": "valid engagement; score on reasoning structure (does it weigh multiple factors and reconcile them?), not on whether it agrees with the doctrine.",
+      "source_text": "Moral/ethical objections to Kautilyan realism → valid engagement; score on reasoning structure (does it weigh multiple factors and reconcile them?), not on whether it agrees with the doctrine."
+    }
+  ],
+  "reward_interaction": {
+    "heading": "",
+    "attempt_slot_model": "Each pedagogy attempt within a transition consumes one \"attempt slot\" in the existing reward tier — a transition cleared on pedagogy attempt 1 scores higher than one cleared on attempt 2 or 3, consistent with the platform's existing per-attempt reward design.",
+    "intervention_count_definition": "Since scenario stays fixed across attempts within a transition, \"intervention count\" (the efficiency metric flagged as needing a precise definition) can now be operationalized concretely as: number of teaching turns + number of pedagogy switches consumed before the transition's assessment is passed."
+  },
+  "usage_instructions": {
+    "source_of_truth": "This JSON is the authoritative domain-content source for the prototype. Do not invent cases, SOLO examples, target signatures, or doctrinal anchors when the required information exists here.",
+    "teaching": "Use doctrinal_anchors, transition.concept_to_master, and the selected case content to construct the teaching turn according to the selected pedagogy.",
+    "checkpoint": "After teaching, present the selected case scenario and one question_variant. Do not reveal the scoring examples before the learner answers.",
+    "scoring": "Compare the learner response against the transition target_signature, case level_examples, and global_response_handling_rules. For the no-LLM skeleton, deterministic mock scoring may be used.",
+    "progression": "Advance only when target_signature_met is true. On failure, select another unused pedagogy within the same transition and re-teach before re-checkpointing.",
+    "content_boundary": "Treat case scenarios as illustrative/original pedagogical constructions, not documented historical events.",
+    "future_llm": "The JSON must remain independent of the LLM provider. Later OpenRouter integration should consume this same JSON rather than embedding domain content inside prompts or application code."
+  },
+  "content_gaps": [
+    {
+      "field": "solo_levels",
+      "status": "carried_forward_from_v1",
+      "detail": "v2 names the five SOLO levels in transition headings but never defines them. v1's definitions are reused verbatim so scoring stays consistent; they have not been re-reviewed against v2."
+    },
+    {
+      "field": "cases[].level_examples",
+      "status": "empty",
+      "detail": "v2 supplies no SOLO exemplars. Left empty rather than borrowing v1's, because v2's cases carry different complications and the old examples would not match. Deterministic scoring cannot classify these cases yet."
+    },
+    {
+      "field": "cases[].scenario_text",
+      "status": "partially_carried_forward_from_v1",
+      "detail": "v2 gives a scenario fragment only at 3.1 and a '+ complication' only at 3.3. Those 12 cases use v2 text verbatim. The remaining 6 cases (C2-2A, C2-2B, C2-2C, C4-4A, C4-4B, C4-4C) have no scenario text in v2 and fall back to v1's prose, flagged per case by scenario_text_origin. Authored v2 prose is still needed."
+    },
+    {
+      "field": "cases[].mcq.options[].distractor_type",
+      "status": "null",
+      "detail": "v2 marks the correct option with a checkmark and gives no reason for the distractors, so distractor_type is null everywhere."
+    },
+    {
+      "field": "cases[].edge_case_notes",
+      "status": "empty",
+      "detail": "v2 has no per-case edge-case notes; the cross-cutting equivalents live in global_response_handling_rules."
+    },
+    {
+      "field": "transitions[].concept_to_master, transitions[].target_signature",
+      "status": "derived_from_v2_checkpoints",
+      "detail": "v2 defines checkpoints and branching rules but no separate concept or signature string. Both fields are assembled mechanically from v2's own checkpoint ids and its final branching rule. They add no new doctrine, but anything that pattern-matches on their wording should be reviewed."
+    },
+    {
+      "field": "global_response_handling_rules[].classification",
+      "status": "null",
+      "detail": "v2 states these rules as handling instructions and never assigns a SOLO level to them, so classification is null."
+    },
+    {
+      "field": "doctrinal_anchors[].name for the four upayas",
+      "status": "renamed_for_runtime_compatibility",
+      "detail": "v2 labels it 'Upayas'. backend/tutor_service.ANCHOR_BY_TRANSITION looks up 'Sama-dana-bheda-danda', so that key is used and v2's label is kept in v2_name."
+    },
+    {
+      "field": "metadata.period, usage_instructions, metadata.subtopic_id",
+      "status": "carried_forward_from_v1",
+      "detail": "Not restated anywhere in v2."
+    },
+    {
+      "field": "prerequisite_recall_layer.items[].flag",
+      "status": "parsed_from_v2",
+      "detail": "v2 flags item 11 ('Kings in the Rajmandala concept' -> Twelve) for a second-source check. It is still unverified and must be confirmed before deployment."
+    }
+  ]
+}

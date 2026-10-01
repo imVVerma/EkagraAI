@@ -1,0 +1,473 @@
+{
+  "metadata": {
+    "domain": "Historical Statecraft & Governance Systems",
+    "subtopic_id": "arthashastra",
+    "subtopic": "Kautilya's Arthashastra",
+    "period": "~4th century BCE",
+    "purpose": "Source content for the AI tutor and assessment pipeline",
+    "source_status": {
+      "doctrinal_content_vetted": false,
+      "case_scenarios_are_original_pedagogical_constructions": true
+    }
+  },
+  "doctrinal_anchors": [
+    {
+      "name": "Saptanga",
+      "description": "The seven limbs/elements of a state: king, minister, territory, fort, treasury, army, ally."
+    },
+    {
+      "name": "Shadgunya",
+      "description": "Six-fold foreign policy: sandhi (peace/alliance), vigraha (hostility), asana (neutrality), yana (marching/preparation for war), samshraya (seeking shelter/alliance with a stronger power), dvaidhibhava (dual policy: peace with one, war with another)."
+    },
+    {
+      "name": "Mandala theory",
+      "description": "A king's immediate neighbor is a natural rival; that neighbor's neighbor is a natural ally, the circle-of-states model."
+    },
+    {
+      "name": "Sama-dana-bheda-danda",
+      "description": "The four upayas/means: conciliation, gifts/bribery, sowing dissension, force."
+    },
+    {
+      "name": "Raja dharma",
+      "description": "The king's duty to protect subjects and the state, which can override conventional morality in Kautilya's realist framework."
+    },
+    {
+      "name": "Espionage apparatus",
+      "description": "A systematic spy network, recruited from groups such as ascetics, merchants, and students, used for internal surveillance and external intelligence."
+    }
+  ],
+  "solo_levels": {
+    "prestructural": "Denies/repeats the question, or reaches a conclusion via an irrelevant/tangential fact (transduction).",
+    "unistructural": "Reaches a conclusion using exactly one relevant piece of evidence/tool.",
+    "multistructural": "Uses multiple relevant pieces of evidence/tools, but does not reconcile them; they sit side by side, sometimes inconsistently.",
+    "relational": "Reconciles multiple pieces of evidence into one coherent, internally consistent judgment.",
+    "extended_abstract": "Treats the case as an instance of a general principle; generalizes beyond the given case, entertains hypotheticals, and holds conclusions open."
+  },
+  "transitions": [
+    {
+      "id": "C1",
+      "from_level": "prestructural",
+      "to_level": "unistructural",
+      "prerequisite": "None. Entry point; learner needs no prior Arthashastra knowledge, only the case text.",
+      "concept_to_master": "Recognize that the king has available policy tools/options and select one relevant one.",
+      "target_signature": "Response names at least one specific, case-relevant tool or fact, not a repetition of the question or an irrelevant justification.",
+      "cases": [
+        {
+          "id": "1A",
+          "title": "Border Aggression",
+          "scenario_text": "A neighboring kingdom's army has started massing troops near your shared border. Advisors are divided. What should the king do?",
+          "question_variants": [
+            "What should the king do?",
+            "How should the king respond to this threat?",
+            "Is there anything the king can do here, or must he simply wait?"
+          ],
+          "level_examples": {
+            "prestructural": [
+              "Nothing, kings can't control armies.",
+              "He should do what needs to be done.",
+              "He should throw a feast to celebrate the harvest."
+            ],
+            "unistructural": [
+              "He should attack them first.",
+              "He should send gifts to keep them calm."
+            ]
+          },
+          "edge_case_notes": [
+            "He should ask his ministers. Process answer, not a policy tool; classify as Prestructural because it does not engage the actual decision.",
+            "One-word answers such as 'War.' or 'Peace.' are Unistructural if the single word maps to a real tool such as danda or sandhi, and Prestructural if not clearly connected to a reason."
+          ],
+          "mcq": {
+            "question": "Which of the following is a valid single policy response according to Arthashastra doctrine?",
+            "options": [
+              {
+                "text": "Ignore the threat entirely",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Immediately go to war",
+                "is_correct": true,
+                "distractor_type": "correct: represents danda, one tool"
+              },
+              {
+                "text": "Consult the stars for guidance",
+                "is_correct": false,
+                "distractor_type": "irrelevant"
+              },
+              {
+                "text": "Declare the neighboring king a friend by decree with no action",
+                "is_correct": false,
+                "distractor_type": "non-substantive"
+              }
+            ]
+          }
+        },
+        {
+          "id": "1B",
+          "title": "Internal Rebellion",
+          "scenario_text": "A border province's governor is suspected of secretly encouraging local unrest against the crown. What should the king do?",
+          "question_variants": [
+            "What should the king do about the governor?",
+            "How should the king handle this suspicion?"
+          ],
+          "level_examples": {
+            "prestructural": [
+              "He should just trust him.",
+              "The governor is probably busy."
+            ],
+            "unistructural": [
+              "He should send spies to confirm it.",
+              "He should replace the governor immediately."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "What is the single most appropriate first step according to Kautilyan statecraft?",
+            "options": [
+              {
+                "text": "Public execution",
+                "is_correct": false,
+                "distractor_type": "skips verification"
+              },
+              {
+                "text": "Deploy the spy network to verify",
+                "is_correct": true,
+                "distractor_type": "correct"
+              },
+              {
+                "text": "Ignore it",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Ask the public",
+                "is_correct": false,
+                "distractor_type": "undermines secrecy doctrine"
+              }
+            ]
+          }
+        },
+        {
+          "id": "1C",
+          "title": "Trade Dispute",
+          "scenario_text": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. What should the king do?",
+          "question_variants": [
+            "What should the king do?"
+          ],
+          "level_examples": {
+            "prestructural": [
+              "Trade isn't the king's problem.",
+              "Merchants are always dishonest."
+            ],
+            "unistructural": [
+              "He should fine them."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": {
+            "question": "What is a valid single-tool response to the smuggling problem?",
+            "options": [
+              {
+                "text": "Ignore the smuggling",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Fine the merchants",
+                "is_correct": true,
+                "distractor_type": "single relevant enforcement tool"
+              },
+              {
+                "text": "Declare all merchants enemies",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Do nothing because trade is unrelated to statecraft",
+                "is_correct": false,
+                "distractor_type": "irrelevant"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "from_level": "unistructural",
+      "to_level": "multistructural",
+      "prerequisite": "Learner can already name one relevant tool from Transition 1's target signature.",
+      "concept_to_master": "The four upayas (sama-dana-bheda-danda) exist as a set of options, not a single fixed response; learner must name multiple tools even without relating them.",
+      "target_signature": "Response names at least 2 distinct tools/options, even if inconsistent or unranked.",
+      "cases": [
+        {
+          "id": "2A",
+          "title": "Border Aggression (continued)",
+          "scenario_text": "The neighboring kingdom's army is massing near the shared border. Consider the different policy options available to the king.",
+          "question_variants": [
+            "What are the different ways the king could respond?",
+            "List the options available to the king here."
+          ],
+          "level_examples": {
+            "multistructural": [
+              "He could go to war, or he could try to make peace, or bribe their commanders.",
+              "The king has the option of fighting, negotiating, or spying on them first."
+            ]
+          },
+          "edge_case_notes": [
+            "A response that lists tools but contradicts itself is still Multistructural; inconsistency across listed items is expected at this level."
+          ],
+          "mcq": {
+            "question": "Which pair represents two distinct upayas (means) available to the king?",
+            "options": [
+              {
+                "text": "Danda and sandhi",
+                "is_correct": true,
+                "distractor_type": "correct"
+              },
+              {
+                "text": "Danda and danda restated",
+                "is_correct": false,
+                "distractor_type": "same tool twice"
+              },
+              {
+                "text": "Ignoring the threat and hoping it resolves",
+                "is_correct": false,
+                "distractor_type": "neither is a real upaya"
+              }
+            ]
+          }
+        },
+        {
+          "id": "2B",
+          "title": "Internal Rebellion (continued)",
+          "scenario_text": "The governor is suspected of encouraging local unrest. Consider multiple ways the king could respond.",
+          "question_variants": [
+            "What different options could the king consider?"
+          ],
+          "level_examples": {
+            "multistructural": [
+              "He could send spies, or remove the governor, or watch and wait to gather more proof."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": null
+        },
+        {
+          "id": "2C",
+          "title": "Trade Dispute (continued)",
+          "scenario_text": "Merchants are smuggling goods to avoid taxation. Consider multiple policy options.",
+          "question_variants": [
+            "What different options could the king consider?"
+          ],
+          "level_examples": {
+            "multistructural": [
+              "He could fine them, negotiate a new trade deal, or cut off trade with that kingdom entirely."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": null
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "from_level": "multistructural",
+      "to_level": "relational",
+      "prerequisite": "Learner can list at least 2 tools/options without reconciling them.",
+      "concept_to_master": "Mandala theory and relative positioning: correct policy depends on where a rival sits relative to other powers, not on tools in isolation. Learner must produce one coherent recommendation accounting for multiple factors together.",
+      "target_signature": "A single, internally consistent judgment that explicitly weighs more than one factor against each other, not merely a list.",
+      "cases": [
+        {
+          "id": "3A",
+          "title": "Border Aggression (continued)",
+          "scenario_text": "The aggressor kingdom's other neighbor, on its far side, has historically been hostile to it.",
+          "question_variants": [
+            "Given this new information, what is the single best course of action, and why?",
+            "How should the king weigh his options here?"
+          ],
+          "level_examples": {
+            "relational": [
+              "Since the aggressor's other neighbor is already hostile to them, I'd approach that neighbor for an alliance (samshraya) — this fits mandala theory, since my rival's rival is my natural friend. I'd hold off on danda (war) until that alliance is secured, using dana in the meantime to slow the aggressor down without provoking full conflict."
+            ]
+          },
+          "edge_case_notes": [
+            "A response that says the king should ally with the far neighbor AND go to war immediately without explaining how these fit together is still Multistructural. Reconciliation, not just combination, is the bar."
+          ],
+          "mcq": {
+            "question": "Given the aggressor's other neighbor is hostile to them, what does mandala theory recommend as the most coherent first move?",
+            "options": [
+              {
+                "text": "Attack immediately without seeking allies",
+                "is_correct": false,
+                "distractor_type": "ignores mandala logic"
+              },
+              {
+                "text": "Seek alliance with the aggressor's other neighbor before escalating",
+                "is_correct": true,
+                "distractor_type": "correct: reconciles positioning and sequencing"
+              },
+              {
+                "text": "Do all four upayas simultaneously",
+                "is_correct": false,
+                "distractor_type": "Multistructural-style listing dressed as an answer"
+              },
+              {
+                "text": "Wait indefinitely for the situation to resolve itself",
+                "is_correct": false,
+                "distractor_type": "non-action"
+              }
+            ]
+          }
+        },
+        {
+          "id": "3B",
+          "title": "Internal Rebellion (continued)",
+          "scenario_text": "The suspected governor is popular among the local population, and removing him abruptly could itself trigger unrest.",
+          "question_variants": [
+            "How should the king respond given both the suspicion and the governor's popularity?"
+          ],
+          "level_examples": {
+            "relational": [
+              "Because removing him outright risks triggering the very unrest we're trying to prevent, I'd use bheda (sowing division) covertly — isolate him from his allies within the administration first via the spy network, then remove him only once his local support has been quietly weakened. This avoids both the risk of open rebellion and the risk of doing nothing."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": null
+        },
+        {
+          "id": "3C",
+          "title": "Trade Dispute (continued)",
+          "scenario_text": "This trading kingdom is a key supplier of a resource your kingdom cannot easily source elsewhere.",
+          "question_variants": [
+            "How should the king respond given the smuggling and the kingdom's importance as a supplier?"
+          ],
+          "level_examples": {
+            "relational": [
+              "Since we depend on this kingdom for a resource we can't easily replace, punitive measures like heavy fines risk damaging the relationship we need. I'd negotiate a formal, lower legal tariff instead of imposing punitive fines — sama over danda — since preserving the trade relationship matters more here than strict enforcement."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": null
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "from_level": "relational",
+      "to_level": "extended_abstract",
+      "prerequisite": "Learner can produce one reconciled, coherent judgment for a specific case.",
+      "concept_to_master": "Recognize the case as an instance of a general principle (balance-of-power / realist statecraft), reason about when the principle would or would not apply, and hold the conclusion open.",
+      "target_signature": "Response explicitly generalizes beyond the specific case by referencing the underlying principle by name or in substance and/or identifies a condition under which the earlier conclusion would change.",
+      "cases": [
+        {
+          "id": "4A",
+          "title": "Border Aggression (continued)",
+          "scenario_text": "Consider whether the mandala-based recommendation in the border aggression case always generalizes.",
+          "question_variants": [
+            "Is mandala theory always the right way to think about this kind of situation? When might it fail?",
+            "What does this case tell us about statecraft in general?"
+          ],
+          "level_examples": {
+            "extended_abstract": [
+              "This is really a balance-of-power problem, and mandala theory is Kautilya's specific version of a pattern that shows up across history — allying with your rival's rival. But it assumes rivalries are primarily about territory and adjacency. If the real conflict were ideological or religious rather than territorial, an adjacent kingdom might not act as a natural ally just because of geography — the theory's predictive power would break down. So the recommendation holds only as long as the underlying assumption (territorial rivalry drives alliance) is true."
+            ]
+          },
+          "edge_case_notes": [
+            "A vague 'it depends on the situation' with no reasoning about why or when is not Extended Abstract. Require the learner to name the specific condition that would change the outcome."
+          ],
+          "mcq": {
+            "question": "Mandala theory assumes rivalry is driven primarily by territorial adjacency. Under which condition would its prediction most likely fail?",
+            "options": [
+              {
+                "text": "When the two kingdoms have similar army sizes",
+                "is_correct": false,
+                "distractor_type": "irrelevant to the theory's core assumption"
+              },
+              {
+                "text": "When the rivalry is ideological/religious rather than territorial",
+                "is_correct": true,
+                "distractor_type": "correct"
+              },
+              {
+                "text": "When both kingdoms speak the same language",
+                "is_correct": false,
+                "distractor_type": "irrelevant"
+              },
+              {
+                "text": "When the kingdoms have traded before",
+                "is_correct": false,
+                "distractor_type": "irrelevant"
+              }
+            ]
+          }
+        },
+        {
+          "id": "4B",
+          "title": "Internal Rebellion (continued)",
+          "scenario_text": "Consider the broader principle illustrated by managing a popular but disloyal official.",
+          "question_variants": [
+            "What broader principle can be drawn from this case, and when might the approach fail?"
+          ],
+          "level_examples": {
+            "extended_abstract": [
+              "This is an instance of the broader problem of managing popular-but-disloyal officials — you see the same structural tension in any centralized state with charismatic local leaders. Kautilya's bheda-based solution works when the ruler has a functioning covert-influence apparatus; in a state without an effective spy network, this approach would fail and a different tool (e.g., co-optation) might work better."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": null
+        },
+        {
+          "id": "4C",
+          "title": "Trade Dispute (continued)",
+          "scenario_text": "Consider the broader tension between revenue extraction and relationship preservation in asymmetric trade.",
+          "question_variants": [
+            "What broader principle can be drawn from this case, and when might the recommendation change?"
+          ],
+          "level_examples": {
+            "extended_abstract": [
+              "This reflects the general tension between short-term revenue extraction (danda) and long-term relationship preservation (sama) that shows up any time a state depends on unequal trade leverage. The right answer flips if the dependency were reversed — if we were the irreplaceable supplier instead, punitive tariffs would carry much less risk."
+            ]
+          },
+          "edge_case_notes": [],
+          "mcq": null
+        }
+      ]
+    }
+  ],
+  "global_response_handling_rules": [
+    {
+      "pattern": "refusal_or_meta_answer",
+      "examples": [
+        "I don't know enough history to answer this"
+      ],
+      "classification": "Prestructural",
+      "instruction": "Prompt the learner back toward the case rather than accepting it as a valid attempt."
+    },
+    {
+      "pattern": "copy_paste_case",
+      "instruction": "Copy-paste of the case text with no added reasoning is Prestructural (tautology)."
+    },
+    {
+      "pattern": "overlong_non_answer",
+      "instruction": "Do not default-classify as Extended Abstract. Require a named condition or generalization before crediting EA."
+    },
+    {
+      "pattern": "correct_vocabulary_wrong_application",
+      "instruction": "Classify by the substance of the recommended action, not the doctrinal vocabulary used."
+    },
+    {
+      "pattern": "moral_objection",
+      "instruction": "Score the reasoning structure regardless of whether the learner agrees with Kautilyan doctrine."
+    }
+  ],
+  "usage_instructions": {
+    "source_of_truth": "This JSON is the authoritative domain-content source for the prototype. Do not invent cases, SOLO examples, target signatures, or doctrinal anchors when the required information exists here.",
+    "teaching": "Use doctrinal_anchors, transition.concept_to_master, and the selected case content to construct the teaching turn according to the selected pedagogy.",
+    "checkpoint": "After teaching, present the selected case scenario and one question_variant. Do not reveal the scoring examples before the learner answers.",
+    "scoring": "Compare the learner response against the transition target_signature, case level_examples, and global_response_handling_rules. For the no-LLM skeleton, deterministic mock scoring may be used.",
+    "progression": "Advance only when target_signature_met is true. On failure, select another unused pedagogy within the same transition and re-teach before re-checkpointing.",
+    "content_boundary": "Treat case scenarios as illustrative/original pedagogical constructions, not documented historical events.",
+    "future_llm": "The JSON must remain independent of the LLM provider. Later OpenRouter integration should consume this same JSON rather than embedding domain content inside prompts or application code."
+  }
+}

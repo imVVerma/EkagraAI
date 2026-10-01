@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ekagra — logo concepts</title>
+<style>
+  :root{
+    --ink:#1a1d21; --ink-soft:#4a5058; --ink-faint:#7a828c;
+    --paper:#fbfaf8; --surface:#fff; --line:#e4e1db; --line-strong:#d3cfc7;
+    --accent:#1f4e5f; --accent-soft:#eef4f6; --accent-line:#c3d8de;
+    --pass:#2f6b4f;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);font-size:16px;line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:3rem 2rem 6rem}
+  h1{font-size:1.9rem;font-weight:600;margin:0 0 .3rem;letter-spacing:-.01em}
+  .lede{color:var(--ink-soft);margin:0 0 .4rem;max-width:62ch}
+  .note{color:var(--ink-faint);font-size:.88rem;margin:0 0 3rem;max-width:70ch}
+  h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;
+     color:var(--ink-faint);font-family:ui-sans-serif,system-ui,sans-serif;
+     margin:0 0 1.1rem;font-weight:600}
+
+  .concept{background:var(--surface);border:1px solid var(--line);
+           border-radius:10px;padding:1.9rem 2rem;margin-bottom:1.4rem}
+  .head{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap;margin-bottom:.3rem}
+  .num{font-size:.72rem;letter-spacing:.12em;color:var(--ink-faint);
+       font-family:ui-sans-serif,system-ui,sans-serif;font-weight:600}
+  .name{font-size:1.4rem;font-weight:600;margin:0}
+  .tagline{color:var(--ink-faint);font-size:.88rem;margin:0 0 1.6rem}
+
+  /* the primary presentation: mark beside the two-line lockup */
+  .hero{display:flex;align-items:center;gap:1.4rem;padding:1.4rem 0 1.7rem;
+        border-bottom:1px solid var(--line);margin-bottom:1.4rem}
+  .hero img{width:76px;height:76px;display:block}
+  .wordmark{font-size:1.7rem;font-weight:600;color:var(--accent);
+            letter-spacing:.14em;line-height:1.2}
+  .sub{font-style:italic;color:var(--ink-faint);font-size:.94rem;margin-top:.2rem}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1rem}
+  .cell{border:1px solid var(--line);border-radius:8px;padding:1rem;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        gap:.7rem;min-height:132px;background:var(--paper)}
+  .cell.dark{background:#12262e;border-color:#12262e}
+  .cell.plain{background:#fff}
+  .cell img{display:block}
+  .cap{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+       color:var(--ink-faint);font-family:ui-sans-serif,system-ui,sans-serif;
+       text-align:center;line-height:1.45}
+  .cell.dark .cap{color:#8fa8b0}
+  .s16 img{width:16px;height:16px}
+  .s24 img{width:24px;height:24px}
+  .s32 img{width:32px;height:32px}
+  .s64 img{width:64px;height:64px}
+
+  .lockups{margin-top:1.4rem;display:grid;gap:1rem}
+  .lockrow{border:1px solid var(--line);border-radius:8px;padding:1.1rem 1.3rem;
+           background:var(--paper);display:flex;align-items:center;gap:1rem}
+  .lockrow.dark{background:#12262e;border-color:#12262e}
+  .lockrow img{max-width:100%;height:auto;display:block}
+  .lockrow .cap{align-self:flex-start}
+
+  /* printing simulation: the whole point of a one-ink version */
+  .print{border:1px solid var(--line);border-radius:8px;padding:1.2rem 1.3rem;
+         background:#fff;display:flex;align-items:center;gap:1.4rem;flex-wrap:wrap}
+  .print img{width:52px;height:52px}
+  .print p{margin:0;font-size:.85rem;color:var(--ink-soft);max-width:44ch}
+
+  .reads{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+         gap:1.1rem;margin-top:1.4rem}
+  .reads div{border-top:2px solid var(--accent);padding-top:.7rem}
+  .reads h3{margin:0 0 .25rem;font-size:.68rem;letter-spacing:.1em;
+            text-transform:uppercase;color:var(--accent);
+            font-family:ui-sans-serif,system-ui,sans-serif}
+  .reads p{margin:0;font-size:.88rem;color:var(--ink-soft)}
+  .pro{margin:1.4rem 0 0;padding:.8rem 1rem;background:var(--accent-soft);
+       border:1px solid var(--accent-line);border-radius:8px;
+       font-size:.88rem;color:var(--ink-soft)}
+  .pro strong{color:var(--accent)}
+  .back{margin-top:3rem;padding-top:1.2rem;border-top:1px solid var(--line);
+        font-size:.85rem;color:var(--ink-faint)}
+  .back a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ekagra</h1>
+  <p class="lede">Adaptive Learning through AI — three candidate marks, each
+    drawn as a lightweight SVG so it can be served directly and edited by hand.</p>
+  <p class="note">Each concept is shown at header size, as a favicon at four
+    pixel sizes, reversed for dark backgrounds, and reduced to a single ink the
+    way a monochrome printer would see it. Nothing here is wired into the
+    application yet.</p>
+
+  <h2>Comparison</h2>
+
+  <!-- ── CONCEPT 1 ─────────────────────────────────────────────── -->
+  <div class="concept">
+    <div class="head"><span class="num">CONCEPT 1</span>
+      <h3 class="name">Focus / Point</h3></div>
+    <p class="tagline">A point, one closed ring, and an aperture opening outward
+      with a bead riding its edge.</p>
+
+    <div class="hero">
+      <img src="c1-focus-point-mark.svg" alt="">
+      <div><div class="wordmark">EKAGRA</div>
+        <div class="sub">Adaptive Learning through AI</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="cell s64"><img src="c1-focus-point-mark.svg" alt="">
+        <span class="cap">Mark 64px</span></div>
+      <div class="cell s32"><img src="c1-focus-point-mark.svg" alt="">
+        <span class="cap">32px</span></div>
+      <div class="cell s16"><img src="c1-focus-point-favicon.svg" alt="">
+        <span class="cap">Favicon 16px</span></div>
+      <div class="cell s24"><img src="c1-focus-point-favicon.svg" alt="">
+        <span class="cap">24px</span></div>
+      <div class="cell plain"><img src="c1-focus-point-mark-mono.svg"
+           style="width:56px;height:56px" alt=""><span class="cap">Mono</span></div>
+      <div class="cell dark"><img src="c1-focus-point-mark-reversed.svg"
+           style="width:56px;height:56px" alt=""><span class="cap">On dark</span></div>
+    </div>
+
+    <div class="lockups">
+      <div class="lockrow"><img src="c1-focus-point-lockup.svg"
+        style="width:300px" alt=""><span class="cap">Header lockup</span></div>
+      <div class="lockrow dark"><img src="c1-focus-point-mark-reversed.svg"
+        style="width:34px;height:34px;filter:brightness(0) invert(1)"
+        alt=""><span class="cap">Reversed on dark</span></div>
+    </div>
+
+    <div class="print">
+      <img src="c1-focus-point-mark-mono.svg" alt="">
+      <img src="c1-focus-point-lockup-mono.svg" style="width:280px" alt="">
+      <p>One ink. The bead stays visible as a solid shape and the three arcs
+        remain countable, so the mark survives a photocopied handout.</p>
+    </div>
+
+    <div class="reads">
+      <div><h3>Reads as</h3><p>Attention drawn to a single point, with room
+        opening around it. The most immediately legible of the three.</p></div>
+      <div><h3>Carries</h3><p>Focused learning, concentration, and a
+        surrounding structure that could be stages or levels of a path.</p></div>
+      <div><h3>Watch</h3><p>Concentric circles are a well-worn motif. The broken
+        outer ring and the bead are what keep it from reading as a plain
+        target.</p></div>
+    </div>
+    <p class="pro"><strong>Strongest at:</strong> favicon and small sizes. It is
+      the only concept that still reads clearly at 16px without simplification.</p>
+  </div>
+
+  <!-- ── CONCEPT 2 ─────────────────────────────────────────────── -->
+  <div class="concept">
+    <div class="head"><span class="num">CONCEPT 2</span>
+      <h3 class="name">E + Focus</h3></div>
+    <p class="tagline">A geometric E whose two long arms and short centre bar
+      narrow attention to one point on its axis.</p>
+
+    <div class="hero">
+      <img src="c2-e-focus-mark.svg" alt="">
+      <div><div class="wordmark">EKAGRA</div>
+        <div class="sub">Adaptive Learning through AI</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="cell s64"><img src="c2-e-focus-mark.svg" alt="">
+        <span class="cap">Mark 64px</span></div>
+      <div class="cell s32"><img src="c2-e-focus-mark.svg" alt="">
+        <span class="cap">32px</span></div>
+      <div class="cell s16"><img src="c2-e-focus-favicon.svg" alt="">
+        <span class="cap">Favicon 16px</span></div>
+      <div class="cell s24"><img src="c2-e-focus-favicon.svg" alt="">
+        <span class="cap">24px</span></div>
+      <div class="cell plain"><img src="c2-e-focus-mark-mono.svg"
+           style="width:56px;height:56px" alt=""><span class="cap">Mono</span></div>
+      <div class="cell dark"><img src="c2-e-focus-mark-reversed.svg"
+           style="width:56px;height:56px" alt=""><span class="cap">On dark</span></div>
+    </div>
+
+    <div class="lockups">
+      <div class="lockrow"><img src="c2-e-focus-lockup.svg"
+        style="width:300px" alt=""><span class="cap">Header lockup</span></div>
+      <div class="lockrow"><img src="c2-e-focus-mark.svg"
+        style="width:34px;height:34px" alt=""><span class="cap">Small, no wordmark</span></div>
+    </div>
+
+    <div class="print">
+      <img src="c2-e-focus-mark-mono.svg" alt="">
+      <img src="c2-e-focus-lockup-mono.svg" style="width:280px" alt="">
+      <p>The letterform is built from solid rectangles, so a single ink is all
+        it ever needs. Print is its best medium.</p>
+    </div>
+
+    <div class="reads">
+      <div><h3>Reads as</h3><p>A capital E that is unmistakably a letter, with a
+        point of attention pulled in tight at its centre.</p></div>
+      <div><h3>Carries</h3><p>Academic credibility and institutional weight. The
+        initial ties the mark to the wordmark without repeating it.</p></div>
+      <div><h3>Watch</h3><p>It is the most literal of the three and the least
+        abstract. The gap between the centre bar and the dot has to stay open
+        or the dot reads as a lengthened bar.</p></div>
+    </div>
+    <p class="pro"><strong>Strongest at:</strong> print, title slides, and any
+      academic context where a letterform earns its place.</p>
+  </div>
+
+  <!-- ── CONCEPT 3 ─────────────────────────────────────────────── -->
+  <div class="concept">
+    <div class="head"><span class="num">CONCEPT 3</span>
+      <h3 class="name">Learning Path / Convergence</h3></div>
+    <p class="tagline">Three paths merge into one point, and a single path
+      continues onward.</p>
+
+    <div class="hero">
+      <img src="c3-convergence-mark.svg" alt="">
+      <div><div class="wordmark">EKAGRA</div>
+        <div class="sub">Adaptive Learning through AI</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="cell s64"><img src="c3-convergence-mark.svg" alt="">
+        <span class="cap">Mark 64px</span></div>
+      <div class="cell s32"><img src="c3-convergence-mark.svg" alt="">
+        <span class="cap">32px</span></div>
+      <div class="cell s16"><img src="c3-convergence-favicon.svg" alt="">
+        <span class="cap">Favicon 16px</span></div>
+      <div class="cell s24"><img src="c3-convergence-favicon.svg" alt="">
+        <span class="cap">24px</span></div>
+      <div class="cell plain"><img src="c3-convergence-mark-mono.svg"
+           style="width:56px;height:56px" alt=""><span class="cap">Mono</span></div>
+      <div class="cell dark"><img src="c3-convergence-mark-reversed.svg"
+           style="width:56px;height:56px" alt=""><span class="cap">On dark</span></div>
+    </div>
+
+    <div class="lockups">
+      <div class="lockrow"><img src="c3-convergence-lockup.svg"
+        style="width:300px" alt=""><span class="cap">Header lockup</span></div>
+      <div class="lockrow"><img src="c3-convergence-mark.svg"
+        style="width:34px;height:34px" alt=""><span class="cap">Small, no wordmark</span></div>
+    </div>
+
+    <div class="print">
+      <img src="c3-convergence-mark-mono.svg" alt="">
+      <img src="c3-convergence-lockup-mono.svg" style="width:280px" alt="">
+      <p>One ink throughout. The convergence point stays a solid node, so the
+        figure keeps its structure when photocopied.</p>
+    </div>
+
+    <div class="reads">
+      <div><h3>Reads as</h3><p>Many inputs resolving into one point of
+        understanding, with a path continuing forward from it.</p></div>
+      <div><h3>Carries</h3><p>Adaptivity and structured learning most directly
+        of the three. It states the tutor's actual behaviour.</p></div>
+      <div><h3>Watch</h3><p>Converging lines are close to network-diagram
+        language. One node and a symmetrical approach are what hold it back;
+        adding more lines would tip it over.</p></div>
+    </div>
+    <p class="pro"><strong>Strongest at:</strong> explaining the idea. It is the
+      most narrative mark and the widest of the three.</p>
+  </div>
+
+  <p class="back">Generated by <code>build_logos.py</code> and verified by
+    <code>check_geometry.py</code>. Not referenced by the application —
+    open <code>preview.html</code> from this folder to compare.</p>
+
+</div>
+</body>
+</html>

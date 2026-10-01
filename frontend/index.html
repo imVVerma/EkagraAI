@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ekagra — Adaptive Learning through AI</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+  <!-- ══ Masthead ═══════════════════════════════════════════════════ -->
+  <header class="masthead">
+    <div class="masthead__inner">
+      <p class="brand__mark">Ekagra</p>
+      <p class="brand__tagline">Adaptive Learning through AI</p>
+      <p class="masthead__context">
+        <span id="subtopic"></span>
+        <span class="masthead__context-sep">·</span>
+        <span id="domain"></span>
+      </p>
+    </div>
+  </header>
+
+  <!-- ══ Topic + goal ══════════════════════════════════════════════ -->
+  <!-- The one thing the learner is told up front: the topic they are on and
+       what it asks of them. The route to it is deliberately not shown. -->
+  <section class="topic" aria-labelledby="topic-heading">
+    <h1 class="topic__title" id="topic-heading">—</h1>
+    <p class="topic__goal" id="topic-goal"></p>
+  </section>
+
+  <!-- ══ The session ════════════════════════════════════════════════ -->
+  <!-- An accumulating journal. Nothing here is ever replaced: a new attempt is
+       appended below the last one, so the learner can scroll back through how
+       their reasoning developed. -->
+  <main class="session">
+    <h2 class="visually-hidden">Learning session</h2>
+    <ol class="log" id="log" aria-live="polite"></ol>
+  </main>
+
+  <!-- ══ Research view ══════════════════════════════════════════════ -->
+  <!-- An inspection tool for instructors. Collapsed, out of the flow, and the
+       learner can ignore it entirely. -->
+  <aside class="research">
+    <details class="research__disclosure">
+      <summary class="research__summary">
+        <span class="research__summary-label">Research view</span>
+        <span class="research__summary-hint">instructor inspection</span>
+      </summary>
+      <div class="research__body">
+        <dl class="research__list">
+          <div class="research__row"><dt>Transition</dt><dd id="rv-transition">—</dd></div>
+          <div class="research__row"><dt>SOLO transition</dt><dd id="rv-solo">—</dd></div>
+          <div class="research__row"><dt>Current approach</dt><dd id="rv-pedagogy">—</dd></div>
+          <div class="research__row"><dt>Approaches used</dt><dd id="rv-previous">—</dd></div>
+          <div class="research__row"><dt>Attempt</dt><dd id="rv-attempt">—</dd></div>
+          <div class="research__row"><dt>Case</dt><dd id="rv-case">—</dd></div>
+          <div class="research__row"><dt>Assigned SOLO level</dt><dd id="rv-level">—</dd></div>
+          <div class="research__row"><dt>Target signature met</dt><dd id="rv-met">—</dd></div>
+          <div class="research__row"><dt>Tutor interventions</dt><dd id="rv-interventions">—</dd></div>
+        </dl>
+        <p class="research__note">Pedagogy pool: <span id="rv-pool">—</span></p>
+      </div>
+    </details>
+  </aside>
+
+  <script src="/app.js"></script>
+</body>
+</html>

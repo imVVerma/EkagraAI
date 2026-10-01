@@ -1,0 +1,121 @@
+{
+  "_comment": [
+    "Benchmark configuration for choosing the tutor (LLM1) and evaluator (LLM2) models.",
+    "",
+    "candidates lists model ids EXPLICITLY. Nothing substitutes a different model: a",
+    "candidate that is withdrawn or no longer free is reported by",
+    "tools/check_models.py and the benchmark refuses to run it. That is not",
+    "theoretical — five of the first six ids seeded here were wrong and were caught",
+    "by exactly this check, which is why no id below was written from memory.",
+    "",
+    "'openrouter/free' is deliberately NOT a candidate. It picks a model at random",
+    "per request, so a run cannot be reproduced. It does appear in the catalogue's",
+    "free list and tools/check_models.py --list-free shows it there; it is excluded",
+    "here.",
+    "",
+    "Regenerate the full list of what is free right now with",
+    "  python3 tools/check_models.py --list-free",
+    "then curate. Do not hand-write ids from memory and do not assume a ':free'",
+    "variant exists for a given model — it does not, and asking for one that does",
+    "not returns 404.",
+    "",
+    "'expect_free' is checked at run time. A candidate still listed but now charging",
+    "money is reported as a problem rather than quietly paid for.",
+    "",
+    "verify_before_running: every candidate is resolved against the live catalogue",
+    "before any call, so an unusable id is caught before it burns a benchmark slot."
+  ],
+
+  "prompt_version": "ekagra-benchmark-tasks-v1",
+
+  "excluded_from_candidates": {
+    "openrouter/free": "random per-request router; a run cannot be reproduced",
+    "google/lyria-3-clip-preview": "audio generation, not a text instruction model",
+    "google/lyria-3-pro-preview": "audio generation, not a text instruction model",
+    "nvidia/nemotron-3.5-content-safety:free": "content-safety classifier, not a tutor",
+    "dots-studio/dots-3-note-preview:free": "note-taking preview model",
+    "stealth/space-bunny-alpha": "unnamed internal alpha",
+    "cohere/north-mini-code:free": "code-focused; kept as a free-tier smoke test only"
+  },
+
+  "candidates": [
+    {
+      "model": "qwen/qwen3.8-27b:free",
+      "expect_free": true,
+      "note": "general instruction model advertising structured output"
+    },
+    {
+      "model": "google/gemma-4-31b-it:free",
+      "expect_free": true,
+      "note": "larger general model, structured output"
+    },
+    {
+      "model": "google/gemma-4-26b-a4b-it:free",
+      "expect_free": true,
+      "note": "smaller sibling of the above, to separate size from family"
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "expect_free": true,
+      "note": "large model, structured output"
+    },
+    {
+      "model": "liquid/lfm-2.5-2.6b:free",
+      "expect_free": true,
+      "note": "small and fast; the floor for cost and latency"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "expect_free": true,
+      "note": "very large, no advertised structured output"
+    },
+    {
+      "model": "inclusionai/ling-3.0-flash-sante:free",
+      "expect_free": true,
+      "note": "general model, no advertised structured output"
+    },
+    {
+      "model": "thinkingmachines/inkling:free",
+      "expect_free": true,
+      "note": "large, no advertised structured output"
+    }
+  ],
+
+  "verify_before_running": true,
+
+  "defaults": {
+    "temperature": 0.0,
+    "max_tokens": 700,
+    "_comment": [
+      "temperature 0 and a fixed task order keep the run comparable. A model is called",
+      "once per task with identical inputs; nothing retries a different prompt.",
+      "max_tokens 700 is a deliberate ceiling applied identically to every model.",
+      "A reasoning model that spends it without emitting content is recorded as",
+      "truncated/empty rather than retried, so a weak setting is not hidden by a",
+      "generous one."
+    ],
+    "provider_routing": {
+      "allow_fallbacks": false,
+      "_comment": [
+        "Pinning the provider matters for reproducibility: the same model id can be served",
+        "by different upstreams, which changes latency and occasionally the output. Set",
+        "order to a specific provider id to pin harder. Free models often have only one."
+      ]
+    }
+  },
+
+  "results": {
+    "path": "logs/benchmark_results.jsonl",
+    "_comment": "One record per (model, task), including failures. Appended, never rewritten."
+  },
+
+  "summary": {
+    "path": "logs/benchmark_summary.json",
+    "_comment": "Per-model aggregate for the latest run; the JSONL above holds the history."
+  },
+
+  "usage_log": {
+    "path": "logs/api_usage.jsonl",
+    "_comment": "Every call is also recorded here for cost control, independently of benchmark results."
+  }
+}

@@ -1,0 +1,452 @@
+# Phase 1: Build the AI Tutor Demonstration Skeleton
+
+You have two reference files:
+
+1. `chatbot-build-prompt-v2.md`
+
+   * Master specification for the tutor workflow and state machine.
+2. `arthashastra-solo-knowledge-bank.json`
+
+   * Runtime domain-content source for the Arthashastra subtopic.
+
+Read both before implementing anything.
+
+## Objective
+
+Build a working end-to-end demonstration of the tutor workflow.
+
+**Do NOT use an LLM or API in this phase.**
+
+Do not use OpenRouter, Anthropic, API keys, or external AI services yet.
+
+Use deterministic mock teaching and scoring so we can verify the state machine first.
+
+---
+
+# 1. Use the JSON as the domain source of truth
+
+The file:
+
+```text
+arthashastra-solo-knowledge-bank.json
+```
+
+must be loaded by the application at runtime.
+
+Do not hardcode the Arthashastra cases, SOLO examples, target signatures, or doctrinal anchors into Python/JavaScript.
+
+The JSON contains:
+
+* doctrinal anchors
+* SOLO level definitions
+* transitions C1-C4
+* prerequisites
+* concepts to master
+* target signatures
+* cases
+* question variants
+* SOLO level examples
+* MCQs
+* edge-case notes
+* global response-handling rules
+
+Use those fields directly.
+
+If the JSON contains the required information, do not invent replacement content.
+
+---
+
+# 2. JSON usage
+
+Use the JSON like this:
+
+### Teaching
+
+Use:
+
+```text
+doctrinal_anchors
+transition.concept_to_master
+selected case content
+selected pedagogy
+```
+
+to create the teaching turn.
+
+For Phase 1, the teaching service can return deterministic mock text.
+
+### Checkpoint
+
+After the teaching turn:
+
+1. Select the current case.
+2. Select one of its `question_variants`.
+3. Show the case/question to the learner.
+4. Wait for the learner response.
+
+Never show a checkpoint before its teaching turn.
+
+### Scoring
+
+Use:
+
+```text
+transition.target_signature
+case.level_examples
+case.edge_case_notes
+global_response_handling_rules
+```
+
+to determine the expected scoring behavior.
+
+For Phase 1, use a simple deterministic mock scorer.
+
+Keep the scorer behind an interface so it can later be replaced with an LLM scorer.
+
+---
+
+# 3. State machine
+
+Implement:
+
+```text
+START
+  ↓
+SELECT TRANSITION
+  ↓
+SELECT PEDAGOGY
+  ↓
+TEACH
+  ↓
+CHECKPOINT
+  ↓
+LEARNER RESPONSE
+  ↓
+SCORE
+  ↓
+PASS ─────────────→ NEXT TRANSITION
+  │
+  FAIL
+  ↓
+SELECT ANOTHER UNUSED PEDAGOGY
+  ↓
+TEACH
+  ↓
+CHECKPOINT
+  ↓
+LEARNER RESPONSE
+  ↓
+SCORE
+```
+
+There are exactly three pedagogies:
+
+* Worked Example
+* Guided Questioning
+* Contrasting Cases
+
+At the start of every transition, all three are available.
+
+Select one randomly.
+
+After failure, remove the pedagogy already used in that transition.
+
+Never repeat a pedagogy within the same transition.
+
+When the learner advances to the next transition, reset the pedagogy pool.
+
+---
+
+# 4. Teaching service
+
+Create a small abstraction such as:
+
+```python
+TutorService.generate_teaching_turn(...)
+```
+
+For now, implement a mock version.
+
+It should demonstrate the three pedagogy styles:
+
+### Worked Example
+
+Return a solved example followed by explanation.
+
+### Guided Questioning
+
+Return an incremental sequence of guiding questions.
+
+### Contrasting Cases
+
+Return two closely related scenarios and highlight the relevant difference.
+
+The checkpoint question must NOT be included in the teaching output.
+
+Later, this service will be replaced with an OpenRouter implementation.
+
+---
+
+# 5. Scoring service
+
+Create:
+
+```python
+ScoringService.score_response(...)
+```
+
+For Phase 1, use deterministic/mock scoring.
+
+Return at least:
+
+```json
+{
+  "assigned_solo_level": "...",
+  "target_signature_met": true
+}
+```
+
+The rest of the application should not know whether scoring is mock-based or LLM-based.
+
+Later, OpenRouter will replace this implementation.
+
+---
+
+# 6. Demonstration path
+
+The primary demonstration must work with:
+
+```text
+C1
+Case 1A
+Border Aggression
+```
+
+The flow should visibly demonstrate:
+
+```text
+C1
+↓
+Pedagogy selected
+↓
+Teaching
+↓
+Border Aggression checkpoint
+↓
+Learner response
+↓
+SOLO classification
+↓
+PASS / FAIL
+```
+
+Also demonstrate the failure path:
+
+```text
+Pedagogy A
+↓
+FAIL
+↓
+Pedagogy B
+↓
+NEW TEACHING TURN
+↓
+NEW CHECKPOINT
+```
+
+A retry must never be a bare re-ask of the previous checkpoint.
+
+---
+
+# 7. UI
+
+Keep the frontend extremely simple.
+
+Show:
+
+* Subtopic
+* Transition
+* Current SOLO transition
+* Current pedagogy
+* Teaching content
+* Checkpoint case
+* Checkpoint question
+* Response input
+* Attempt number
+* Previously used pedagogies
+* SOLO result
+* Pass/fail
+* Session progress
+
+Make the current state visually obvious:
+
+```text
+TEACHING
+CHECKPOINT
+SCORING
+RETRY
+NEXT TRANSITION
+```
+
+No elaborate design is required.
+
+---
+
+# 8. Logging
+
+Log:
+
+```text
+participant_id
+subtopic
+transition
+case_id
+pedagogy
+teaching_turn_text
+checkpoint_response
+assigned_solo_level
+target_signature_met
+attempt_number
+timestamp
+```
+
+A local JSONL file is sufficient.
+
+---
+
+# 9. Project structure
+
+Keep the project small and understandable.
+
+A reasonable structure is:
+
+```text
+project/
+├── backend/
+│   ├── main.py
+│   ├── state_machine.py
+│   ├── content_loader.py
+│   ├── tutor_service.py
+│   ├── scoring_service.py
+│   └── logger.py
+├── frontend/
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── data/
+│   └── arthashastra-solo-knowledge-bank.json
+├── logs/
+└── README.md
+```
+
+The exact structure can differ if there is a simpler approach.
+
+Do not over-engineer it.
+
+---
+
+# 10. Important separation
+
+Keep these separate:
+
+```text
+DOMAIN CONTENT
+    ↓
+JSON knowledge bank
+
+LEARNING LOGIC
+    ↓
+State machine
+
+TEACHING
+    ↓
+TutorService
+
+SCORING
+    ↓
+ScoringService
+
+UI
+    ↓
+Frontend
+```
+
+Do not put domain content directly into the state machine.
+
+Do not put pedagogy logic directly into the frontend.
+
+Do not put the future OpenRouter API call directly into the state machine.
+
+---
+
+# 11. No production infrastructure
+
+Do NOT implement:
+
+* authentication
+* database
+* user accounts
+* rate limiting
+* token tracking
+* API key management
+* deployment infrastructure
+* production monitoring
+* sophisticated error handling
+* advanced frontend
+* LLM integration
+
+This is a demonstration skeleton.
+
+Keep it fast to build and easy to inspect.
+
+---
+
+# 12. WSL requirement
+
+The project will be developed and run from WSL.
+
+After creating the project, provide the exact commands to enter the project directory in WSL.
+
+For example:
+
+```bash
+cd /path/to/project
+```
+
+Then provide the commands to:
+
+1. Create/activate the Python environment.
+2. Install dependencies.
+3. Start the FastAPI server.
+4. Open/use the frontend.
+
+Do not assume a Windows PowerShell workflow.
+
+If the current repository/project directory is already available, work inside that existing project rather than creating a duplicate project elsewhere.
+
+---
+
+# 13. Final verification
+
+Before finishing:
+
+1. Start the application.
+2. Run the C1 → Case 1A flow.
+3. Verify the teaching turn appears before the checkpoint.
+4. Submit a response.
+5. Verify scoring.
+6. Verify PASS advances to the next transition.
+7. Verify FAIL selects a different unused pedagogy.
+8. Verify the retry gets a new teaching turn before the checkpoint.
+9. Verify a successful transition resets the pedagogy pool.
+
+Then provide a concise README and a short summary of:
+
+* what was implemented
+* how to run it in WSL
+* where the knowledge bank is loaded
+* where the mock tutor lives
+* where the mock scorer lives
+* where OpenRouter can later be plugged in
+
+Do not add LLM functionality yet.
