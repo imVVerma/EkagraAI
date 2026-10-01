@@ -403,6 +403,7 @@ class TutorHandler(BaseHTTPRequestHandler):
                 target_signature=transition["target_signature"],
                 level_examples=case_level_examples,
                 rules=RULES,
+                case_text=case.get("scenario_text", ""),
             )
 
             target_met = scoring_result["target_signature_met"]

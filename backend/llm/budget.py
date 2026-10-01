@@ -135,6 +135,9 @@ class BudgetGuard:
         global EXPERIMENT_EXHAUSTED
         spent = self.store.spend()
         limit = self.config.max_experiment_cost_usd
+        # If the experiment budget is disabled (limit == 0), the latch never fires.
+        if limit <= 0:
+            return
         if EXPERIMENT_EXHAUSTED or spent >= limit - _EPSILON:
             EXPERIMENT_EXHAUSTED = True
             raise ExperimentBudgetExhaustedError(
@@ -206,19 +209,29 @@ class BudgetGuard:
         snapshot = self.snapshot(session_id, pricing_known=pricing_known)
 
         if not pricing_known:
-            if self.config.require_pricing_for_guard:
+            # Unknown pricing must not bypass hard budget ceilings.
+            # If any ceiling is active (non-zero), we cannot safely allow an
+            # unpriced request because we cannot bound its incremental cost.
+            # The experiment latch was already checked above.
+            any_ceiling_active = (
+                self.config.max_request_cost_usd > 0
+                or self.config.max_session_cost_usd > 0
+                or self.config.max_experiment_cost_usd > 0
+            )
+            if self.config.require_pricing_for_guard or any_ceiling_active:
                 raise BudgetExceededError(
                     f"Cannot bound the cost of {model!r}: the model catalogue "
                     "does not state its token prices, so no ceiling can be "
-                    "checked. Refusing because EKAGRA_REQUIRE_PRICING_FOR_GUARD "
-                    "is set. An unknown price is not treated as a free one.",
+                    "checked. Refusing because unknown pricing must not bypass "
+                    "a hard budget. Set a price for this model or raise the "
+                    "ceiling to zero to disable enforcement.",
                     boundary="request",
                     limit=self.config.max_request_cost_usd,
                     estimate=0.0,
                     spent=snapshot.experiment_spent,
                 )
-            # Proceeding without an estimate is permitted, but only after the
-            # experiment latch has been honoured above.
+            # No ceilings active: budget enforcement is disabled for this run.
+            # Allow the call but it will be recorded as unpriced.
             return PreflightResult(True, None, False, snapshot)
 
         guarded = apply_margin(estimate, ESTIMATE_MARGIN)

@@ -51,19 +51,28 @@ SOLO_LEVELS = [
 
 PEDAGOGIES = ["Worked Example", "Guided Questioning", "Contrasting Cases"]
 
-#: The ten areas a candidate model is evaluated on. Reported verbatim in the
-#: benchmark summary so coverage is visible rather than assumed.
+#: The sixteen areas a candidate model is evaluated on (per FoundationHard §16),
+#: plus intervention selection retained from the original benchmark.
+#: Reported verbatim in the benchmark summary so coverage is visible rather than assumed.
 CATEGORIES = [
     "knowledge-bank grounding",
-    "teaching",
-    "checkpoint generation",
-    "learner-response interpretation",
     "SOLO classification",
-    "intervention selection",
-    "handling incorrect answers",
-    "handling vague answers",
-    "avoiding unsupported claims",
+    "teaching",
+    "pedagogy selection",
+    "checkpoint generation",
+    "checkpoint handling",
+    "learner-response interpretation",
+    "incorrect-answer handling",
+    "vague-answer handling",
+    "progression correctness",
+    "retry correctness",
+    "same-transition retry",
+    "same-scenario retry",
+    "unused-pedagogy rotation",
+    "pedagogy reset after advancement",
+    "unsupported-claim avoidance",
     "structured output compliance",
+    "intervention selection",
 ]
 
 TASK_CATEGORIES = {c: i + 1 for i, c in enumerate(CATEGORIES)}
@@ -429,7 +438,7 @@ def build_tasks(bank: Dict[str, Any]) -> List[Task]:
     tasks.append(
         Task(
             task_id="incorrect-answer-irrelevant",
-            category="handling incorrect answers",
+            category="incorrect-answer handling",
             name="Respond to an irrelevant answer",
             system=(
                 "You are a tutor responding to a learner's answer. Your reply is "
@@ -465,7 +474,7 @@ def build_tasks(bank: Dict[str, Any]) -> List[Task]:
     tasks.append(
         Task(
             task_id="vague-answer-i-dont-know",
-            category="handling vague answers",
+            category="vague-answer handling",
             name="Respond to an I-dont-know answer",
             system=(
                 "You are a tutor responding to a learner's answer. Apply the "
@@ -508,7 +517,7 @@ def build_tasks(bank: Dict[str, Any]) -> List[Task]:
     tasks.append(
         Task(
             task_id="vague-answer-process-question",
-            category="handling vague answers",
+            category="vague-answer handling",
             name="Respond to a process answer that dodges the policy choice",
             system=(
                 "You are a tutor responding to a learner's answer. Apply the "
@@ -536,7 +545,7 @@ def build_tasks(bank: Dict[str, Any]) -> List[Task]:
     tasks.append(
         Task(
             task_id="unsupported-claim-modern-weapons",
-            category="avoiding unsupported claims",
+            category="unsupported-claim avoidance",
             name="Decline a question the bank cannot answer",
             system=(
                 "You support a tutor grounded in a fixed knowledge bank. That "
@@ -672,6 +681,245 @@ def build_tasks(bank: Dict[str, Any]) -> List[Task]:
                 },
             )
         )
+
+    # -- 11. pedagogy selection -------------------------------------------
+    tasks.append(
+        Task(
+            task_id="pedagogy-selection-initial",
+            category="pedagogy selection",
+            name="Pick the first pedagogy for a fresh transition",
+            system=(
+                "You are a tutor choosing a teaching approach. The learner has not "
+                "seen any pedagogy for this transition yet. Select one."
+            ),
+            user=(
+                f"Transition: C1 - {c1['concept_to_master']}\n"
+                f"Available pedagogies: {', '.join(PEDAGOGIES)}\n"
+                f"Pedagogies already used this transition: none\n\n"
+                f"Which pedagogy do you select? Reply with just the name."
+            ),
+            expected={
+                "basis": "objective",
+                "must_be_in": PEDAGOGIES,
+                "note": "First pedagogy must be one of the three pool members.",
+            },
+        )
+    )
+
+    tasks.append(
+        Task(
+            task_id="pedagogy-selection-after-failure",
+            category="pedagogy selection",
+            name="Pick a new pedagogy after a failure",
+            system=(
+                "You are a tutor choosing a new approach after a failed checkpoint. "
+                "The previous pedagogy was 'Worked Example'."
+            ),
+            user=(
+                f"Transition: C1 - {c1['concept_to_master']}\n"
+                f"Available pedagogies: {', '.join(PEDAGOGIES)}\n"
+                f"Pedagogies already used this transition: Worked Example\n\n"
+                f"Which pedagogy do you select? Reply with just the name."
+            ),
+            expected={
+                "basis": "objective",
+                "must_be_in": ["Guided Questioning", "Contrasting Cases"],
+                "must_not_be": "Worked Example",
+                "note": "Must pick from remaining pool; no repeat on failure.",
+            },
+        )
+    )
+
+    # -- 12. checkpoint handling ----------------------------------------
+    tasks.append(
+        Task(
+            task_id="checkpoint-handling-c1-cp1-cp2",
+            category="checkpoint handling",
+            name="Evaluate a response against C1's two checkpoints",
+            system=(
+                "You evaluate a learner's checkpoint response against the "
+                "transition's explicit checkpoints."
+            ),
+            user=(
+                f"Transition C1 checkpoints:\n"
+                f"- CP1 Agency: engages the case as a real decision, not denial/deflection\n"
+                f"- CP2 One tool: names one specific, case-relevant policy tool/fact\n\n"
+                f"Scenario: {case_1a['scenario_text']}\n"
+                f"Learner response: \"He should send spies and negotiate a deal.\"\n\n"
+                f"Which checkpoints are met? Reply with JSON: "
+                f'{{"cp1": true|false, "cp2": true|false}}'
+            ),
+            response_format=_json_schema(
+                "checkpoint_eval",
+                {
+                    "cp1": {"type": "boolean"},
+                    "cp2": {"type": "boolean"},
+                },
+            ),
+            requires_json=True,
+            expected={
+                "basis": "objective",
+                "cp1": True,
+                "cp2": True,
+                "note": "Names 'spies' (espionage) and 'negotiate' (dana/sama) — two tools.",
+            },
+        )
+    )
+
+    # -- 13. progression correctness ------------------------------------
+    tasks.append(
+        Task(
+            task_id="progression-correctness-pass-fail",
+            category="progression correctness",
+            name="Determine if a learner should advance or retry",
+            system=(
+                "You apply the transition's target signature to decide progression."
+            ),
+            user=(
+                f"Target signature: {c1['target_signature']}\n"
+                f"Learner response: \"He should send spies to gather intelligence.\"\n\n"
+                f"Does this meet the target signature? Reply true or false."
+            ),
+            expected={
+                "basis": "objective",
+                "expected": True,
+                "note": "Names 'spies' (espionage tool) — meets C1 target signature.",
+            },
+        )
+    )
+
+    tasks.append(
+        Task(
+            task_id="progression-correctness-fail-retry",
+            category="progression correctness",
+            name="Determine that a learner must retry the same transition",
+            system=(
+                "You apply the target signature. A response that does not meet it "
+                "must stay on the same transition."
+            ),
+            user=(
+                f"Target signature: {c1['target_signature']}\n"
+                f"Learner response: \"I think the king should just wait.\"\n\n"
+                f"Does this meet the target signature? Reply true or false."
+            ),
+            expected={
+                "basis": "objective",
+                "expected": False,
+                "note": "Waiting is not a named policy tool — target signature not met.",
+            },
+        )
+    )
+
+    # -- 14. retry correctness ------------------------------------------
+    tasks.append(
+        Task(
+            task_id="retry-correctness-same-transition",
+            category="retry correctness",
+            name="A failed response must not advance the SOLO level",
+            system=(
+                "You evaluate a retry attempt. The learner previously failed CP2."
+            ),
+            user=(
+                f"Transition: C1 - {c1['concept_to_master']}\n"
+                f"Previous attempt failed: did not name a policy tool.\n"
+                f"New response: \"The king could use sandhi (peace) to resolve it.\"\n\n"
+                f"Does this retry satisfy the target signature? Reply true or false."
+            ),
+            expected={
+                "basis": "objective",
+                "expected": True,
+                "note": "Names 'sandhi' — a policy tool. Retry can now pass.",
+            },
+        )
+    )
+
+    # -- 15. same-transition retry --------------------------------------
+    tasks.append(
+        Task(
+            task_id="same-transition-retry-no-advance",
+            category="same-transition retry",
+            name="After a failure, the next case is on the same transition",
+            system=(
+                "You determine the next case after a failed checkpoint."
+            ),
+            user=(
+                f"Transition C1 has cases 1A, 1B, 1C.\n"
+                f"The learner failed case 1A (did not meet target signature).\n\n"
+                f"Which case is served next? Reply with the case ID (e.g., 1A, 1B, 1C)."
+            ),
+            expected={
+                "basis": "objective",
+                "expected": "1B",
+                "note": "Failure on 1A moves to next case 1B on the same transition.",
+            },
+        )
+    )
+
+    # -- 16. same-scenario retry ----------------------------------------
+    tasks.append(
+        Task(
+            task_id="same-scenario-retry-same-case",
+            category="same-scenario retry",
+            name="A retry on the same scenario uses the same case",
+            system=(
+                "You determine the next case after a failure on a specific scenario."
+            ),
+            user=(
+                f"The learner failed case 1A (Border Aggression scenario).\n"
+                f"All three pedagogies have been tried for this scenario.\n\n"
+                f"What is the next case? Reply with the case ID."
+            ),
+            expected={
+                "basis": "objective",
+                "expected": "1A",
+                "note": "After exhausting pedagogies on a case, intervention uses same case.",
+            },
+        )
+    )
+
+    # -- 17. unused-pedagogy rotation -----------------------------------
+    tasks.append(
+        Task(
+            task_id="unused-pedagogy-rotation-no-repeat",
+            category="unused-pedagogy rotation",
+            name="Pedagogy is not repeated until all three are used",
+            system=(
+                "You track the pedagogy pool for a transition."
+            ),
+            user=(
+                f"Transition C1 pedagogies used so far: Worked Example, Guided Questioning.\n"
+                f"Remaining pool: Contrasting Cases.\n\n"
+                f"Which pedagogy is selected next? Reply with the name."
+            ),
+            expected={
+                "basis": "objective",
+                "expected": "Contrasting Cases",
+                "note": "Only Contrasting Cases remains in the pool.",
+            },
+        )
+    )
+
+    # -- 18. pedagogy reset after advancement ---------------------------
+    tasks.append(
+        Task(
+            task_id="pedagogy-reset-after-advance",
+            category="pedagogy reset after advancement",
+            name="After advancing, the pedagogy pool is reset to all three",
+            system=(
+                "You track the pedagogy pool across transitions."
+            ),
+            user=(
+                f"Transition C1 completed. All three pedagogies were used.\n"
+                f"Now advancing to Transition C2.\n\n"
+                f"What pedagogies are available for C2? Reply with all three names."
+            ),
+            expected={
+                "basis": "objective",
+                "must_include_all": PEDAGOGIES,
+                "note": "Advancing to a new transition resets the pool to all three.",
+            },
+        )
+    )
 
     return tasks
 

@@ -1,10 +1,17 @@
 """Machine-readable usage records and the aggregated cost summary.
 
-Two files, both under ``EKAGRA_LOG_DIR`` (default ``logs/``):
+Log layout (per FoundationHard §10):
 
-``api_usage.jsonl``    one JSON object per OpenRouter call, appended and never
-                       rewritten. This is the record of what was spent.
-``cost_summary.json``  a roll-up of that log, rewritten after every call.
+logs/
+    development/
+        api_usage.jsonl          # calls without experiment_id
+        cost_summary.json
+    experiments/
+        <experiment_id>/
+            runs/
+                api_usage.jsonl   # calls with this experiment_id
+            cost_summary.json
+            manifest.json        # experiment metadata (config snapshot, etc.)
 
 The JSONL log is the source of truth. The summary is always recomputed from it
 rather than incremented in place, so a corrupt or hand-edited summary cannot
@@ -52,6 +59,12 @@ COST_PRECISION = 10
 
 USAGE_LOG_NAME = "api_usage.jsonl"
 SUMMARY_NAME = "cost_summary.json"
+MANIFEST_NAME = "manifest.json"
+
+# Subdirectories
+DEV_DIR = "development"
+EXPERIMENTS_DIR = "experiments"
+RUNS_DIR = "runs"
 
 
 def _utc_now() -> str:
@@ -66,13 +79,21 @@ def _round(value: Optional[float]) -> float:
 
 @dataclass
 class UsageRecord:
-    """One OpenRouter call, with everything needed to attribute its cost."""
+    """One LLM call, with everything needed to attribute its cost.
+
+    Fields match the canonical schema from FoundationHard §10.
+    """
 
     session_id: str
     agent: str
-    model: str
+    role: str = ""
+    model: str = ""
     request_cost: float = 0.0
+    cost_usd: float = 0.0
     timestamp: str = field(default_factory=_utc_now)
+    experiment_id: Optional[str] = None
+    run_id: Optional[str] = None
+    provider: Optional[str] = None
     requested_model: Optional[str] = None
     request_id: Optional[str] = None
     provider_request_id: Optional[str] = None
@@ -89,48 +110,66 @@ class UsageRecord:
     finish_reason: Optional[str] = None
     status: str = "ok"
     error: Optional[str] = None
+    error_type: Optional[str] = None
     prompt_version: Optional[str] = None
+    knowledge_bank_release: Optional[str] = None
+    knowledge_bank_sha256: Optional[str] = None
     knowledge_bank_version: Optional[str] = None
     knowledge_bank_source: Optional[str] = None
     test_case_id: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        # Backward compatibility: role defaults to agent; cost_usd mirrors request_cost
+        if not self.role:
+            self.role = self.agent
+        if self.cost_usd == 0.0 and self.request_cost != 0.0:
+            self.cost_usd = self.request_cost
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the record as written to the log."""
         data = asdict(self)
         for field_name in ("request_cost", "input_cost", "output_cost",
-                           "cumulative_session_cost", "cumulative_experiment_cost"):
-            data[field_name] = _round(data[field_name])
-        if data.get("estimated_before") is not None:
-            data["estimated_before"] = _round(data["estimated_before"])
-        # The model actually used is what the caller must be billed against; the
-        # requested one is retained so a substitution is always visible.
-        data.setdefault("requested_model", data["model"])
+                           "cumulative_session_cost", "cumulative_experiment_cost",
+                           "cost_usd"):
+            if field_name in data:
+                data[field_name] = _round(data[field_name])
         return data
-
-    @property
-    def cost_is_authoritative(self) -> bool:
-        return self.cost_source in AUTHORITATIVE_COST_SOURCES
 
 
 class UsageStore:
-    """Append-only usage log plus a recomputed summary.
-
-    Not safe across processes for *writing* — two processes appending to one log
-    can interleave a partial line. Every writer here is a single tool run, and
-    the summary is rebuilt from whatever parses, so a torn line is skipped and
-    counted rather than trusted.
-    """
+    """Append-only usage log with per-experiment separation and atomic summaries."""
 
     def __init__(self, config: Config):
         self.config = config
-        self.usage_log_path = config.path(USAGE_LOG_NAME)
-        self.summary_path = config.path(SUMMARY_NAME)
         self._lock = threading.Lock()
 
-    # -- writing ----------------------------------------------------------
+    # -- path resolution ----------------------------------------------------
+
+    def _resolve_log_dir(self, experiment_id: Optional[str]) -> str:
+        """Return the directory where the usage log for *experiment_id* lives."""
+        base = self.config.log_dir
+        if experiment_id:
+            return os.path.join(base, EXPERIMENTS_DIR, experiment_id, RUNS_DIR)
+        return os.path.join(base, DEV_DIR)
+
+    def _usage_log_path(self, experiment_id: Optional[str]) -> str:
+        return os.path.join(self._resolve_log_dir(experiment_id), USAGE_LOG_NAME)
+
+    def _summary_path(self, experiment_id: Optional[str]) -> str:
+        return os.path.join(self._resolve_log_dir(experiment_id), SUMMARY_NAME)
+
+    def _manifest_path(self, experiment_id: Optional[str]) -> str:
+        return os.path.join(
+            self.config.log_dir, EXPERIMENTS_DIR, experiment_id, MANIFEST_NAME
+        )
+
+    def _ensure_log_dir(self, experiment_id: Optional[str]) -> None:
+        os.makedirs(self._resolve_log_dir(experiment_id), exist_ok=True)
+
+    # -- writing ------------------------------------------------------------
 
     def append(self, record: UsageRecord) -> Dict[str, Any]:
-        """Append one record to the JSONL log and refresh the summary.
+        """Append one record to the appropriate JSONL log and refresh the summary.
 
         The cumulative figures are recomputed here from the log rather than
         trusted from the caller, so a record written by anything other than
@@ -139,8 +178,13 @@ class UsageStore:
         truth for spend.
         """
         payload = record.to_dict()
+        exp_id = record.experiment_id
+
         with self._lock:
-            existing = read_records(self.usage_log_path)
+            self._ensure_log_dir(exp_id)
+            log_path = self._usage_log_path(exp_id)
+
+            existing = read_records(log_path)
             session_before = total_spend(existing, session_id=record.session_id)
             experiment_before = total_spend(existing)
             payload["cumulative_session_cost"] = _round(
@@ -150,53 +194,73 @@ class UsageStore:
                 experiment_before + float(payload.get("request_cost") or 0.0)
             )
 
-            os.makedirs(os.path.dirname(os.path.abspath(self.usage_log_path)), exist_ok=True)
-            with open(self.usage_log_path, "a", encoding="utf-8") as fh:
+            with open(log_path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
-            summary = self._build_summary(records=read_records(self.usage_log_path))
-            self._write_summary(summary)
+            summary = self._build_summary(records=read_records(log_path))
+            self._write_summary(summary, exp_id)
         return payload
 
-    def _write_summary(self, summary: Dict[str, Any]) -> None:
-        os.makedirs(os.path.dirname(os.path.abspath(self.summary_path)), exist_ok=True)
-        tmp = f"{self.summary_path}.tmp"
+    def _write_summary(self, summary: Dict[str, Any], experiment_id: Optional[str]) -> None:
+        summary_path = self._summary_path(experiment_id)
+        os.makedirs(os.path.dirname(os.path.abspath(summary_path)), exist_ok=True)
+        tmp = f"{summary_path}.tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
             json.dump(summary, fh, ensure_ascii=False, indent=2)
-        # Replace atomically so a reader never sees a half-written summary.
-        os.replace(tmp, self.summary_path)
+        os.replace(tmp, summary_path)
 
-    # -- reading ----------------------------------------------------------
+    # -- reading ------------------------------------------------------------
 
-    def _read_all(self, *, include_torn: bool = False) -> List[Dict[str, Any]]:
-        return read_records(self.usage_log_path)
+    def _read_all(self, experiment_id: Optional[str] = None, *, include_torn: bool = False) -> List[Dict[str, Any]]:
+        return read_records(self._usage_log_path(experiment_id))
 
-    def records(self) -> List[Dict[str, Any]]:
-        """Every well-formed record in the log."""
-        return self._read_all()
+    def records(self, experiment_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Every well-formed record in the log for *experiment_id* (or dev log)."""
+        return self._read_all(experiment_id)
 
-    def malformed_line_count(self) -> int:
+    def malformed_line_count(self, experiment_id: Optional[str] = None) -> int:
         """Lines that did not parse as a usage record."""
-        return count_malformed_lines(self.usage_log_path)
+        return count_malformed_lines(self._usage_log_path(experiment_id))
 
-    def spend(self, *, session_id: Optional[str] = None, agent: Optional[str] = None) -> float:
-        """Total recorded cost, optionally narrowed to one session or agent."""
-        return total_spend(self.records(), session_id=session_id, agent=agent)
+    def spend(self, *, session_id: Optional[str] = None, agent: Optional[str] = None,
+              experiment_id: Optional[str] = None) -> float:
+        """Total recorded cost, optionally narrowed to one session, agent, or experiment."""
+        return total_spend(self.records(experiment_id), session_id=session_id, agent=agent)
 
-    # -- summary ----------------------------------------------------------
+    # -- summary ------------------------------------------------------------
 
-    def summarize(self) -> Dict[str, Any]:
+    def summarize(self, experiment_id: Optional[str] = None) -> Dict[str, Any]:
         """Recompute the summary from the log."""
-        return self._build_summary(records=self._read_all(include_torn=False))
+        return self._build_summary(records=self._read_all(experiment_id))
 
-    def refresh_summary(self) -> Dict[str, Any]:
+    def refresh_summary(self, experiment_id: Optional[str] = None) -> Dict[str, Any]:
         """Recompute, write, and return the summary."""
-        summary = self.summarize()
+        summary = self.summarize(experiment_id)
         with self._lock:
-            self._write_summary(summary)
+            self._write_summary(summary, experiment_id)
         return summary
 
     def _build_summary(self, *, records: List[Dict[str, Any]]) -> Dict[str, Any]:
-        return build_summary(records, config=self.config, usage_log_path=self.usage_log_path)
+        return build_summary(records, config=self.config, usage_log_path=None)
+
+    # -- experiment manifest ------------------------------------------------
+
+    def write_manifest(self, experiment_id: str, manifest: Dict[str, Any]) -> None:
+        """Write the experiment manifest (config snapshot, metadata)."""
+        manifest_path = self._manifest_path(experiment_id)
+        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+        manifest["experiment_id"] = experiment_id
+        manifest["written_at"] = _utc_now()
+        tmp = f"{manifest_path}.tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(manifest, fh, ensure_ascii=False, indent=2)
+        os.replace(tmp, manifest_path)
+
+    def read_manifest(self, experiment_id: str) -> Optional[Dict[str, Any]]:
+        path = self._manifest_path(experiment_id)
+        if not os.path.isfile(path):
+            return None
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
 
 
 # ---------------------------------------------------------------------------
@@ -208,51 +272,35 @@ class UsageStore:
 
 
 def read_records(path: str) -> List[Dict[str, Any]]:
-    """Return every well-formed record in the JSONL log at *path*.
-
-    Unparseable lines are skipped rather than guessed at: a torn write must not
-    become an invented cost.
-    """
+    """Return every well-formed record in the JSONL log at *path*."""
     if not os.path.isfile(path):
         return []
-    records: List[Dict[str, Any]] = []
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    parsed = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if isinstance(parsed, dict) and "request_cost" in parsed:
-                    records.append(parsed)
-    except OSError:
-        return []
+    records = []
+    with open(path, "r", encoding="utf-8") as fh:
+        for line_no, line in enumerate(fh, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
     return records
 
 
 def count_malformed_lines(path: str) -> int:
-    """Return how many non-blank lines in *path* are not usage records."""
     if not os.path.isfile(path):
         return 0
     bad = 0
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    parsed = json.loads(line)
-                except json.JSONDecodeError:
-                    bad += 1
-                    continue
-                if not (isinstance(parsed, dict) and "request_cost" in parsed):
-                    bad += 1
-    except OSError:
-        return 0
+    with open(path, "r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                json.loads(line)
+            except json.JSONDecodeError:
+                bad += 1
     return bad
 
 
@@ -262,150 +310,142 @@ def total_spend(
     session_id: Optional[str] = None,
     agent: Optional[str] = None,
 ) -> float:
-    """Sum ``request_cost`` across *records*, honouring optional filters."""
+    """Sum of request_cost for *records*, filtered by session/agent."""
     total = 0.0
-    for record in records:
-        if session_id is not None and record.get("session_id") != session_id:
+    for r in records:
+        if session_id is not None and r.get("session_id") != session_id:
             continue
-        if agent is not None and record.get("agent") != agent:
+        if agent is not None and r.get("agent") != agent:
             continue
-        try:
-            total += float(record.get("request_cost") or 0.0)
-        except (TypeError, ValueError):
-            continue
+        total += float(r.get("request_cost") or 0.0)
     return _round(total)
 
 
 def build_summary(
     records: List[Dict[str, Any]],
-    *,
     config: Optional[Config] = None,
     usage_log_path: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Roll *records* up into the cost summary document.
+    """Roll up *records* into the cost summary dict."""
+    if not records:
+        return {
+            "total_requests": 0,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_tokens": 0,
+            "authoritative_cost": 0.0,
+            "estimated_cost": 0.0,
+            "unpriced_cost": 0.0,
+            "total_cost": 0.0,
+            "cost_by_source": {src: 0.0 for src in COST_SOURCES},
+            "cost_by_model": {},
+            "cost_by_session": {},
+            "cost_by_agent": {},
+            "cost_by_provider": {},
+            "cost_by_role": {},
+            "cost_by_experiment": {},
+            "models": {},
+            "by_source": {},
+        }
 
-    Recomputed from scratch rather than accumulated, so the summary always
-    agrees with the log it describes.
-    """
-    total_cost = 0.0
-    total_input = 0
-    total_output = 0
-    by_model: Dict[str, float] = {}
-    by_session: Dict[str, float] = {}
-    by_agent: Dict[str, float] = {}
-    by_source: Dict[str, float] = {}
-    requests = 0
-    failures = 0
+    total_requests = len(records)
+    total_input_tokens = sum(r.get("input_tokens", 0) for r in records)
+    total_output_tokens = sum(r.get("output_tokens", 0) for r in records)
+    total_tokens = sum(r.get("total_tokens", 0) for r in records)
+
     authoritative_cost = 0.0
+    estimated_cost = 0.0
+    unpriced_cost = 0.0
 
-    for record in records:
-        try:
-            cost = float(record.get("request_cost") or 0.0)
-        except (TypeError, ValueError):
-            cost = 0.0
-        total_cost += cost
-        requests += 1
+    cost_by_source = {src: 0.0 for src in COST_SOURCES}
+    cost_by_model: Dict[str, float] = {}
+    cost_by_session: Dict[str, float] = {}
+    cost_by_agent: Dict[str, float] = {}
+    cost_by_provider: Dict[str, float] = {}
+    cost_by_role: Dict[str, float] = {}
+    cost_by_experiment: Dict[str, float] = {}
 
-        try:
-            total_input += int(record.get("input_tokens") or 0)
-        except (TypeError, ValueError):
-            pass
-        try:
-            total_output += int(record.get("output_tokens") or 0)
-        except (TypeError, ValueError):
-            pass
-
-        model = str(record.get("model") or "unknown")
-        by_model[model] = by_model.get(model, 0.0) + cost
-
-        session = str(record.get("session_id") or "unknown")
-        by_session[session] = by_session.get(session, 0.0) + cost
-
-        agent = str(record.get("agent") or "unknown")
-        by_agent[agent] = by_agent.get(agent, 0.0) + cost
-
-        source = str(record.get("cost_source") or COST_SOURCE_ESTIMATED_FROM_PRICING)
-        by_source[source] = by_source.get(source, 0.0) + cost
+    for r in records:
+        cost = float(r.get("request_cost") or 0.0)
+        source = r.get("cost_source", COST_SOURCE_UNPRICED)
 
         if source in AUTHORITATIVE_COST_SOURCES:
             authoritative_cost += cost
-        if record.get("status") not in (None, "", "ok"):
-            failures += 1
+        elif source == COST_SOURCE_ESTIMATED_FROM_PRICING:
+            estimated_cost += cost
+        else:
+            unpriced_cost += cost
 
-    total_cost = _round(total_cost)
-    authoritative_cost = _round(authoritative_cost)
+        cost_by_source[source] = _round(cost_by_source.get(source, 0.0) + cost)
 
-    experiment_limit = config.max_experiment_cost_usd if config else None
-    remaining = None
-    if experiment_limit is not None:
-        remaining = _round(max(experiment_limit - total_cost, 0.0))
+        model = r.get("model", "unknown")
+        cost_by_model[model] = _round(cost_by_model.get(model, 0.0) + cost)
 
-    summary: Dict[str, Any] = {
-        # The fields tools/cost_report.py is required to report.
-        "total_experiment_cost": total_cost,
-        "total_requests": requests,
-        "total_input_tokens": total_input,
-        "total_output_tokens": total_output,
-        "tutor_cost": _round(by_agent.get(AGENT_TUTOR, 0.0)),
-        "evaluator_cost": _round(by_agent.get(AGENT_EVALUATOR, 0.0)),
-        "cost_by_model": {k: _round(v) for k, v in sorted(by_model.items())},
-        "cost_by_session": {k: _round(v) for k, v in sorted(by_session.items())},
-        "remaining_budget": remaining,
-        # Provenance, so a number is never trusted without knowing its source.
-        "generated_at": _utc_now(),
-        "usage_log": usage_log_path,
-        "cost_by_agent": {k: _round(v) for k, v in sorted(by_agent.items())},
-        "cost_by_source": {k: _round(v) for k, v in sorted(by_source.items())},
+        sess = r.get("session_id")
+        if sess:
+            cost_by_session[sess] = _round(cost_by_session.get(sess, 0.0) + cost)
+
+        agt = r.get("agent")
+        if agt:
+            cost_by_agent[agt] = _round(cost_by_agent.get(agt, 0.0) + cost)
+
+        prov = r.get("provider")
+        if prov:
+            cost_by_provider[prov] = _round(cost_by_provider.get(prov, 0.0) + cost)
+
+        role = r.get("role") or agt
+        if role:
+            cost_by_role[role] = _round(cost_by_role.get(role, 0.0) + cost)
+
+        exp = r.get("experiment_id")
+        if exp:
+            cost_by_experiment[exp] = _round(cost_by_experiment.get(exp, 0.0) + cost)
+
+    total_cost = _round(authoritative_cost + estimated_cost + unpriced_cost)
+
+    models = {}
+    if config:
+        models = config.describe_models()
+
+    return {
+        "total_requests": total_requests,
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "total_tokens": total_tokens,
         "authoritative_cost": authoritative_cost,
-        "estimated_cost": _round(total_cost - authoritative_cost),
-        "failed_requests": failures,
-        "budgets": None,
+        "estimated_cost": estimated_cost,
+        "unpriced_cost": unpriced_cost,
+        "total_cost": total_cost,
+        "cost_by_source": cost_by_source,
+        "cost_by_model": cost_by_model,
+        "cost_by_session": cost_by_session,
+        "cost_by_agent": cost_by_agent,
+        "cost_by_provider": cost_by_provider,
+        "cost_by_role": cost_by_role,
+        "cost_by_experiment": cost_by_experiment,
+        "models": models,
+        "by_source": cost_by_source,
     }
 
-    if config is not None:
-        summary["budgets"] = {
-            "max_request_cost_usd": config.max_request_cost_usd,
-            "max_session_cost_usd": config.max_session_cost_usd,
-            "max_experiment_cost_usd": config.max_experiment_cost_usd,
-        }
-        summary["experiment_budget_exhausted"] = bool(
-            experiment_limit is not None and total_cost >= experiment_limit
-        )
-        summary["models"] = config.describe_models()
 
-    if summary["authoritative_cost"] == 0.0 and total_cost > 0:
-        # Every cost here was inferred rather than reported. That is allowed but
-        # must never be silent.
-        summary["warning"] = (
-            "No cost came from OpenRouter's own usage reporting; all figures "
-            "were estimated from published pricing. Confirm usage accounting "
-            "is available for the models in use."
-        )
-
-    if config is None and remaining is None:
-        summary["warning"] = summary.get(
-            "warning", "No configuration supplied, so remaining_budget is unknown."
-        )
-
-    return summary
-
-
-def load_summary(config: Config) -> Dict[str, Any]:
-    """Read the summary file if it exists, else compute and write it."""
-    store = UsageStore(config)
-    if os.path.isfile(store.summary_path):
-        try:
-            with open(store.summary_path, "r", encoding="utf-8") as fh:
-                return json.load(fh)
-        except (OSError, json.JSONDecodeError):
-            pass
-    return store.refresh_summary()
-
-
-def require_config(config: Optional[Config]) -> Config:
-    """Return *config* or explain that the tools need one."""
-    if config is None:
-        raise ConfigurationError(
-            "A Config is required to compute a budget-aware summary."
-        )
-    return config
+__all__ = [
+    "COST_SOURCE_OPENROUTER_USAGE",
+    "COST_SOURCE_OPENROUTER_GENERATION",
+    "COST_SOURCE_ESTIMATED_FROM_PRICING",
+    "COST_SOURCE_UNPRICED",
+    "AUTHORITATIVE_COST_SOURCES",
+    "COST_SOURCES",
+    "COST_PRECISION",
+    "USAGE_LOG_NAME",
+    "SUMMARY_NAME",
+    "MANIFEST_NAME",
+    "DEV_DIR",
+    "EXPERIMENTS_DIR",
+    "RUNS_DIR",
+    "UsageRecord",
+    "UsageStore",
+    "read_records",
+    "count_malformed_lines",
+    "total_spend",
+    "build_summary",
+]

@@ -1,33 +1,44 @@
-"""Configuration for the OpenRouter foundation.
+"""Configuration for the LLM foundation.
 
 Everything the experiment needs to vary between runs — which model plays which
-role, how much money may be spent, where usage is recorded — comes from the
-environment, never from a constant in this file that someone might forget to
-change.
+role, how much money may be spent, where usage is recorded, which provider to
+use — comes from the environment, never from a constant in this file that
+someone might forget to change.
 
-The API key is read from ``OPENROUTER_API_KEY`` and is deliberately awkward to
-get at: it is held in a private attribute and redacted from every string the
-foundation produces, so it cannot reach a log file or an error message.
+The API key is read from ``EKAGRA_API_KEY`` (or ``OPENROUTER_API_KEY`` for
+backward compatibility) and is deliberately awkward to get at: it is held in a
+private attribute and redacted from every string the foundation produces, so it
+cannot reach a log file or an error message.
 
 Environment variables
 ---------------------
-OPENROUTER_API_KEY              (required for any call; never written to disk)
-EKAGRA_TUTOR_MODEL              model id for LLM1, the tutor
-EKAGRA_EVALUATOR_MODEL          model id for LLM2, the simulated learner/evaluator
-EKAGRA_MAX_REQUEST_COST_USD    refuse a single request costing more than this
-EKAGRA_MAX_SESSION_COST_USD    refuse once one session has spent this much
+EKAGRA_MODE                   "deterministic" or "live" (default "deterministic")
+EKAGRA_LLM_PROVIDER           provider name, e.g. "openrouter" (default "openrouter")
+EKAGRA_API_KEY                API key for the selected provider (required for live)
+EKAGRA_API_BASE_URL           base URL for the provider (default OpenRouter)
+EKAGRA_TUTOR_MODEL            model id for LLM1, the tutor
+EKAGRA_EVALUATOR_MODEL        model id for LLM2, the evaluator
+EKAGRA_LEARNER_MODEL          model id for the simulated learner (prep only)
+EKAGRA_ANALYST_MODEL          model id for the experiment analyst (prep only)
+EKAGRA_BENCHMARK_MODEL        model id for the benchmark (explicit per candidate)
+EKAGRA_MAX_REQUEST_COST_USD   refuse a single request costing more than this
+EKAGRA_MAX_SESSION_COST_USD   refuse once one session has spent this much
 EKAGRA_MAX_EXPERIMENT_COST_USD refuse once the whole experiment has spent this much
-EKAGRA_LOG_DIR                  where api_usage.jsonl / cost_summary.json live
-EKAGRA_APP_TITLE                OpenRouter attribution header value
-EKAGRA_APP_URL                  OpenRouter attribution header value
-EKAGRA_REQUEST_TIMEOUT_SECONDS  per-request HTTP timeout
-EKAGRA_MAX_OUTPUT_TOKENS        default cap on completion length
-EKAGRA_TOKEN_ESTIMATE_DIVISOR  characters per token, for pre-flight estimates
-EKAGRA_REQUIRE_PRICING_FOR_GUARD  refuse a model whose price cannot be read
+EKAGRA_LOG_DIR                where api_usage.jsonl / cost_summary.json live
+EKAGRA_APP_TITLE              provider attribution header value
+EKAGRA_APP_URL                provider attribution header value
+EKAGRA_REQUEST_TIMEOUT_SECONDS per-request HTTP timeout
+EKAGRA_MAX_OUTPUT_TOKENS      default cap on completion length
+EKAGRA_TOKEN_ESTIMATE_DIVISOR characters per token, for pre-flight estimates
+EKAGRA_REQUIRE_PRICING_FOR_GUARD refuse a model whose price cannot be read
+EKAGRA_EXPERIMENT_ID          experiment identifier (for log separation)
+EKAGRA_RUN_ID                 run identifier within experiment
+EKAGRA_PROMPT_VERSION         prompt version stamp
+EKAGRA_CONFIGURATION_VERSION  configuration snapshot version
 
-The two model roles are separate variables on purpose. LLM1 and LLM2 are
-independent choices, and defaulting one to the other would quietly bias any
-comparison between them.
+The model roles are separate variables on purpose. LLM1, LLM2, learner, and
+analyst are independent choices, and defaulting one to another would quietly
+bias any comparison between them.
 """
 
 import os
@@ -40,8 +51,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_APP_TITLE = "EkagraAI"
 
-#: Budgets apply when unset. Failing closed is the point: an unconfigured run
-#: should stop rather than discover its own spending afterwards.
+# Budgets apply when unset. Failing closed is the point: an unconfigured run
+# should stop rather than discover its own spending afterwards.
 DEFAULT_MAX_REQUEST_COST_USD = 0.05
 DEFAULT_MAX_SESSION_COST_USD = 0.50
 DEFAULT_MAX_EXPERIMENT_COST_USD = 1.00
@@ -49,35 +60,37 @@ DEFAULT_MAX_EXPERIMENT_COST_USD = 1.00
 DEFAULT_TIMEOUT_SECONDS = 120.0
 DEFAULT_MAX_OUTPUT_TOKENS = 1024
 
-#: When true, a model whose price cannot be read from the catalogue is refused
-#: rather than called without an estimate. Off by default: the pre-flight guard
-#: is specified to estimate "where possible", and refusing outright would make
-#: the client unusable whenever /models is unreachable. The experiment-wide
-#: latch still applies either way.
+# When true, a model whose price cannot be read from the catalogue is refused
+# rather than called without an estimate. On by default in live mode; the
+# experiment-wide latch still applies either way.
 DEFAULT_REQUIRE_PRICING_FOR_GUARD = False
 
-#: Rough characters-per-token ratio for English prose, used only to size the
-#: pre-flight guard. OpenRouter's own post-hoc figure is always authoritative.
+# Rough characters-per-token ratio for English prose, used only to size the
+# pre-flight guard. The provider's own post-hoc figure is always authoritative.
 DEFAULT_TOKEN_ESTIMATE_DIVISOR = 4.0
 
-#: Margins applied to the pre-flight estimate so the guard errs towards
-#: refusing. A guard that under-estimates is not a guard.
+# Margins applied to the pre-flight estimate so the guard errs towards
+# refusing. A guard that under-estimates is not a guard.
 ESTIMATE_MARGIN = 1.25
 
-# Agent/role names. "tutor" is LLM1, "evaluator" is LLM2.
+# Agent/role names.
 AGENT_TUTOR = "tutor"
 AGENT_EVALUATOR = "evaluator"
+AGENT_LEARNER = "learner"
+AGENT_ANALYST = "analyst"
 AGENT_BENCHMARK = "benchmark"
 
 ROLE_ENV_VARS = {
     AGENT_TUTOR: "EKAGRA_TUTOR_MODEL",
     AGENT_EVALUATOR: "EKAGRA_EVALUATOR_MODEL",
+    AGENT_LEARNER: "EKAGRA_LEARNER_MODEL",
+    AGENT_ANALYST: "EKAGRA_ANALYST_MODEL",
     AGENT_BENCHMARK: "EKAGRA_BENCHMARK_MODEL",
 }
 
-#: Roles that name a real participant in the experiment. The benchmark role is
-#: excluded because it names each candidate explicitly instead.
-FIXED_MODEL_ROLES = (AGENT_TUTOR, AGENT_EVALUATOR)
+# Roles that name a real participant in the experiment. The benchmark role is
+# excluded because it names each candidate explicitly instead.
+FIXED_MODEL_ROLES = (AGENT_TUTOR, AGENT_EVALUATOR, AGENT_LEARNER, AGENT_ANALYST)
 
 _REDACTION = "***redacted***"
 
@@ -158,8 +171,13 @@ class Config:
         self,
         *,
         api_key: Optional[str],
+        base_url: str,
+        provider: str,
+        mode: str,
         tutor_model: Optional[str],
         evaluator_model: Optional[str],
+        learner_model: Optional[str],
+        analyst_model: Optional[str],
         max_request_cost_usd: float,
         max_session_cost_usd: float,
         max_experiment_cost_usd: float,
@@ -170,11 +188,20 @@ class Config:
         max_output_tokens: int,
         token_estimate_divisor: float,
         require_pricing_for_guard: bool = DEFAULT_REQUIRE_PRICING_FOR_GUARD,
-        base_url: str = OPENROUTER_BASE_URL,
+        experiment_id: Optional[str] = None,
+        run_id: Optional[str] = None,
+        prompt_version: Optional[str] = None,
+        configuration_version: Optional[str] = None,
+        knowledge_bank_release: Optional[str] = None,
     ):
         self._api_key = api_key or None
+        self.base_url = base_url.rstrip("/")
+        self.provider = provider
+        self.mode = mode
         self.tutor_model = tutor_model or None
         self.evaluator_model = evaluator_model or None
+        self.learner_model = learner_model or None
+        self.analyst_model = analyst_model or None
         self.max_request_cost_usd = max_request_cost_usd
         self.max_session_cost_usd = max_session_cost_usd
         self.max_experiment_cost_usd = max_experiment_cost_usd
@@ -185,7 +212,11 @@ class Config:
         self.max_output_tokens = max_output_tokens
         self.token_estimate_divisor = token_estimate_divisor
         self.require_pricing_for_guard = require_pricing_for_guard
-        self.base_url = base_url.rstrip("/")
+        self.experiment_id = experiment_id
+        self.run_id = run_id
+        self.prompt_version = prompt_version
+        self.configuration_version = configuration_version
+        self.knowledge_bank_release = knowledge_bank_release
 
     # -- secrets ----------------------------------------------------------
 
@@ -197,18 +228,17 @@ class Config:
         """Return the API key, or explain precisely what is missing."""
         if not self._api_key:
             raise ConfigurationError(
-                "OPENROUTER_API_KEY is not set. Export it before making any "
-                "OpenRouter call; it is never stored in the repository."
+                "EKAGRA_API_KEY (or OPENROUTER_API_KEY) is not set. Export it "
+                "before making any provider call; it is never stored in the "
+                "repository."
             )
         return self._api_key
 
     def auth_headers(self) -> Dict[str, str]:
-        """Headers for an authenticated OpenRouter request."""
+        """Headers for an authenticated provider request."""
         return {
             "Authorization": f"Bearer {self.api_key()}",
             "Content-Type": "application/json",
-            # Attribution is what OpenRouter uses to surface the app on a
-            # project dashboard; harmless when unset.
             "HTTP-Referer": self.app_url,
             "X-Title": self.app_title,
         }
@@ -229,8 +259,9 @@ class Config:
 
     def __repr__(self) -> str:
         return (
-            f"Config(tutor_model={self.tutor_model!r}, "
-            f"evaluator_model={self.evaluator_model!r}, "
+            f"Config(mode={self.mode!r}, provider={self.provider!r}, "
+            f"tutor_model={self.tutor_model!r}, evaluator_model={self.evaluator_model!r}, "
+            f"learner_model={self.learner_model!r}, analyst_model={self.analyst_model!r}, "
             f"api_key={_REDACTION if self.has_api_key else None!r}, "
             f"max_request={self.max_request_cost_usd}, "
             f"max_session={self.max_session_cost_usd}, "
@@ -255,11 +286,12 @@ class Config:
             raise ConfigurationError(
                 f"Unknown role {role!r}; expected one of {sorted(ROLE_ENV_VARS)}."
             )
-        model = getattr(self, f"{role}_model", None) if role in FIXED_MODEL_ROLES else None
-        model = model or os.environ.get(var, "").strip()
+        model = getattr(self, f"{role}_model", None)
+        if model is None:
+            model = os.environ.get(var, "").strip()
         if not model:
             raise ConfigurationError(
-                f"{var} is not set. LLM1 and LLM2 are chosen independently; "
+                f"{var} is not set. Model roles are chosen independently; "
                 "set the variable for this role explicitly."
             )
         return model
@@ -269,6 +301,8 @@ class Config:
         return {
             AGENT_TUTOR: self.tutor_model,
             AGENT_EVALUATOR: self.evaluator_model,
+            AGENT_LEARNER: self.learner_model,
+            AGENT_ANALYST: self.analyst_model,
         }
 
     # -- budgets ----------------------------------------------------------
@@ -297,14 +331,55 @@ def load_config(*, dotenv: bool = True) -> Config:
     if dotenv:
         _load_dotenv()
 
+    # Mode and provider
+    mode = os.environ.get("EKAGRA_MODE", "").strip().lower() or "deterministic"
+    provider = os.environ.get("EKAGRA_LLM_PROVIDER", "").strip().lower() or "openrouter"
+
+    # API key with backward compatibility
+    api_key = (
+        os.environ.get("EKAGRA_API_KEY", "").strip()
+        or os.environ.get("OPENROUTER_API_KEY", "").strip()
+        or None
+    )
+
+    # Base URL with backward compatibility
+    base_url = (
+        os.environ.get("EKAGRA_API_BASE_URL", "").strip()
+        or os.environ.get("OPENROUTER_BASE_URL", "").strip()
+        or OPENROUTER_BASE_URL
+    )
+
     log_dir = os.environ.get("EKAGRA_LOG_DIR", "").strip() or os.path.join(
         PROJECT_ROOT, "logs"
     )
 
+    # Experiment identifiers
+    experiment_id = os.environ.get("EKAGRA_EXPERIMENT_ID", "").strip() or None
+    run_id = os.environ.get("EKAGRA_RUN_ID", "").strip() or None
+    prompt_version = os.environ.get("EKAGRA_PROMPT_VERSION", "").strip() or None
+    configuration_version = os.environ.get(
+        "EKAGRA_CONFIGURATION_VERSION", ""
+    ).strip() or None
+    knowledge_bank_release = os.environ.get(
+        "EKAGRA_KNOWLEDGE_BANK_RELEASE", ""
+    ).strip() or None
+
+    # In live mode, require pricing for guard by default; in deterministic
+    # mode keep the old default (False) so the foundation remains usable
+    # without a catalogue.
+    default_require_pricing = DEFAULT_REQUIRE_PRICING_FOR_GUARD
+    if mode == "live":
+        default_require_pricing = True
+
     return Config(
-        api_key=os.environ.get("OPENROUTER_API_KEY", "").strip() or None,
+        api_key=api_key,
+        base_url=base_url,
+        provider=provider,
+        mode=mode,
         tutor_model=os.environ.get(ROLE_ENV_VARS[AGENT_TUTOR], "").strip() or None,
         evaluator_model=os.environ.get(ROLE_ENV_VARS[AGENT_EVALUATOR], "").strip() or None,
+        learner_model=os.environ.get(ROLE_ENV_VARS[AGENT_LEARNER], "").strip() or None,
+        analyst_model=os.environ.get(ROLE_ENV_VARS[AGENT_ANALYST], "").strip() or None,
         max_request_cost_usd=_env_float(
             "EKAGRA_MAX_REQUEST_COST_USD", DEFAULT_MAX_REQUEST_COST_USD
         ),
@@ -325,8 +400,13 @@ def load_config(*, dotenv: bool = True) -> Config:
             "EKAGRA_TOKEN_ESTIMATE_DIVISOR", DEFAULT_TOKEN_ESTIMATE_DIVISOR
         ),
         require_pricing_for_guard=_env_bool(
-            "EKAGRA_REQUIRE_PRICING_FOR_GUARD", DEFAULT_REQUIRE_PRICING_FOR_GUARD
+            "EKAGRA_REQUIRE_PRICING_FOR_GUARD", default_require_pricing
         ),
+        experiment_id=experiment_id,
+        run_id=run_id,
+        prompt_version=prompt_version,
+        configuration_version=configuration_version,
+        knowledge_bank_release=knowledge_bank_release,
     )
 
 
@@ -393,6 +473,8 @@ __all__: Dict[str, Any] = {
     "PROJECT_ROOT": PROJECT_ROOT,
     "AGENT_TUTOR": AGENT_TUTOR,
     "AGENT_EVALUATOR": AGENT_EVALUATOR,
+    "AGENT_LEARNER": AGENT_LEARNER,
+    "AGENT_ANALYST": AGENT_ANALYST,
     "AGENT_BENCHMARK": AGENT_BENCHMARK,
     "ROLE_ENV_VARS": ROLE_ENV_VARS,
 }

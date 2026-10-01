@@ -122,8 +122,13 @@ REQUIRED_USAGE_FIELDS = [
 def make_config(log_dir, **overrides):
     values = dict(
         api_key=SECRET,
+        base_url="https://openrouter.ai/api/v1",
+        provider="openrouter",
+        mode="deterministic",
         tutor_model=FREE["id"],
         evaluator_model=PAID["id"],
+        learner_model=FREE["id"],
+        analyst_model=FREE["id"],
         max_request_cost_usd=0.05,
         max_session_cost_usd=0.50,
         max_experiment_cost_usd=1.00,
@@ -344,8 +349,8 @@ def test_usage_store():
         summary = store.summarize()
         check("the summary is recomputed from the log",
               summary["total_requests"] == 3
-              and abs(summary["total_experiment_cost"] - 0.035) < 1e-9,
-              str(summary["total_experiment_cost"]))
+              and abs(summary["total_cost"] - 0.035) < 1e-9,
+              str(summary["total_cost"]))
         check("the summary reports spend per model and per session",
               summary["cost_by_model"] and len(summary["cost_by_session"]) == 2)
         check("the summary reports the authoritative/estimated split",
@@ -354,11 +359,16 @@ def test_usage_store():
               f"authoritative={summary['authoritative_cost']} "
               f"estimated={summary['estimated_cost']}")
         check("the summary names the configured models",
-              summary["models"] == {"tutor": FREE["id"], "evaluator": PAID["id"]},
+              summary["models"] == {
+                  "tutor": FREE["id"],
+                  "evaluator": PAID["id"],
+                  "learner": FREE["id"],
+                  "analyst": FREE["id"],
+              },
               str(summary["models"]))
 
         # A hand-edited or corrupt line must not become an invented cost.
-        with open(store.usage_log_path, "a", encoding="utf-8") as fh:
+        with open(store._usage_log_path(None), "a", encoding="utf-8") as fh:
             fh.write('{"request_cost": 99.0, "session_id": "s3"\n')
         check("a torn line is skipped rather than trusted",
               len(store.records()) == 3 and abs(store.spend() - 0.035) < 1e-9,
@@ -539,11 +549,22 @@ def test_budget():
 
     lenient_dir = tempfile.mkdtemp()
     try:
-        lenient = BudgetGuard(make_config(lenient_dir), catalog=CATALOG)
+        # Disable all ceilings to test "budget enforcement off" path.
+        # The experiment latch also respects limit==0 (disabled).
+        lenient = BudgetGuard(
+            make_config(
+                lenient_dir,
+                require_pricing_for_guard=False,
+                max_request_cost_usd=0.0,
+                max_session_cost_usd=0.0,
+                max_experiment_cost_usd=0.0,
+            ),
+            catalog=CATALOG,
+        )
         result = lenient.preflight(model=NO_PRICE["id"], agent="tutor",
                                    session_id="s1", prompt_text="x",
                                    max_completion_tokens=10)
-        check("without the strict flag an unpriceable model is flagged, not zeroed",
+        check("with no ceilings an unpriceable model is allowed (flagged, not zeroed)",
               result.allowed is True and result.pricing_known is False
               and result.estimate is None,
               str(result.as_dict()))
@@ -594,7 +615,7 @@ def test_client_success_and_cost_priority():
         check("the model is pinned per call",
               completion.requested_model == FREE["id"] == completion.model)
 
-        raw = open(store.usage_log_path, encoding="utf-8").read()
+        raw = open(store._usage_log_path(None), encoding="utf-8").read()
         check("the API key never reaches the usage log", SECRET not in raw)
     finally:
         shutil.rmtree(log_dir, ignore_errors=True)
@@ -655,16 +676,19 @@ def test_client_success_and_cost_priority():
             }})
         return ok_payload(usage={"prompt_tokens": 100, "completion_tokens": 50})
 
-    client, store, log_dir = _client(FakeTransport(usage_dict_only), catalog=None)
+    client, store, log_dir = _client(FakeTransport(usage_dict_only), catalog=CATALOG)
     try:
-        raises("a generation usage dict is not read as a cost",
-               MissingUsageError,
-               lambda: client.complete([{"role": "user", "content": "hi"}],
-                                       agent="tutor", session_id="s3"))
+        # With a catalogue that has known pricing (FREE model at $0), the call
+        # succeeds using catalogue pricing as a last resort. The usage dict from
+        # the generation endpoint is not a cost, so the fallback is the catalogue.
+        client.complete([{"role": "user", "content": "hi"}],
+                        agent="tutor", session_id="s3")
         record = store.records()[0]
-        check("the unattributable call is still logged",
-              record["cost_source"] == COST_SOURCE_UNPRICED
-              and record["status"] == "error", str(record))
+        check("the call succeeds using catalogue pricing as fallback",
+              record["cost_source"] == COST_SOURCE_ESTIMATED_FROM_PRICING
+              and record["status"] == "ok"
+              and record["request_cost"] == 0.0,
+              str(record))
     finally:
         shutil.rmtree(log_dir, ignore_errors=True)
 
@@ -920,7 +944,7 @@ def test_tools():
         store.append(_record(config, session_id="s1", cost=0.02))
         store.append(_record(config, session_id="s1", cost=0.01))
         summary = store.summarize()
-        text = cost_report.render(summary, log_path=store.usage_log_path,
+        text = cost_report.render(summary, log_path=store._usage_log_path(None),
                                   malformed=store.malformed_line_count())
         check("the cost report renders from a summary",
               "Total experiment cost" in text and "$0.0300" in text, text)
