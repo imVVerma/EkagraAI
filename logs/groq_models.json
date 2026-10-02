@@ -1,0 +1,117 @@
+{
+  "provider": "groq",
+  "fetched_at": 1790919507.2865365,
+  "source": "api",
+  "data": [
+    {
+      "id": "canopylabs/orpheus-v1-english",
+      "name": "Canopy Labs Orpheus V1 English",
+      "context_length": 4000,
+      "active": true,
+      "owned_by": "Canopy Labs",
+      "created": 1766186316,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "meta-llama/llama-prompt-guard-2-86m",
+      "name": "Prompt Guard 2 86M",
+      "context_length": 512,
+      "active": true,
+      "owned_by": "Meta",
+      "created": 1748632165,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "canopylabs/orpheus-arabic-saudi",
+      "name": "Canopy Labs Orpheus Arabic Saudi",
+      "context_length": 4000,
+      "active": true,
+      "owned_by": "Canopy Labs",
+      "created": 1765926439,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "openai/gpt-oss-safeguard-20b",
+      "name": "Safety GPT OSS 20B",
+      "context_length": 131072,
+      "active": true,
+      "owned_by": "OpenAI",
+      "created": 1761708789,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "allam-2-7b",
+      "name": "ALLaM-2-7b",
+      "context_length": 4096,
+      "active": true,
+      "owned_by": "SDAIA",
+      "created": 1737672203,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "meta-llama/llama-prompt-guard-2-22m",
+      "name": "Llama Prompt Guard 2 22M",
+      "context_length": 512,
+      "active": true,
+      "owned_by": "Meta",
+      "created": 1748632101,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "name": "GPT OSS 120B",
+      "context_length": 131072,
+      "active": true,
+      "owned_by": "OpenAI",
+      "created": 1754408224,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "whisper-large-v3-turbo",
+      "name": "Whisper Large V3 Turbo",
+      "context_length": 448,
+      "active": true,
+      "owned_by": "OpenAI",
+      "created": 1728413088,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "whisper-large-v3",
+      "name": "Whisper",
+      "context_length": 448,
+      "active": true,
+      "owned_by": "OpenAI",
+      "created": 1693721698,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "name": "GPT OSS 20B",
+      "context_length": 131072,
+      "active": true,
+      "owned_by": "OpenAI",
+      "created": 1754407957,
+      "pricing": {},
+      "supported_parameters": []
+    },
+    {
+      "id": "qwen/qwen3.8-27b",
+      "name": "Qwen/Qwen3.8-27B",
+      "context_length": 131072,
+      "active": true,
+      "owned_by": "Alibaba Cloud",
+      "created": 1786984846,
+      "pricing": {},
+      "supported_parameters": []
+    }
+  ]
+}

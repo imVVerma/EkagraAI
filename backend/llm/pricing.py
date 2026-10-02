@@ -1,4 +1,4 @@
-"""The OpenRouter model catalogue, and cost estimation from it.
+"""Model catalogues and cost estimation from them.
 
 Two jobs:
 
@@ -8,7 +8,15 @@ Two jobs:
    pricing fields rather than from a ``:free`` suffix or a hardcoded list,
    because both drift. A model that stops being free is reported as such.
 
+One catalogue is built per provider, and a catalogue only ever describes its own
+provider's models. That is not tidiness: Groq and OpenRouter price the same
+weights differently, so pricing a Groq call from OpenRouter's numbers would
+produce a plausible, wrong answer — which is exactly the failure mode a budget
+guard exists to prevent. ``provider`` is carried on the catalogue so every
+message that names a price names the right one.
+
 Prices arrive as strings and may be absent, so every read here is defensive.
+An absent price is unknown, never zero.
 """
 
 import json
@@ -53,11 +61,21 @@ def _to_price(value: Any, *, default: Optional[float] = None) -> Optional[float]
 
 
 class ModelCatalog:
-    """A snapshot of OpenRouter's model list, with pricing.
+    """A snapshot of one provider's model list, with whatever pricing it states.
 
     Constructed from already-fetched data, or loaded from the on-disk cache, or
     fetched through an injected transport. The transport is a parameter so this
     whole module can be exercised without a network or an API key.
+
+    Entries use one shape regardless of provider, so the lookups below work for
+    both: ``id``, ``name``, ``context_length``, ``pricing`` and
+    ``supported_parameters``. The normalisers that build that shape from a
+    provider's own response live beside that provider's catalogue client.
+
+    A provider that publishes no prices yields a catalogue whose entries carry no
+    pricing, so :meth:`has_known_pricing` is false and :meth:`estimate_cost`
+    raises. That is the intended outcome, not a gap: the guard refuses rather
+    than guessing.
     """
 
     def __init__(
@@ -66,10 +84,12 @@ class ModelCatalog:
         *,
         fetched_at: Optional[float] = None,
         source: str = "cache",
+        provider: str = "openrouter",
     ):
         self._models: Dict[str, Dict[str, Any]] = {}
         self.fetched_at = fetched_at
         self.source = source
+        self.provider = provider
         for entry in models or []:
             model_id = entry.get("id")
             if model_id:
@@ -78,8 +98,19 @@ class ModelCatalog:
     # -- loading ----------------------------------------------------------
 
     @classmethod
-    def from_cache(cls, path: str, *, ttl_seconds: float = DEFAULT_CATALOG_TTL_SECONDS) -> Optional["ModelCatalog"]:
-        """Return a cached catalogue if one exists and is still fresh."""
+    def from_cache(
+        cls,
+        path: str,
+        *,
+        ttl_seconds: float = DEFAULT_CATALOG_TTL_SECONDS,
+        provider: str = "openrouter",
+    ) -> Optional["ModelCatalog"]:
+        """Return a cached catalogue if one exists and is still fresh.
+
+        *provider* is the expected owner of the file. A cached blob that names a
+        different provider is refused rather than returned, so pointing a Groq
+        run at an OpenRouter cache cannot quietly succeed.
+        """
         if not os.path.isfile(path):
             return None
         try:
@@ -87,16 +118,25 @@ class ModelCatalog:
                 blob = json.load(fh)
         except (OSError, json.JSONDecodeError):
             return None
+        cached_provider = blob.get("provider")
+        if cached_provider and cached_provider != provider:
+            return None
         fetched_at = blob.get("fetched_at")
         if ttl_seconds > 0 and isinstance(fetched_at, (int, float)):
             if (time.time() - fetched_at) > ttl_seconds:
                 return None
-        return cls(blob.get("data") or [], fetched_at=fetched_at, source="cache")
+        return cls(
+            blob.get("data") or [],
+            fetched_at=fetched_at,
+            source="cache",
+            provider=cached_provider or provider,
+        )
 
     def save(self, path: str) -> None:
         """Write this catalogue to *path* for later offline use."""
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         payload = {
+            "provider": self.provider,
             "fetched_at": self.fetched_at,
             "source": self.source,
             "data": list(self._models.values()),
@@ -123,12 +163,14 @@ class ModelCatalog:
         entry = self._models.get(model_id)
         if entry is None:
             raise ModelUnavailableError(
-                f"Model {model_id!r} is not in the OpenRouter catalogue "
+                f"Model {model_id!r} is not in the {self.provider} catalogue "
                 f"({len(self._models)} models loaded from {self.source}). "
-                "It may have been withdrawn. Fix the id or remove it from the "
+                "It may have been withdrawn, or it may be offered by the other "
+                "provider rather than this one. Fix the id or remove it from the "
                 "candidate list — substituting another model silently would "
                 "invalidate the run.",
-                {"model": model_id, "catalogue_size": len(self._models), "source": self.source},
+                {"model": model_id, "catalogue_size": len(self._models),
+                 "source": self.source, "provider": self.provider},
             )
         return entry
 
@@ -228,11 +270,12 @@ class ModelCatalog:
         prices = self.pricing(model_id)
         if not self.has_known_pricing(model_id):
             raise PricingUnavailableError(
-                f"The OpenRouter catalogue does not state a token price for "
+                f"The {self.provider} catalogue does not state a token price for "
                 f"{model_id!r}, so the cost of a call cannot be bounded. Refusing "
                 "to estimate zero, because an unknown price is not a free one. "
                 "Check the model id, or refresh the catalogue.",
-                {"model": model_id, "pricing": prices, "catalogue_source": self.source},
+                {"model": model_id, "pricing": prices,
+                 "catalogue_source": self.source, "provider": self.provider},
             )
         cost = 0.0
         cost += max(prompt_tokens, 0) * prices["prompt"]
@@ -250,6 +293,7 @@ class ModelCatalog:
 
         return {
             "model": model_id,
+            "provider": self.provider,
             "name": entry.get("name", ""),
             "context_length": entry.get("context_length"),
             "pricing_per_million_usd": {
@@ -267,10 +311,11 @@ class ModelCatalog:
         if model_id not in self._models:
             return {
                 "model": model_id,
+                "provider": self.provider,
                 "available": False,
                 "is_free": None,
                 "pricing_known": False,
-                "reason": "not in the OpenRouter catalogue",
+                "reason": f"not in the {self.provider} catalogue",
             }
         info = self.describe(model_id)
         info["available"] = True

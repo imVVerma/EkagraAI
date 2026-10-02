@@ -188,9 +188,13 @@ class OpenRouterClient:
         if self.guard.catalog is not None and not refresh:
             return self.guard.catalog
 
-        cache_path = self.config.path("openrouter_models.json")
+        cache_path = self.config.catalog_path()
         if not refresh:
-            cached = ModelCatalog.from_cache(cache_path, ttl_seconds=ttl_seconds)
+            cached = ModelCatalog.from_cache(
+                cache_path,
+                ttl_seconds=ttl_seconds,
+                provider=self.config.provider,
+            )
             if cached is not None:
                 self.guard.catalog = cached
                 return cached
@@ -203,7 +207,12 @@ class OpenRouterClient:
             self.config.request_timeout_seconds,
         )
         payload = self._raise_for_status(response, "listing models")
-        catalog = ModelCatalog(payload.get("data") or [], fetched_at=time.time(), source="api")
+        catalog = ModelCatalog(
+            payload.get("data") or [],
+            fetched_at=time.time(),
+            source="api",
+            provider=self.config.provider,
+        )
         catalog.save(cache_path)
         self.guard.catalog = catalog
         return catalog

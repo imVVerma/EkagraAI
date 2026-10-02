@@ -1,0 +1,636 @@
+{
+  "mode": "dry_run",
+  "provider_kind": "mock_provider",
+  "environment": {
+    "experiment_id": "l1_pilot_dry_run",
+    "run_id": "dry_run_001",
+    "provider": "groq",
+    "credential_source": "EKAGRA_GROQ_API_KEY",
+    "has_credential": true,
+    "model": "YOUR_GROQ_MODE",
+    "mode": "dry_run",
+    "prompt_version": "ekagra-llm-foundation-v1",
+    "configuration_version": null,
+    "knowledge_bank": {
+      "release": "3",
+      "sha256": "sha256:442ee6efe10bbf9a",
+      "source": "Resources/arthashastra-solo-knowledge-bank-v3.json"
+    },
+    "budget": {
+      "request_usd": 0.05,
+      "session_usd": 0.5,
+      "experiment_usd": 1.0
+    },
+    "deterministic_fallback_allowed": false
+  },
+  "llm1_service_path": {
+    "exercised": true,
+    "provider_calls_observed": 36,
+    "stages_exercised": [
+      "checkpoint_interaction",
+      "feedback",
+      "teaching"
+    ],
+    "note": "Provider calls were served by a mock provider. Every step below the provider \u2014 context selection, prompt build, structured-output validation, scoring, progression, tracing, cost accounting \u2014 is production code. This is not the deterministic tutor standing in for a failure."
+  },
+  "summary": {
+    "cases": 12,
+    "pass": 12,
+    "fail": 0,
+    "errors": 0,
+    "not_run": 0,
+    "llm1_working": true
+  },
+  "deterministic_behaviour": {
+    "source": "backend/scoring_service.py + backend/state_machine.py",
+    "authority": "The scorer and state machine decide; LLM1 never does.",
+    "cases_scored": 12,
+    "target_signature_met": 12,
+    "attempts_total": 24,
+    "retries_observed": 12,
+    "advanced": 9,
+    "retried": 0,
+    "intervened": 0
+  },
+  "llm1_behaviour": {
+    "source": "backend/llm1_tutor.py via the provider adapter",
+    "cases_with_llm1_content": 12,
+    "total_llm1_calls": 36,
+    "stages": [
+      "checkpoint",
+      "feedback",
+      "teaching_turn"
+    ],
+    "cases_with_teaching_blocks": 12,
+    "cases_with_checkpoint_question": 12,
+    "cases_with_feedback": 12,
+    "cases_with_intervention": 0
+  },
+  "failure_analysis": {
+    "by_category": {},
+    "errors_are_failures": false,
+    "note": "An LLM1 error marks its case failed. It is never converted into a deterministic success."
+  },
+  "cost_and_usage": {
+    "records": 36,
+    "total_cost_usd": 0.0,
+    "total_input_tokens": 25607,
+    "total_output_tokens": 2616,
+    "errors_logged": 0,
+    "usage_log": "/home/vaibhav/projects/EkagraAI Chatbot/logs/experiments/l1_pilot_dry_run/runs/api_usage.jsonl"
+  },
+  "cases": [
+    {
+      "case_id": "C1/1A",
+      "transition_id": "C1",
+      "scenario_name": "Border Aggression",
+      "response_type": "correct",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 186,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 1,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Worked Example",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C1/1B",
+      "transition_id": "C1",
+      "scenario_name": "Border Aggression",
+      "response_type": "incorrect",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 63,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "unistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 2,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "partially_correct",
+          "assigned_level": "unistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Contrasting Cases",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C1/1C",
+      "transition_id": "C1",
+      "scenario_name": "Border Aggression",
+      "response_type": "vague",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 58,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 3,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "vague",
+          "assigned_level": "multistructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 3,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Guided Questioning",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C2/2A",
+      "transition_id": "C2",
+      "scenario_name": "Internal Rebellion",
+      "response_type": "correct",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 58,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 1,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Contrasting Cases",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C2/2B",
+      "transition_id": "C2",
+      "scenario_name": "Internal Rebellion",
+      "response_type": "incorrect",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 57,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "unistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 2,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "partially_correct",
+          "assigned_level": "unistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Contrasting Cases",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C2/2C",
+      "transition_id": "C2",
+      "scenario_name": "Internal Rebellion",
+      "response_type": "off_topic",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 56,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 3,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "off_topic",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "vague",
+          "assigned_level": "multistructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 3,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Worked Example",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C3/3A",
+      "transition_id": "C3",
+      "scenario_name": "Trade Dispute",
+      "response_type": "correct",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 50,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 1,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Guided Questioning",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C3/3B",
+      "transition_id": "C3",
+      "scenario_name": "Trade Dispute",
+      "response_type": "incorrect",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 45,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "unistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 2,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "partially_correct",
+          "assigned_level": "unistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Worked Example",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C3/3C",
+      "transition_id": "C3",
+      "scenario_name": "Trade Dispute",
+      "response_type": "copy_paste",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 45,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "advance",
+      "attempts_used": 3,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "copy_paste",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 3,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Contrasting Cases",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C4/4A",
+      "transition_id": "C4",
+      "scenario_name": "Succession Crisis",
+      "response_type": "correct",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 46,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "session_complete",
+      "attempts_used": 1,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Guided Questioning",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C4/4B",
+      "transition_id": "C4",
+      "scenario_name": "Succession Crisis",
+      "response_type": "incorrect",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 48,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "unistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "session_complete",
+      "attempts_used": 2,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "partially_correct",
+          "assigned_level": "unistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Guided Questioning",
+      "cost_usd": 0.0
+    },
+    {
+      "case_id": "C4/4C",
+      "transition_id": "C4",
+      "scenario_name": "Succession Crisis",
+      "response_type": "vague",
+      "status": "PASS",
+      "failure_category": null,
+      "error_type": null,
+      "error": null,
+      "llm1_calls": 3,
+      "llm1_generated": true,
+      "llm1_stages": [
+        "teaching_turn",
+        "checkpoint",
+        "feedback"
+      ],
+      "llm1_latency_ms": 48,
+      "teaching_blocks": 2,
+      "checkpoint_question_present": true,
+      "feedback_headline": "One element of the signature is present.",
+      "intervention_generated": false,
+      "scorer_assigned_level": "multistructural",
+      "scorer_target_met": true,
+      "scoring_rule_applied": null,
+      "scoring_rule_classification": null,
+      "progression": "session_complete",
+      "attempts_used": 3,
+      "attempt_log": [
+        {
+          "attempt": 1,
+          "response_type": "vague",
+          "assigned_level": "multistructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 2,
+          "response_type": "incorrect",
+          "assigned_level": "prestructural",
+          "target_signature_met": false,
+          "outcome": "retry"
+        },
+        {
+          "attempt": 3,
+          "response_type": "correct",
+          "assigned_level": "multistructural",
+          "target_signature_met": true,
+          "outcome": "cleared"
+        }
+      ],
+      "pedagogy": "Contrasting Cases",
+      "cost_usd": 0.0
+    }
+  ]
+}

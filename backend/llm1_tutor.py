@@ -275,7 +275,7 @@ def build_llm1_config(mode: str = "live", *, config: Optional[Config] = None,
 
 
 def _load_pricing_catalog(config: Config) -> Optional[PricingCatalog]:
-    """Return the pricing catalogue from the on-disk cache, or ``None``.
+    """Return this provider's pricing catalogue from cache, or ``None``.
 
     The catalogue is what makes a cost knowable before the call is sent, so a
     missing one matters. It is not fatal here because the budget guard already
@@ -283,12 +283,16 @@ def _load_pricing_catalog(config: Config) -> Optional[PricingCatalog]:
     therefore stops the run at the first call instead of letting an unpriced
     model through.
 
-    Only the cache is read. Listing models is itself an authenticated
-    provider call, and this function must not make one.
+    The cache path is provider-scoped, so a Groq run can never be priced from
+    OpenRouter's file. See :meth:`Config.catalog_path`.
+
+    Only the cache is read. Listing models is itself an authenticated provider
+    call, and this function must not make one.
     """
-    cache_path = config.path("openrouter_models.json")
     try:
-        return PricingCatalog.from_cache(cache_path)
+        return PricingCatalog.from_cache(
+            config.catalog_path(), provider=config.provider
+        )
     except Exception:  # noqa: BLE001 - an unreadable cache is the guard's problem
         return None
 

@@ -1,0 +1,310 @@
+We have completed the LLM1 integration and provider/catalogue hardening. The `.env` has now been updated and saved with:
+
+* `EKAGRA_GROQ_API_KEY`
+* `EKAGRA_LLM_PROVIDER=groq`
+* `EKAGRA_TUTOR_MODEL=openai/gpt-oss-120b`
+* `EKAGRA_EXPERIMENT_ID=<configured value>`
+* `EKAGRA_RUN_ID=<configured value>`
+* `EKAGRA_MODE=live`
+* `EKAGRA_ALLOW_DETERMINISTIC_FALLBACK=false`
+
+Do NOT ask me to paste or display any API key.
+
+Now run the controlled LLM1 pilot.
+
+## Objective
+
+Run the existing 12-case LLM1 pilot through the REAL live LLM1 service using Groq. This is a diagnostic integration pilot, not a model-ranking experiment.
+
+We want to determine:
+
+1. whether live LLM1 calls work end-to-end;
+2. whether structured outputs consistently satisfy the schemas;
+3. whether LLM1 stays grounded in Knowledge Bank V3;
+4. whether the state machine remains authoritative;
+5. whether failures, retries, checkpoint decisions, and progression behave correctly;
+6. whether usage, cost, latency, and decision traces are recorded correctly;
+7. where the system breaks so we can fix it based on evidence.
+
+## IMPORTANT SAFETY REQUIREMENTS
+
+Before making any inference call, verify:
+
+* provider = `groq`
+* model = `openai/gpt-oss-120b`
+* live mode is actually enabled
+* deterministic fallback is disabled
+* the Groq API key is resolved from `EKAGRA_GROQ_API_KEY`
+* the Groq model has explicit verified pricing available to the budget system
+* experiment ID and run ID are non-empty
+* request/session/experiment budget enforcement is active
+* structured-output validation is fail-closed
+* no API key will appear in stdout, logs, traces, or reports
+
+If any prerequisite fails, STOP before making an inference call and report the exact blocking condition.
+
+Do not silently switch provider, model, mode, or deterministic fallback.
+
+## Pilot cases
+
+Run all 12 existing pilot cases:
+
+### C1
+
+* 1A: correct
+* 1B: incorrect
+* 1C: vague
+
+### C2
+
+* 2A: correct
+* 2B: incorrect
+* 2C: off-topic
+
+### C3
+
+* 3A: correct
+* 3B: incorrect
+* 3C: copy-paste
+
+### C4
+
+* 4A: correct
+* 4B: incorrect
+* 4C: vague
+
+Preserve the existing pilot definitions and learner responses. Do not rewrite the test cases merely to make the model succeed.
+
+The pilot should exercise the real LLM1 service path, including:
+
+* context selection
+* LLM1 provider call
+* structured output validation
+* scoring
+* state-machine progression
+* retry/intervention behavior
+* checkpoint handling
+* decision trace recording
+* usage/cost recording
+* typed failure handling
+
+## Execution rules
+
+Run the pilot as an experiment.
+
+For each case:
+
+1. Record the case ID and starting state.
+2. Run the normal LLM1 teaching/checkpoint/respond flow.
+3. Capture the actual provider response.
+4. Validate the structured response against the strict schema.
+5. Run the deterministic scorer/state machine.
+6. Verify that LLM1 did NOT directly mutate authoritative state.
+7. Record the resulting state and progression decision.
+8. Record usage, latency, cost, and errors.
+9. Continue to the next independent case if a case fails, unless the failure makes continuation unsafe or invalid.
+10. Never convert an LLM1/provider failure into a deterministic success.
+11. Never silently retry with another model/provider.
+12. Do not modify prompts, schemas, scoring rules, or state-machine logic during the pilot.
+
+Preserve failures exactly as observed. We want diagnostic evidence.
+
+## What to verify specifically
+
+### Provider
+
+Verify:
+
+* actual provider used
+* actual model used
+* successful HTTP/inference calls
+* no unintended fallback
+
+### Structured output
+
+For every LLM1 call:
+
+* response parsed successfully
+* schema validation passed
+* no malformed JSON
+* no missing required fields
+* no empty required content
+* no unexpected schema drift
+
+### Grounding
+
+Check whether generated teaching/question/feedback content is grounded in the selected V3 context.
+
+Flag:
+
+* unsupported doctrinal claims
+* invented Arthashastra concepts
+* invented case facts
+* contradictions with the selected context
+* irrelevant content
+* hallucinated evidence
+
+Do not treat stylistic differences as grounding failures.
+
+### State-machine boundary
+
+Verify that:
+
+* SOLO level changes only through authoritative scoring/state logic
+* checkpoint clearance remains state-machine controlled
+* retry count remains authoritative
+* scenario remains authoritative
+* pedagogy history remains authoritative
+* LLM1 cannot advance the learner merely because it says the learner passed
+
+### Retry/intervention
+
+For failing cases, verify:
+
+* same transition
+* same scenario where required
+* unused pedagogy is selected
+* new intervention/teaching is generated
+* reassessment occurs
+* no premature advancement
+
+### Logging
+
+Verify that every call has the required experiment/run metadata.
+
+Check:
+
+* provider
+* model
+* role
+* experiment_id
+* run_id
+* knowledge-bank release
+* knowledge-bank SHA
+* prompt/config versions
+* token usage if supplied
+* cost
+* latency
+* success/failure
+* typed error information where applicable
+
+Ensure experiment logs remain separated from development/test records.
+
+### Budget
+
+At the end, report:
+
+* total provider calls
+* successful calls
+* failed calls
+* total input tokens
+* total output tokens
+* total cost
+* request budget usage
+* session budget usage
+* experiment budget usage
+
+If a budget ceiling is reached, stop safely and record the reason.
+
+## Do not modify implementation during execution
+
+Do not fix anything during the pilot.
+
+If something fails:
+
+1. capture the failure;
+2. classify it;
+3. continue where safe;
+4. report it afterward.
+
+We need an honest baseline before making changes.
+
+## Final report
+
+After the pilot, produce a concise but evidence-based report with:
+
+### 1. Executive result
+
+* PASS / PARTIAL / BLOCKED
+* number of cases completed
+* number of LLM1 calls
+* number of successful calls
+* number of failed calls
+
+### 2. Case matrix
+
+| Case | Scenario | Input type | Calls | Result | Failure? | Notes |
+| ---- | -------- | ---------- | ----- | ------ | -------- | ----- |
+
+Do not hide failed cases.
+
+### 3. LLM1 integration
+
+Report:
+
+* provider actually used
+* model actually used
+* structured-output success rate
+* provider failure rate
+* fallback incidents
+* timeout/rate-limit/API errors
+
+### 4. Grounding
+
+Report:
+
+* grounded calls
+* suspected grounding failures
+* exact case/call where each occurred
+* short description of the unsupported content
+
+### 5. State-machine integrity
+
+Report whether:
+
+* progression remained authoritative
+* scoring remained authoritative
+* retry behavior remained authoritative
+* checkpoint behavior remained authoritative
+
+### 6. Cost and performance
+
+Report:
+
+* total cost
+* average cost/call
+* average latency
+* min/max latency
+* token totals
+* budget consumption
+
+### 7. Logging and reproducibility
+
+Confirm whether all required metadata was recorded and whether the run can be reconstructed from the logs/traces.
+
+### 8. Failure taxonomy
+
+Group failures into categories such as:
+
+* provider/API
+* authentication/configuration
+* timeout/rate limit
+* structured-output/schema
+* grounding
+* prompt behavior
+* state-machine integration
+* scoring
+* logging/observability
+* budget enforcement
+
+### 9. Recommended next actions
+
+Separate:
+
+* MUST FIX before next experiment
+* SHOULD FIX
+* OBSERVATION ONLY
+
+Do not make model-selection conclusions from this 12-case pilot. The purpose of this run is to establish whether the LLM1 pipeline is operational and identify concrete failure modes.
+
+Finally, print the exact commands used to run the pilot and the locations of the resulting logs/reports, but NEVER print any secrets or API keys.

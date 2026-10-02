@@ -219,12 +219,18 @@ class BudgetGuard:
                 or self.config.max_experiment_cost_usd > 0
             )
             if self.config.require_pricing_for_guard or any_ceiling_active:
+                # Name the provider when the catalogue is known. "The
+                # catalogue" alone leaves a real ambiguity open: the reader
+                # cannot tell whether the run had no prices or was reading the
+                # other provider's file.
+                catalogue_owner = getattr(self.catalog, "provider", None)
+                owner = f"{catalogue_owner} " if catalogue_owner else ""
                 raise BudgetExceededError(
-                    f"Cannot bound the cost of {model!r}: the model catalogue "
-                    "does not state its token prices, so no ceiling can be "
-                    "checked. Refusing because unknown pricing must not bypass "
-                    "a hard budget. Set a price for this model or raise the "
-                    "ceiling to zero to disable enforcement.",
+                    f"Cannot bound the cost of {model!r}: the {owner}model "
+                    "catalogue does not state its token prices, so no ceiling "
+                    "can be checked. Refusing because unknown pricing must not "
+                    "bypass a hard budget. Set a price for this model or raise "
+                    "the ceiling to zero to disable enforcement.",
                     boundary="request",
                     limit=self.config.max_request_cost_usd,
                     estimate=0.0,

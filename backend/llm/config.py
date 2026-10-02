@@ -64,6 +64,15 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_APP_TITLE = "EkagraAI"
 
+#: Client identifier sent to providers.
+#:
+#: urllib's default is ``Python-urllib/3.x``, and Groq sits behind Cloudflare,
+#: which rejects that User-Agent outright with HTTP 403 and the body
+#: ``error code: 1010`` — a block on the request's signature, not on the
+#: credential. Naming the actual client is both the fix and the honest thing to
+#: send: a provider seeing a request should be able to tell what is calling it.
+USER_AGENT = "EkagraAI/1.0 (+https://github.com/ekagraai)"
+
 PROVIDER_OPENROUTER = "openrouter"
 PROVIDER_GROQ = "groq"
 
@@ -91,6 +100,17 @@ BASE_URL_ENV_VARS = {
 DEFAULT_BASE_URLS = {
     PROVIDER_OPENROUTER: OPENROUTER_BASE_URL,
     PROVIDER_GROQ: GROQ_BASE_URL,
+}
+
+#: On-disk catalogue file per provider.
+#:
+#: The file name is part of the provider's identity, not a naming preference.
+#: One shared catalogue would let a Groq run be priced from OpenRouter's data,
+#: which is the same error as using one provider's key for another: the numbers
+#: would be plausible and wrong. Each provider reads and writes only its own.
+CATALOG_FILENAMES = {
+    PROVIDER_OPENROUTER: "openrouter_models.json",
+    PROVIDER_GROQ: "groq_models.json",
 }
 
 # Budgets apply when unset. Failing closed is the point: an unconfigured run
@@ -307,6 +327,7 @@ class Config:
         self.log_dir = log_dir
         self.app_title = app_title
         self.app_url = app_url
+        self.user_agent = USER_AGENT
         self.request_timeout_seconds = request_timeout_seconds
         self.max_output_tokens = max_output_tokens
         self.token_estimate_divisor = token_estimate_divisor
@@ -373,6 +394,7 @@ class Config:
         return {
             "Authorization": f"Bearer {self.api_key()}",
             "Content-Type": "application/json",
+            "User-Agent": self.user_agent,
             "HTTP-Referer": self.app_url,
             "X-Title": self.app_title,
         }
@@ -381,6 +403,7 @@ class Config:
         """Headers for an unauthenticated request, such as listing models."""
         return {
             "Content-Type": "application/json",
+            "User-Agent": self.user_agent,
             "HTTP-Referer": self.app_url,
             "X-Title": self.app_title,
         }
@@ -458,6 +481,17 @@ class Config:
 
     def path(self, *parts: str) -> str:
         return os.path.join(self.log_dir, *parts)
+
+    def catalog_path(self) -> str:
+        """Return the catalogue cache path for *this run's provider*.
+
+        Provider-scoped on purpose: a Groq run reads ``groq_models.json`` and an
+        OpenRouter run reads ``openrouter_models.json``, so neither can be
+        priced from the other's data. An unrecognised provider resolves to the
+        OpenRouter name rather than to nothing, but :meth:`assert_ready_for_live`
+        refuses the run before a catalogue is ever needed.
+        """
+        return self.path(CATALOG_FILENAMES.get(self.provider, CATALOG_FILENAMES[PROVIDER_OPENROUTER]))
 
 
 def load_config(*, dotenv: bool = True) -> Config:

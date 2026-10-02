@@ -385,34 +385,42 @@ class GroqAdapter(LLMProvider):
 
 
 class GroqCatalog(ModelCatalog):
-    """Groq model catalogue wrapper."""
+    """Adapts a Groq :class:`ModelCatalog` to the provider-neutral interface.
+
+    Prices are read through the pricing catalogue's own accessors rather than
+    from the raw entry. The entry stores them under a ``pricing`` dict keyed by
+    ``prompt``/``completion``/``request``; reading flat keys off the entry would
+    silently yield ``None`` for every model, which would report a priced model as
+    free.
+    """
 
     def __init__(self, pricing: ModelCatalog):
         self._pricing = pricing
 
     def get(self, model_id: str) -> Optional[ModelInfo]:
-        entry = self._pricing.get_model(model_id)
+        entry = self._pricing.get(model_id)
         if entry is None:
             return None
+        prices = self._pricing.pricing(model_id)
         return ModelInfo(
             id=model_id,
             name=entry.get("name"),
-            input_cost_per_token_usd=entry.get("input_cost_per_token"),
-            output_cost_per_token_usd=entry.get("output_cost_per_token"),
-            free=entry.get("free", False),
-            supports_structured_output=entry.get("structured_output", False),
+            input_cost_per_token_usd=prices.get("prompt"),
+            output_cost_per_token_usd=prices.get("completion"),
+            free=self._pricing.is_free(model_id),
+            supports_structured_output=bool(
+                self._pricing.supports_structured_output(model_id)
+            ),
             context_length=entry.get("context_length"),
             provider="groq",
         )
 
     def list_models(self) -> List[ModelInfo]:
-        return [self.get(m) for m in self._pricing.list_models() if self.get(m)]
+        infos = [self.get(model_id) for model_id in self._pricing.ids()]
+        return [info for info in infos if info is not None]
 
     def is_free(self, model_id: str) -> bool:
-        entry = self._pricing.get_model(model_id)
-        return bool(entry and entry.get("free", False))
+        return self._pricing.is_free(model_id)
 
     def has_pricing(self, model_id: str) -> bool:
-        entry = self._pricing.get_model(model_id)
-        return bool(entry and entry.get("input_cost_per_token") is not None
-                    and entry.get("output_cost_per_token") is not None)
+        return self._pricing.has_known_pricing(model_id)
