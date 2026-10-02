@@ -1,0 +1,231 @@
+# EkagraAI: Provider-Aware Groq Model Catalogue
+
+The latest offline inspection found the final blocker before the controlled LLM1 pilot.
+
+Current state:
+
+* Groq API key is correctly configured as `EKAGRA_GROQ_API_KEY`.
+* `EKAGRA_LLM_PROVIDER=groq`.
+* `EKAGRA_MODE=deterministic`.
+* `EKAGRA_ALLOW_DETERMINISTIC_FALLBACK=false`.
+* Tutor model is still the placeholder `YOUR_GROQ_MODE`.
+* Experiment/run IDs are unset.
+* Budget ceilings are already configured safely:
+
+  * request: $0.05
+  * session: $0.50
+  * experiment: $1.00
+* Do NOT change those ceilings unless a concrete implementation issue requires it.
+* No live inference calls have been made.
+
+The current pricing/catalogue implementation is OpenRouter-specific and cannot safely price Groq requests.
+
+Fix only this provider/catalogue issue.
+
+---
+
+## 1. Add Provider-Aware Model Catalogue
+
+The current system assumes:
+
+```text
+logs/openrouter_models.json
+```
+
+for pricing/model lookup.
+
+That must no longer be hardcoded for all providers.
+
+Implement provider-aware catalogue resolution.
+
+Conceptually:
+
+```text
+provider = openrouter
+    → logs/openrouter_models.json
+
+provider = groq
+    → logs/groq_models.json
+```
+
+Use the existing architecture and naming conventions where possible.
+
+Do not create a generic abstraction more complicated than necessary.
+
+---
+
+## 2. Groq Model Catalogue
+
+Add a Groq catalogue client using:
+
+```text
+https://api.groq.com/openai/v1/models
+```
+
+Use the configured Groq credentials.
+
+This is a metadata/model-list request only.
+
+Do NOT make any completion/inference calls.
+
+The catalogue should record enough information to support:
+
+* model ID
+* availability
+* context information if provided
+* provider
+* pricing information if available
+* fetched_at
+* source
+
+Do not assume Groq pricing is identical to OpenRouter pricing.
+
+---
+
+## 3. Pricing Must Be Provider-Specific
+
+The budget system must never price a Groq request using OpenRouter pricing data.
+
+For:
+
+```text
+EKAGRA_LLM_PROVIDER=groq
+```
+
+pricing must come from:
+
+```text
+logs/groq_models.json
+```
+
+or another explicit Groq pricing source.
+
+For:
+
+```text
+EKAGRA_LLM_PROVIDER=openrouter
+```
+
+continue using the OpenRouter catalogue.
+
+If pricing is unavailable:
+
+```text
+PricingUnavailableError
+```
+
+or the existing equivalent must occur.
+
+Do not treat unknown pricing as zero.
+
+Do not bypass the budget guard.
+
+---
+
+## 4. Preserve Fail-Closed Budgeting
+
+Do not weaken:
+
+```text
+request ceiling = $0.05
+session ceiling = $0.50
+experiment ceiling = $1.00
+```
+
+Unknown pricing must continue to refuse a live request when a ceiling is active.
+
+This is a safety requirement.
+
+---
+
+## 5. Do Not Select a Model Automatically
+
+After implementing the catalogue:
+
+Report the available Groq models.
+
+Do NOT:
+
+* choose a final model
+* change `EKAGRA_TUTOR_MODEL`
+* run completion calls
+* run the 12-case pilot
+* run the full benchmark
+
+We will choose the pilot model after seeing the actual catalogue.
+
+---
+
+## 6. Verify the Catalogue
+
+Run offline/unit tests using mocked catalogue responses.
+
+Test:
+
+1. OpenRouter catalogue resolution.
+2. Groq catalogue resolution.
+3. Provider-specific pricing.
+4. Unknown pricing.
+5. stale catalogue behavior.
+6. cache behavior.
+7. budget guard with Groq.
+8. provider switching.
+
+Do not require a live inference request.
+
+If a metadata request is necessary to populate the actual Groq catalogue, clearly distinguish that from inference.
+
+---
+
+## 7. Final Report
+
+Return:
+
+### A. Files Changed
+
+### B. Provider Catalogue Architecture
+
+Explain how OpenRouter and Groq are now separated.
+
+### C. Groq Catalogue
+
+List available model IDs and relevant metadata.
+
+### D. Pricing
+
+Show which models have verified pricing and the source.
+
+### E. Budget
+
+Confirm:
+
+```text
+request = $0.05
+session = $0.50
+experiment = $1.00
+```
+
+unless there is a concrete reason otherwise.
+
+### F. Tests
+
+PASS/FAIL with exact counts.
+
+### G. Pilot Configuration
+
+Report what remains to configure before the live pilot:
+
+* model
+* experiment ID
+* run ID
+* mode
+
+### H. Live Calls
+
+State explicitly whether any completion/inference calls occurred.
+
+STOP after the report.
+
+Do not run the LLM1 pilot.
+Do not build LLM2.
+Do not select a final model.

@@ -5,17 +5,25 @@ role, how much money may be spent, where usage is recorded, which provider to
 use — comes from the environment, never from a constant in this file that
 someone might forget to change.
 
-The API key is read from ``EKAGRA_API_KEY`` (or ``OPENROUTER_API_KEY`` for
-backward compatibility) and is deliberately awkward to get at: it is held in a
-private attribute and redacted from every string the foundation produces, so it
-cannot reach a log file or an error message.
+Credentials are resolved *per provider* and never across providers. An
+OpenRouter key must not silently become a Groq key: the two are billed
+separately and authenticated separately, so borrowing one for the other would
+produce a confusing 401 at best and charge the wrong account at worst. See
+:data:`CREDENTIAL_ENV_VARS`. The resolved key is held in a private attribute
+and redacted from every string the foundation produces, so it cannot reach a
+log file or an error message.
 
 Environment variables
 ---------------------
 EKAGRA_MODE                   "deterministic" or "live" (default "deterministic")
-EKAGRA_LLM_PROVIDER           provider name, e.g. "openrouter" (default "openrouter")
-EKAGRA_API_KEY                API key for the selected provider (required for live)
-EKAGRA_API_BASE_URL           base URL for the provider (default OpenRouter)
+EKAGRA_LLM_PROVIDER           "openrouter" (default) or "groq"
+EKAGRA_API_KEY                OpenRouter key (required when provider is openrouter)
+OPENROUTER_API_KEY            OpenRouter key, backward-compatible alternative
+EKAGRA_GROQ_API_KEY           Groq key (required when provider is groq)
+GROQ_API_KEY                  Groq key, backward-compatible alternative
+EKAGRA_API_BASE_URL           OpenRouter base URL
+OPENROUTER_BASE_URL           OpenRouter base URL, backward-compatible alternative
+EKAGRA_GROQ_API_BASE_URL      Groq base URL
 EKAGRA_TUTOR_MODEL            model id for LLM1, the tutor
 EKAGRA_EVALUATOR_MODEL        model id for LLM2, the evaluator
 EKAGRA_LEARNER_MODEL          model id for the simulated learner (prep only)
@@ -35,6 +43,10 @@ EKAGRA_EXPERIMENT_ID          experiment identifier (for log separation)
 EKAGRA_RUN_ID                 run identifier within experiment
 EKAGRA_PROMPT_VERSION         prompt version stamp
 EKAGRA_CONFIGURATION_VERSION  configuration snapshot version
+EKAGRA_KNOWLEDGE_BANK_RELEASE knowledge-bank release label for provenance
+EKAGRA_ALLOW_DETERMINISTIC_FALLBACK allow deterministic content when LLM1 fails
+                              in live mode (default false; controlled
+                              experiments require live + fallback=false)
 
 The model roles are separate variables on purpose. LLM1, LLM2, learner, and
 analyst are independent choices, and defaulting one to another would quietly
@@ -49,7 +61,37 @@ from .errors import ConfigurationError
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_APP_TITLE = "EkagraAI"
+
+PROVIDER_OPENROUTER = "openrouter"
+PROVIDER_GROQ = "groq"
+
+#: Providers this foundation knows how to authenticate against.
+SUPPORTED_PROVIDERS = (PROVIDER_OPENROUTER, PROVIDER_GROQ)
+
+#: Credential variables per provider, in precedence order.
+#:
+#: Resolution is deliberately provider-scoped. A key that belongs to one
+#: provider is never offered to another, because "it was set to something" is
+#: not the same as "it is a valid credential for the host being called". Each
+#: provider's own variable wins; the generic ``EKAGRA_API_KEY`` is honoured only
+#: by OpenRouter, where it has always been the documented name.
+CREDENTIAL_ENV_VARS = {
+    PROVIDER_OPENROUTER: ("EKAGRA_API_KEY", "OPENROUTER_API_KEY"),
+    PROVIDER_GROQ: ("EKAGRA_GROQ_API_KEY", "GROQ_API_KEY"),
+}
+
+#: Base URL variables per provider, in precedence order.
+BASE_URL_ENV_VARS = {
+    PROVIDER_OPENROUTER: ("EKAGRA_API_BASE_URL", "OPENROUTER_BASE_URL"),
+    PROVIDER_GROQ: ("EKAGRA_GROQ_API_BASE_URL", "GROQ_BASE_URL"),
+}
+
+DEFAULT_BASE_URLS = {
+    PROVIDER_OPENROUTER: OPENROUTER_BASE_URL,
+    PROVIDER_GROQ: GROQ_BASE_URL,
+}
 
 # Budgets apply when unset. Failing closed is the point: an unconfigured run
 # should stop rather than discover its own spending afterwards.
@@ -68,6 +110,12 @@ DEFAULT_REQUIRE_PRICING_FOR_GUARD = False
 # Rough characters-per-token ratio for English prose, used only to size the
 # pre-flight guard. The provider's own post-hoc figure is always authoritative.
 DEFAULT_TOKEN_ESTIMATE_DIVISOR = 4.0
+
+# Whether a failed LLM1 call may be replaced with deterministic content while
+# EKAGRA_MODE=live. Off by default and deliberately so: in a controlled
+# experiment, deterministic substitution turns a failed LLM1 call into an
+# apparent success, which is exactly the measurement the run cannot afford.
+DEFAULT_ALLOW_DETERMINISTIC_FALLBACK = False
 
 # Margins applied to the pre-flight estimate so the guard errs towards
 # refusing. A guard that under-estimates is not a guard.
@@ -160,6 +208,55 @@ def _env_bool(name: str, default: bool) -> bool:
     raise ConfigurationError(f"{name} must be a boolean, got {raw!r}.")
 
 
+def resolve_provider() -> str:
+    """Return the normalised provider name, refusing an unknown one.
+
+    An unknown provider cannot be given a credential or a base URL safely, so
+    it is a configuration error rather than a silent default: defaulting would
+    send a Groq-shaped request to OpenRouter.
+    """
+    provider = os.environ.get("EKAGRA_LLM_PROVIDER", "").strip().lower()
+    if not provider:
+        return PROVIDER_OPENROUTER
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ConfigurationError(
+            f"EKAGRA_LLM_PROVIDER={provider!r} is not supported. "
+            f"Choose one of {', '.join(SUPPORTED_PROVIDERS)}."
+        )
+    return provider
+
+
+def resolve_credential(provider: str) -> "tuple":
+    """Return ``(api_key, source_variable)`` for *provider*, or ``(None, None)``.
+
+    Only variables listed for *provider* are consulted. A key belonging to a
+    different provider is ignored even when it is set, because reusing it would
+    either fail authentication or, worse, bill the wrong account. The name of
+    the variable that supplied the key is returned alongside it so a missing key
+    can be reported precisely without ever printing the key itself.
+    """
+    for name in CREDENTIAL_ENV_VARS.get(provider, ()):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value, name
+    return None, None
+
+
+def credential_variable_for(provider: str) -> str:
+    """Return the variable a user should set to authenticate against *provider*."""
+    names = CREDENTIAL_ENV_VARS.get(provider, ())
+    return names[0] if names else ""
+
+
+def resolve_base_url(provider: str) -> str:
+    """Return the base URL for *provider* from the environment or the default."""
+    for name in BASE_URL_ENV_VARS.get(provider, ()):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return DEFAULT_BASE_URLS.get(provider, OPENROUTER_BASE_URL)
+
+
 class Config:
     """Resolved configuration for one process.
 
@@ -193,6 +290,8 @@ class Config:
         prompt_version: Optional[str] = None,
         configuration_version: Optional[str] = None,
         knowledge_bank_release: Optional[str] = None,
+        api_key_source: Optional[str] = None,
+        allow_deterministic_fallback: bool = DEFAULT_ALLOW_DETERMINISTIC_FALLBACK,
     ):
         self._api_key = api_key or None
         self.base_url = base_url.rstrip("/")
@@ -217,6 +316,8 @@ class Config:
         self.prompt_version = prompt_version
         self.configuration_version = configuration_version
         self.knowledge_bank_release = knowledge_bank_release
+        self.api_key_source = api_key_source
+        self.allow_deterministic_fallback = allow_deterministic_fallback
 
     # -- secrets ----------------------------------------------------------
 
@@ -225,14 +326,47 @@ class Config:
         return bool(self._api_key)
 
     def api_key(self) -> str:
-        """Return the API key, or explain precisely what is missing."""
+        """Return the API key, or explain precisely what is missing.
+
+        The message names the environment variable to set for *this* provider
+        and never includes the key itself, not even when the failure came from a
+        key that is present but wrong for the provider in use.
+        """
         if not self._api_key:
+            variable = self.api_key_source or credential_variable_for(self.provider)
             raise ConfigurationError(
-                "EKAGRA_API_KEY (or OPENROUTER_API_KEY) is not set. Export it "
-                "before making any provider call; it is never stored in the "
-                "repository."
+                f"{variable} is not set, so no credential is available for "
+                f"provider {self.provider!r}. Export the provider's own key "
+                f"before making any request; it is never stored in the "
+                f"repository and never printed."
             )
         return self._api_key
+
+    def assert_ready_for_live(self) -> None:
+        """Refuse a live run that cannot be authenticated or attributed.
+
+        Called before the first request so a missing key, an unknown provider or
+        a missing experiment identifier is reported once, as configuration,
+        rather than as a mid-run provider error that looks like a tutor failure.
+        """
+        self.api_key()
+        if self.provider not in SUPPORTED_PROVIDERS:
+            raise ConfigurationError(
+                f"provider {self.provider!r} is not supported; "
+                f"expected one of {', '.join(SUPPORTED_PROVIDERS)}."
+            )
+        if not self.experiment_id:
+            raise ConfigurationError(
+                "EKAGRA_EXPERIMENT_ID is not set. Every live call must be "
+                "attributable to an experiment; a run without one cannot be "
+                "separated in the usage log."
+            )
+        if not self.run_id:
+            raise ConfigurationError(
+                "EKAGRA_RUN_ID is not set. Every live call must be attributable "
+                "to a run within its experiment."
+            )
+        self.model_for_role(AGENT_TUTOR)
 
     def auth_headers(self) -> Dict[str, str]:
         """Headers for an authenticated provider request."""
@@ -333,21 +467,12 @@ def load_config(*, dotenv: bool = True) -> Config:
 
     # Mode and provider
     mode = os.environ.get("EKAGRA_MODE", "").strip().lower() or "deterministic"
-    provider = os.environ.get("EKAGRA_LLM_PROVIDER", "").strip().lower() or "openrouter"
+    provider = resolve_provider()
 
-    # API key with backward compatibility
-    api_key = (
-        os.environ.get("EKAGRA_API_KEY", "").strip()
-        or os.environ.get("OPENROUTER_API_KEY", "").strip()
-        or None
-    )
-
-    # Base URL with backward compatibility
-    base_url = (
-        os.environ.get("EKAGRA_API_BASE_URL", "").strip()
-        or os.environ.get("OPENROUTER_BASE_URL", "").strip()
-        or OPENROUTER_BASE_URL
-    )
+    # Credentials are resolved per provider. A key set for one provider is never
+    # offered to the other: see resolve_credential().
+    api_key, api_key_source = resolve_credential(provider)
+    base_url = resolve_base_url(provider)
 
     log_dir = os.environ.get("EKAGRA_LOG_DIR", "").strip() or os.path.join(
         PROJECT_ROOT, "logs"
@@ -407,6 +532,10 @@ def load_config(*, dotenv: bool = True) -> Config:
         prompt_version=prompt_version,
         configuration_version=configuration_version,
         knowledge_bank_release=knowledge_bank_release,
+        api_key_source=api_key_source,
+        allow_deterministic_fallback=_env_bool(
+            "EKAGRA_ALLOW_DETERMINISTIC_FALLBACK", DEFAULT_ALLOW_DETERMINISTIC_FALLBACK
+        ),
     )
 
 
@@ -465,16 +594,25 @@ def prompt_version_default() -> str:
 
 
 __all__: Dict[str, Any] = {
-    "Config": Config,
-    "load_config": load_config,
-    "knowledge_bank_version": knowledge_bank_version,
-    "knowledge_bank_provenance": knowledge_bank_provenance,
-    "prompt_version_default": prompt_version_default,
-    "PROJECT_ROOT": PROJECT_ROOT,
-    "AGENT_TUTOR": AGENT_TUTOR,
-    "AGENT_EVALUATOR": AGENT_EVALUATOR,
-    "AGENT_LEARNER": AGENT_LEARNER,
-    "AGENT_ANALYST": AGENT_ANALYST,
-    "AGENT_BENCHMARK": AGENT_BENCHMARK,
-    "ROLE_ENV_VARS": ROLE_ENV_VARS,
+    "Config": "Config",
+    "load_config": "load_config",
+    "knowledge_bank_version": "knowledge_bank_version",
+    "knowledge_bank_provenance": "knowledge_bank_provenance",
+    "prompt_version_default": "prompt_version_default",
+    "PROJECT_ROOT": "PROJECT_ROOT",
+    "AGENT_TUTOR": "AGENT_TUTOR",
+    "AGENT_EVALUATOR": "AGENT_EVALUATOR",
+    "AGENT_LEARNER": "AGENT_LEARNER",
+    "AGENT_ANALYST": "AGENT_ANALYST",
+    "AGENT_BENCHMARK": "AGENT_BENCHMARK",
+    "ROLE_ENV_VARS": "ROLE_ENV_VARS",
+    "PROVIDER_OPENROUTER": "PROVIDER_OPENROUTER",
+    "PROVIDER_GROQ": "PROVIDER_GROQ",
+    "SUPPORTED_PROVIDERS": "SUPPORTED_PROVIDERS",
+    "CREDENTIAL_ENV_VARS": "CREDENTIAL_ENV_VARS",
+    "BASE_URL_ENV_VARS": "BASE_URL_ENV_VARS",
+    "resolve_provider": "resolve_provider",
+    "resolve_credential": "resolve_credential",
+    "resolve_base_url": "resolve_base_url",
+    "credential_variable_for": "credential_variable_for",
 }

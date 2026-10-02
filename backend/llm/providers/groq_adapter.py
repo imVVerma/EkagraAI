@@ -1,4 +1,4 @@
-"""OpenRouter adapter implementing the provider-neutral LLM interface."""
+"""Groq adapter implementing the provider-neutral LLM interface."""
 
 import json
 import os
@@ -52,8 +52,8 @@ def _try_json(raw: str) -> Any:
         return None
 
 
-class _OpenRouterTransport:
-    """Low-level HTTP transport for OpenRouter."""
+class _GroqTransport:
+    """Low-level HTTP transport for Groq."""
 
     def __init__(self, base_url: str, auth_headers: Dict[str, str], timeout: int):
         self.base_url = base_url
@@ -82,7 +82,7 @@ class _OpenRouterTransport:
                 return HttpResponse(resp.status, _try_json(body), dict(resp.headers))
         except socket.timeout as exc:
             raise TimeoutError(
-                f"OpenRouter did not respond within {t:.0f}s",
+                f"Groq did not respond within {t:.0f}s",
                 detail={"timeout_seconds": t},
             ) from exc
         except urllib.error.HTTPError as exc:
@@ -94,34 +94,34 @@ class _OpenRouterTransport:
 
             if exc.status == 402:
                 raise InsufficientCreditsError(
-                    f"OpenRouter reports insufficient credits{detail}.",
+                    f"Groq reports insufficient credits{detail}.",
                     status=402,
                     error_payload=error_payload,
                 )
             if exc.status == 429:
                 raise RateLimitedError(
-                    f"OpenRouter rate-limited the request{detail}.",
+                    f"Groq rate-limited the request{detail}.",
                     status=429,
                     error_payload=error_payload,
                 )
             if exc.status == 404:
                 raise ModelUnavailableError(
-                    f"OpenRouter has no such endpoint or model{detail}.",
+                    f"Groq has no such endpoint or model{detail}.",
                     detail={"status": 404, "error": error_payload},
                 )
             if exc.status in (401, 403):
                 raise AuthenticationError(
-                    f"OpenRouter rejected the API key{detail}.",
+                    f"Groq rejected the API key{detail}.",
                     status=exc.status,
                     error_payload=error_payload,
                 )
             raise ProviderResponseError(
-                f"OpenRouter returned HTTP {exc.status}{detail}.",
+                f"Groq returned HTTP {exc.status}{detail}.",
                 status=exc.status,
                 error_payload=error_payload,
             )
         except urllib.error.URLError as exc:
-            raise NetworkError(f"Could not reach OpenRouter: {exc.reason}") from exc
+            raise NetworkError(f"Could not reach Groq: {exc.reason}") from exc
 
 
 @dataclass
@@ -131,8 +131,10 @@ class HttpResponse:
     headers: Dict[str, str]
 
 
-class OpenRouterAdapter(LLMProvider):
-    """OpenRouter implementation of the LLMProvider protocol."""
+class GroqAdapter(LLMProvider):
+    """Groq implementation of the LLMProvider protocol."""
+
+    GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
     def __init__(
         self,
@@ -145,8 +147,10 @@ class OpenRouterAdapter(LLMProvider):
         self.pricing = pricing_catalog
         self.store = usage_store
         self.guard = budget_guard
-        self.transport = _OpenRouterTransport(
-            config.base_url, config.auth_headers(), config.request_timeout_seconds
+        self.transport = _GroqTransport(
+            self.GROQ_BASE_URL,
+            config.auth_headers(),
+            config.request_timeout_seconds,
         )
 
     def complete(
@@ -207,8 +211,8 @@ class OpenRouterAdapter(LLMProvider):
         knowledge_bank_source: Optional[str] = None,
         test_case_id: Optional[str] = None,
     ) -> Completion:
-        # Preflight budget check. A refusal here costs nothing, but it is still
-        # a call that did not happen, so it is recorded before raising.
+        # Preflight budget check. A refusal costs nothing but is still a call
+        # that did not happen, so it is recorded before raising.
         preflight = None
         if self.guard is not None:
             prompt_text = "\n".join(m.content for m in request.messages)
@@ -244,8 +248,6 @@ class OpenRouterAdapter(LLMProvider):
         }
         if request.response_format:
             body["response_format"] = request.response_format
-        if request.provider_options:
-            body["provider"] = request.provider_options
 
         started = time.perf_counter()
         try:
@@ -274,26 +276,22 @@ class OpenRouterAdapter(LLMProvider):
         payload = response.json
 
         if not isinstance(payload, dict):
-            raise ProviderResponseError("OpenRouter returned non-JSON response")
+            raise ProviderResponseError("Groq returned non-JSON response")
 
-        # Extract usage
         usage_obj = payload.get("usage")
         if not usage_obj:
             raise MissingUsageError(
-                "OpenRouter returned no usage information and none could be recovered."
+                "Groq returned no usage information and none could be recovered."
             )
 
         input_tokens = usage_obj.get("prompt_tokens", 0)
         output_tokens = usage_obj.get("completion_tokens", 0)
         total_tokens = usage_obj.get("total_tokens", input_tokens + output_tokens)
 
-        # Model actually used
         actual_model = payload.get("model", request.model)
-
         content = payload.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
         finish_reason = payload.get("choices", [{}])[0].get("finish_reason")
 
-        # Cost estimation
         input_cost = output_cost = 0.0
         cost_source = COST_SOURCE_UNPRICED
         pricing_known = False
@@ -316,9 +314,6 @@ class OpenRouterAdapter(LLMProvider):
 
         request_cost = input_cost + output_cost
 
-        # Structured-output validation happens before the record is written, so
-        # a completion that broke its contract is logged as the failure it is
-        # rather than as a clean call that happened to return nothing usable.
         try:
             validate_structured_output_or_none(content, request.response_format)
         except (StructuredOutputError, ConfigurationError) as exc:
@@ -364,10 +359,9 @@ class OpenRouterAdapter(LLMProvider):
             test_case_id=test_case_id,
         )
 
-        # Check for model substitution
         if actual_model != request.model:
             raise ModelSubstitutedError(
-                f"OpenRouter substituted {actual_model!r} for requested {request.model!r}.",
+                f"Groq substituted {actual_model!r} for requested {request.model!r}.",
                 detail={"requested": request.model, "actual": actual_model},
             )
 
@@ -390,8 +384,8 @@ class OpenRouterAdapter(LLMProvider):
         )
 
 
-class OpenRouterCatalog(ModelCatalog):
-    """OpenRouter model catalogue wrapper."""
+class GroqCatalog(ModelCatalog):
+    """Groq model catalogue wrapper."""
 
     def __init__(self, pricing: ModelCatalog):
         self._pricing = pricing
@@ -408,7 +402,7 @@ class OpenRouterCatalog(ModelCatalog):
             free=entry.get("free", False),
             supports_structured_output=entry.get("structured_output", False),
             context_length=entry.get("context_length"),
-            provider="openrouter",
+            provider="groq",
         )
 
     def list_models(self) -> List[ModelInfo]:

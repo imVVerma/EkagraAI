@@ -19,7 +19,7 @@ import json
 import os
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from urllib.parse import parse_qs
 
 # Ensure the project root is on the path
@@ -38,6 +38,15 @@ from backend.tutor_service import (
 )
 from backend.scoring_service import score_response, build_learner_feedback
 from backend.logger import log_attempt
+from backend.llm import load_config
+from backend.llm1_tutor import (
+    LLM1Error,
+    build_llm1_config,
+    generate_teaching_turn_llm1_sync,
+    generate_checkpoint_llm1_sync,
+    generate_feedback_llm1_sync,
+    generate_intervention_llm1_sync,
+)
 
 # ---------------------------------------------------------------------------
 # Global knowledge bank (loaded once at startup)
@@ -96,6 +105,109 @@ ATTEMPTS: Dict[str, int] = {}
 PENDING: Dict[str, Any] = {"kind": None, "payload": None}
 
 
+
+
+PENDING: Dict[str, Any] = {"kind": None, "payload": None}
+
+# ---------------------------------------------------------------------------
+# LLM1 Live Mode Configuration
+# ---------------------------------------------------------------------------
+#
+# Live mode evaluates LLM1. It does not tolerate LLM1 quietly failing: a
+# provider outage served as deterministic tutor output looks exactly like a
+# working tutor in the results, which is the one thing a live run cannot detect
+# and therefore cannot correct.
+#
+# So in live mode:
+#   * an unusable LLM1 configuration stops the server at startup,
+#   * a failed LLM1 call is recorded and returned as an explicit failure, and
+#   * deterministic content is served only when
+#     EKAGRA_ALLOW_DETERMINISTIC_FALLBACK is explicitly true, and the response
+#     then says so.
+
+LLM1_CONFIG = None
+LIVE_MODE = os.environ.get("EKAGRA_MODE", "deterministic").strip().lower() == "live"
+ALLOW_DETERMINISTIC_FALLBACK = False
+
+
+def init_llm1_config():
+    """Build the LLM1 configuration, or refuse to start.
+
+    In live mode this raises rather than warning. A server that comes up with
+    ``LLM1_CONFIG = None`` would serve deterministic content to a live
+    experiment and report nothing wrong, so a misconfigured live run has to
+    stop before it can mislead anyone.
+    """
+    global LLM1_CONFIG, ALLOW_DETERMINISTIC_FALLBACK
+
+    from backend.llm.config import load_config
+
+    ALLOW_DETERMINISTIC_FALLBACK = load_config().allow_deterministic_fallback
+
+    if not LIVE_MODE:
+        return
+
+    LLM1_CONFIG = build_llm1_config(mode="live")
+    if ALLOW_DETERMINISTIC_FALLBACK:
+        print(
+            "EKAGRA_ALLOW_DETERMINISTIC_FALLBACK is true: a failed LLM1 call will "
+            "be served as deterministic content. Keep it false for controlled "
+            "experiments."
+        )
+
+
+# Initialize LLM1 config on startup if in live mode
+init_llm1_config()
+
+
+def llm1_failure_response(failure, *, stage: str, transition_id: str = "", case_id: str = ""):
+    """Return the JSON body describing a failed LLM1 call.
+
+    Carries the typed category, the original error type, the stage that failed
+    and the experiment/run it belonged to, so a client can tell a provider
+    outage from a schema violation from a budget refusal without reading logs.
+    The key does not claim success: ``llm1_generated`` stays false and
+    ``deterministic_fallback`` stays false because no deterministic content was
+    produced.
+    """
+    payload = failure.as_dict()
+    payload["stage"] = stage
+    payload["transition_id"] = transition_id
+    payload["case_id"] = case_id
+    return payload
+
+
+def deterministic_fallback_allowed() -> bool:
+    """Whether deterministic content may be served after an LLM1 failure.
+
+    Only true in live mode *and* only with the opt-in set. Deterministic mode
+    never needs this: deterministic content is what it is for.
+    """
+    return LIVE_MODE and ALLOW_DETERMINISTIC_FALLBACK
+
+
+def serve_deterministic_teaching_turn(pedagogy: str, transition: Dict[str, Any],
+                                      anchor_name: str, *, degraded: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Deterministic teaching turn, flagged when it stands in for a failure."""
+    text = generate_teaching_turn(
+        pedagogy=pedagogy,
+        concept_to_master=transition["concept_to_master"],
+        anchor_name=anchor_name,
+    )
+    meta = PEDAGOGIES.get(pedagogy, {})
+    body = {
+        "pedagogy": pedagogy,
+        "label": meta.get("label", pedagogy),
+        "teaching_turn_text": text,
+        "teaching_turn_blocks": parse_teaching_turn(text),
+        "concept_to_master": transition["concept_to_master"],
+        "llm1_generated": False,
+    }
+    if degraded is not None:
+        # Never let substituted content read as if nothing went wrong.
+        body["deterministic_fallback"] = True
+        body["llm1_failure"] = degraded
+    return body
 
 
 def init_session():
@@ -329,27 +441,138 @@ class TutorHandler(BaseHTTPRequestHandler):
                 return
             transition = session.current_transition
             anchor_name = current_anchor()
-            teaching_turn_text = generate_teaching_turn(
-                pedagogy=pedagogy,
-                concept_to_master=transition["concept_to_master"],
-                anchor_name=anchor_name,
-            )
+            case = session.current_case
+            case_id = case["id"] if case else None
+            solo_level = ""  # will be determined from state
             meta = PEDAGOGIES.get(pedagogy, {})
-            self._json({
-                "pedagogy": pedagogy,
-                "label": meta.get("label", pedagogy),
-                "teaching_turn_text": teaching_turn_text,
-                "teaching_turn_blocks": parse_teaching_turn(teaching_turn_text),
-                "concept_to_master": transition["concept_to_master"],
-            })
+
+            # Live mode: LLM1 generates the teaching turn.
+            if LIVE_MODE:
+                failure = None
+                try:
+                    llm1_response = generate_teaching_turn_llm1_sync(
+                        LLM1_CONFIG,
+                        transition_id=session.transition_id,
+                        case_id=case_id or "",
+                        pedagogy=pedagogy,
+                        concept_to_master=transition["concept_to_master"],
+                        anchor_name=anchor_name,
+                        solo_level=solo_level,
+                        experiment_id=LLM1_CONFIG.config.experiment_id,
+                        run_id=LLM1_CONFIG.config.run_id,
+                    )
+                    self._json({
+                        "pedagogy": pedagogy,
+                        "label": meta.get("label", pedagogy),
+                        "teaching_turn_text": "\n".join(b.text for b in llm1_response.blocks),
+                        "teaching_turn_blocks": [
+                            {"type": b.type, "text": b.text} for b in llm1_response.blocks
+                        ],
+                        "concept_to_master": transition["concept_to_master"],
+                        "llm1_generated": True,
+                        "deterministic_fallback": False,
+                    })
+                    return
+                except LLM1Error as exc:
+                    failure = exc.failure
+                except Exception as exc:  # noqa: BLE001 - reported, never served
+                    # An unexpected error is still a failure. It becomes an
+                    # explicit 500, never tutor content.
+                    self._error(500, "LLM1 teaching turn failed unexpectedly.")
+                    print(f"LLM1 teaching turn unexpected failure: {type(exc).__name__}: {exc}")
+                    return
+
+                if not deterministic_fallback_allowed():
+                    self._error(
+                        failure.http_status,
+                        f"LLM1 teaching turn failed: {failure.category}.",
+                        extra=llm1_failure_response(
+                            failure, stage="teaching_turn",
+                            transition_id=session.transition_id, case_id=case_id or "",
+                        ),
+                    )
+                    return
+
+            # Deterministic content. Reached directly in deterministic mode, or
+            # in live mode after a failure only when fallback is opted into.
+            degraded = None
+            if LIVE_MODE and failure is not None:
+                degraded = llm1_failure_response(
+                    failure, stage="teaching_turn",
+                    transition_id=session.transition_id, case_id=case_id or "",
+                )
+            self._json(serve_deterministic_teaching_turn(
+                pedagogy, transition, anchor_name, degraded=degraded
+            ))
         elif self._path() == "/api/checkpoint":
             if session is None:
                 self._error(400, "No session active.")
                 return
+
+            # Live mode: LLM1 generates the checkpoint interaction.
+            if LIVE_MODE:
+                case = session.current_case
+                if not case:
+                    self._error(404, "No more cases.")
+                    return
+                pedagogy = session.used_pool[-1] if session.used_pool else "Worked Example"
+                solo_level = ""  # determined by state
+
+                failure = None
+                try:
+                    llm1_checkpoint = generate_checkpoint_llm1_sync(
+                        LLM1_CONFIG,
+                        transition_id=session.transition_id,
+                        case_id=case["id"],
+                        pedagogy=pedagogy,
+                        solo_level=solo_level,
+                        experiment_id=LLM1_CONFIG.config.experiment_id,
+                        run_id=LLM1_CONFIG.config.run_id,
+                    )
+                    self._json({
+                        "case_id": case["id"],
+                        "title": case["title"],
+                        "scenario_text": case["scenario_text"],
+                        "question": llm1_checkpoint.question,
+                        "question_variants": case["question_variants"],
+                        "llm1_generated": True,
+                        "deterministic_fallback": False,
+                        "target_checkpoint": llm1_checkpoint.target_checkpoint,
+                    })
+                    return
+                except LLM1Error as exc:
+                    failure = exc.failure
+                except Exception as exc:  # noqa: BLE001 - reported, never served
+                    self._error(500, "LLM1 checkpoint failed unexpectedly.")
+                    print(f"LLM1 checkpoint unexpected failure: {type(exc).__name__}: {exc}")
+                    return
+
+                if not deterministic_fallback_allowed():
+                    self._error(
+                        failure.http_status,
+                        f"LLM1 checkpoint failed: {failure.category}.",
+                        extra=llm1_failure_response(
+                            failure, stage="checkpoint",
+                            transition_id=session.transition_id, case_id=case["id"],
+                        ),
+                    )
+                    return
+
+            # Deterministic checkpoint. In live mode this is only reachable with
+            # the fallback explicitly enabled, and the response says so.
             payload = checkpoint_payload()
             if payload is None:
                 self._error(404, "No more cases.")
                 return
+            payload["llm1_generated"] = False
+            payload["deterministic_fallback"] = False
+            if LIVE_MODE and failure is not None:
+                payload["deterministic_fallback"] = True
+                payload["llm1_failure"] = llm1_failure_response(
+                    failure, stage="checkpoint",
+                    transition_id=session.transition_id,
+                    case_id=session.current_case["id"] if session.current_case else "",
+                )
             self._json(payload)
 
         elif self._path() == "/api/next":
@@ -425,7 +648,65 @@ class TutorHandler(BaseHTTPRequestHandler):
                 attempt_number=current_attempt(),
             )
 
-            feedback = build_learner_feedback(scoring_result, SOLO_LEVELS)
+            # Live mode: LLM1 writes the feedback. The scorer's verdict above is the
+            # authority; the model only describes it.
+            if LIVE_MODE:
+                feedback = None
+                failure = None
+                try:
+                    llm1_feedback = generate_feedback_llm1_sync(
+                        LLM1_CONFIG,
+                        transition_id=session.transition_id,
+                        case_id=case["id"] if case else "",
+                        learner_response=learner_response,
+                        solo_level=assigned_level,
+                        target_signature_met=target_met,
+                        assigned_level=assigned_level,
+                        experiment_id=LLM1_CONFIG.config.experiment_id,
+                        run_id=LLM1_CONFIG.config.run_id,
+                    )
+                    feedback = {
+                        "outcome": "pass" if target_met else "not_yet",
+                        "headline": llm1_feedback.headline,
+                        "detail": llm1_feedback.detail,
+                        "note": llm1_feedback.note,
+                        "llm1_generated": True,
+                        "deterministic_fallback": False,
+                    }
+                except LLM1Error as exc:
+                    failure = exc.failure
+                except Exception as exc:  # noqa: BLE001 - reported, never served
+                    self._error(500, "LLM1 feedback failed unexpectedly.")
+                    print(f"LLM1 feedback unexpected failure: {type(exc).__name__}: {exc}")
+                    return
+
+                if failure is None:
+                    pass
+                elif deterministic_fallback_allowed():
+                    feedback = build_learner_feedback(scoring_result, SOLO_LEVELS)
+                    feedback["llm1_generated"] = False
+                    feedback["deterministic_fallback"] = True
+                    feedback["llm1_failure"] = llm1_failure_response(
+                        failure, stage="feedback",
+                        transition_id=session.transition_id,
+                        case_id=case["id"] if case else "",
+                    )
+                else:
+                    self._error(
+                        failure.http_status,
+                        f"LLM1 feedback failed: {failure.category}.",
+                        extra=llm1_failure_response(
+                            failure, stage="feedback",
+                            transition_id=session.transition_id,
+                            case_id=case["id"] if case else "",
+                        ),
+                    )
+                    return
+
+            else:
+                feedback = build_learner_feedback(scoring_result, SOLO_LEVELS)
+                feedback["llm1_generated"] = False
+                feedback["deterministic_fallback"] = False
 
             # Progression. Every decision made here is held as pending state and
             # served by /api/next, so the frontend never has to work out what
@@ -564,11 +845,20 @@ class TutorHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
-    def _error(self, code, message):
+    def _error(self, code, message, extra=None):
+        """Send a JSON error.
+
+        ``extra`` carries the typed detail of a failed LLM1 call — its category,
+        error type, experiment and run — so a client can distinguish a provider
+        outage from a schema violation without reading server logs.
+        """
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"error": message}).encode("utf-8"))
+        payload = {"error": message}
+        if extra:
+            payload.update(extra)
+        self.wfile.write(json.dumps(payload).encode("utf-8"))
 
     def log_message(self, format, *args):
         # Suppress default stderr logging for cleanliness

@@ -146,8 +146,16 @@ class UsageStore:
     # -- path resolution ----------------------------------------------------
 
     def _resolve_log_dir(self, experiment_id: Optional[str]) -> str:
-        """Return the directory where the usage log for *experiment_id* lives."""
+        """Return the directory where the usage log for *experiment_id* lives.
+
+        With no *experiment_id*, fall back to the configured one rather than
+        jumping to the development log. :meth:`append` writes to the log named
+        by the record's own ``experiment_id``, so a reader that defaulted to a
+        different directory would read an empty file and report a run as having
+        spent nothing.
+        """
         base = self.config.log_dir
+        experiment_id = experiment_id or self.config.experiment_id
         if experiment_id:
             return os.path.join(base, EXPERIMENTS_DIR, experiment_id, RUNS_DIR)
         return os.path.join(base, DEV_DIR)

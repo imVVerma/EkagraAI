@@ -1,0 +1,446 @@
+# EkagraAI: Fix Pre-Pilot Blockers
+
+The Pre-Pilot Verification has been completed.
+
+The system is NOT ready for live evaluation yet.
+
+The report identified four blockers:
+
+1. Silent deterministic fallback in live mode.
+2. `tools/l1_pilot.py` does not actually invoke LLM1.
+3. Structured-output validation can silently skip if `jsonschema` is unavailable.
+4. Provider key ambiguity between `EKAGRA_API_KEY` and `EKAGRA_GROQ_API_KEY`.
+
+Fix ONLY these blockers.
+
+Do not start the live pilot yet.
+
+Do not ask for or use an API key.
+
+Do not build LLM2.
+
+Do not select a final model.
+
+---
+
+## 1. Remove Silent Deterministic Fallback in Live Mode
+
+Current problem:
+
+`backend/server.py` has catch-all exception handlers in:
+
+* `/api/teaching-turn`
+* `/api/checkpoint`
+* `/api/respond`
+
+that fall back to deterministic behavior.
+
+This is unacceptable during controlled LLM experiments because a failed LLM1 call can be recorded as if LLM1 succeeded.
+
+Implement explicit behavior:
+
+### Deterministic mode
+
+Existing deterministic behavior may remain.
+
+### Live mode
+
+If LLM1 fails for any reason:
+
+* provider error
+* timeout
+* authentication error
+* network error
+* rate limit
+* structured-output error
+* budget error
+* model error
+
+then:
+
+1. Do NOT generate deterministic replacement content.
+2. Record the failure.
+3. Preserve the typed error.
+4. Associate it with experiment_id and run_id.
+5. Return an explicit failure response.
+6. Mark the corresponding pilot case as failed.
+7. Allow the pilot runner to continue to the next independent case where safe.
+
+A live LLM experiment must never silently substitute deterministic output.
+
+Add:
+
+```text
+EKAGRA_ALLOW_DETERMINISTIC_FALLBACK
+```
+
+Default:
+
+```text
+false
+```
+
+When `EKAGRA_MODE=live`, deterministic fallback must remain disabled unless explicitly and intentionally enabled.
+
+Prefer:
+
+```text
+live + fallback=false
+```
+
+for all controlled experiments.
+
+Do not catch `Exception` and convert it into successful tutor content.
+
+---
+
+## 2. Make Structured Output Validation Fail Closed
+
+Current problem:
+
+`jsonschema` is treated as an optional import, and validation can silently pass if it is unavailable.
+
+Fix this.
+
+The system must fail closed.
+
+If structured-output validation is required and `jsonschema` is unavailable:
+
+```text
+StructuredOutputError
+```
+
+or an appropriate configuration/dependency error must be raised.
+
+Do NOT silently accept unvalidated structured output.
+
+Add/update dependency declarations so that `jsonschema` is an explicit required dependency for the LLM foundation.
+
+Run the relevant tests in an environment where the dependency is installed.
+
+Add a test confirming that malformed structured output is rejected.
+
+---
+
+## 3. Fix Provider Key Selection
+
+Current configuration is ambiguous:
+
+```text
+EKAGRA_API_KEY
+OPENROUTER_API_KEY
+EKAGRA_GROQ_API_KEY
+```
+
+and the current logic effectively resolves:
+
+```text
+EKAGRA_API_KEY
+or OPENROUTER_API_KEY
+or EKAGRA_GROQ_API_KEY
+```
+
+This means a generic API key can accidentally be used for the wrong provider.
+
+Implement explicit provider-aware credential resolution.
+
+Desired behavior:
+
+### OpenRouter
+
+Prefer:
+
+```text
+EKAGRA_API_KEY
+```
+
+or retain the existing OpenRouter-specific backward-compatible variable if necessary.
+
+### Groq
+
+Prefer:
+
+```text
+EKAGRA_GROQ_API_KEY
+```
+
+Do NOT allow an OpenRouter key to silently become a Groq key.
+
+If a provider-specific key is missing, fail clearly with `AuthenticationError` or configuration error.
+
+Do not print the key.
+
+Do not log the key.
+
+Do not remove backward compatibility unless necessary.
+
+Document the exact environment variables in `.env.example`.
+
+---
+
+## 4. Rewrite `tools/l1_pilot.py`
+
+This is the most important fix.
+
+The current pilot is not actually a live LLM1 pilot.
+
+It must invoke the real LLM1 service.
+
+The intended path is:
+
+```text
+Pilot case
+    ↓
+Tutor state
+    ↓
+ContextSelector
+    ↓
+LLM1Tutor
+    ↓
+Provider adapter
+    ↓
+real LLM response
+    ↓
+structured-output validation
+    ↓
+deterministic scorer
+    ↓
+state machine
+    ↓
+decision trace
+    ↓
+usage/cost log
+```
+
+Do not create a parallel fake LLM1 implementation.
+
+Reuse:
+
+```text
+backend/llm1_tutor.py
+backend/context_selector.py
+backend/state_machine.py
+backend/scoring_service.py
+backend/llm/provider_interface.py
+backend/llm/decision_trace.py
+backend/llm/usage_store.py
+backend/llm/budget.py
+```
+
+where appropriate.
+
+---
+
+## 5. Preserve the 12 Pilot Cases
+
+Keep the existing 12-case structure:
+
+```text
+C1:
+1A correct
+1B incorrect
+1C vague
+
+C2:
+2A correct
+2B incorrect
+2C off-topic
+
+C3:
+3A correct
+3B incorrect
+3C copy-paste
+
+C4:
+4A correct
+4B incorrect
+4C vague
+```
+
+Do not replace these cases with arbitrary new examples.
+
+They are intended to exercise:
+
+* progression
+* failure
+* retry
+* checkpoint behavior
+* branching
+* different response types
+
+---
+
+## 6. Make the Pilot Actually Exercise LLM1
+
+For each case:
+
+1. Initialize the appropriate deterministic state.
+2. Resolve V3 context.
+3. Generate LLM1 teaching content.
+4. Validate structured output.
+5. Present/use the synthetic learner response.
+6. Generate LLM1 checkpoint interaction where required.
+7. Score the learner response deterministically.
+8. Apply state-machine transition logic.
+9. Generate feedback/intervention when required.
+10. Record decision traces.
+11. Record usage/cost.
+12. Record the final case result.
+
+The pilot must distinguish:
+
+```text
+LLM1-generated behavior
+```
+
+from:
+
+```text
+deterministic state-machine/scorer behavior
+```
+
+The report must make this distinction explicit.
+
+---
+
+## 7. Do Not Let the Pilot Hide Failures
+
+Each case should have a result such as:
+
+```text
+PASS
+LLM1_ERROR
+STRUCTURED_OUTPUT_ERROR
+PROVIDER_ERROR
+STATE_MACHINE_ERROR
+SCORING_ERROR
+TIMEOUT
+BUDGET_ERROR
+```
+
+Do not convert an LLM failure into a deterministic success.
+
+If a case cannot continue because LLM1 failed, mark it appropriately.
+
+Continue to independent cases where safe.
+
+---
+
+## 8. Pilot Dry Run
+
+Add a dry-run/mock mode that verifies the complete pilot orchestration without live API calls.
+
+The dry run must prove that the pilot actually invokes the LLM1 service path.
+
+Use a mock provider rather than silently using the deterministic tutor.
+
+This distinction is important:
+
+```text
+mock LLM provider
+≠
+deterministic tutor fallback
+```
+
+---
+
+## 9. Live Mode Safety
+
+The pilot should refuse to run unless:
+
+```text
+EKAGRA_MODE=live
+```
+
+and the provider/API configuration is valid.
+
+Before the first live request, verify:
+
+* provider
+* model
+* API key
+* experiment ID
+* run ID
+* budget configuration
+
+Do not make any API request during this implementation task.
+
+---
+
+## 10. Tests
+
+Run:
+
+* V3 validation
+* V3 build/check
+* V2 validation/check
+* LLM foundation tests
+* REV1 E2E
+* demo
+* pilot dry-run
+* provider adapter tests
+* structured-output tests
+* configuration tests
+
+The existing test counts should remain passing unless a test legitimately changes because of the new live-mode semantics.
+
+If any test fails, diagnose and fix it.
+
+---
+
+# Final Report
+
+Return:
+
+## A. Changes
+
+Files changed and why.
+
+## B. Live Fallback
+
+Show exactly what happens when LLM1 fails in live mode.
+
+## C. Provider Credentials
+
+Exact variables for:
+
+* OpenRouter
+* Groq
+
+## D. Pilot Architecture
+
+Show the actual pilot execution path.
+
+## E. Pilot Dry Run
+
+Demonstrate that the dry run exercises the LLM1 service path using a mock provider rather than deterministic fallback.
+
+## F. Tests
+
+PASS/FAIL with exact counts.
+
+## G. Remaining Issues
+
+Only actual remaining blockers.
+
+## H. Live Readiness
+
+Return exactly one:
+
+```text
+READY FOR CONTROLLED LIVE PILOT
+```
+
+or:
+
+```text
+NOT READY FOR CONTROLLED LIVE PILOT
+```
+
+Do not make live API calls.
+
+Do not request an API key.
+
+Do not build LLM2.
+
+Do not select final models.

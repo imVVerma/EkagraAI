@@ -53,6 +53,7 @@ from .provider_interface import (
     MissingUsageError,
 )
 from .providers.openrouter_adapter import OpenRouterAdapter, OpenRouterCatalog
+from .providers.groq_adapter import GroqAdapter, GroqCatalog
 from .config import (
     AGENT_BENCHMARK,
     AGENT_EVALUATOR,
@@ -84,9 +85,11 @@ __all__ = [
     "Completion",
     "ModelInfo",
     "ModelCatalog",
-    # Concrete adapter
+    # Concrete adapters
     "OpenRouterAdapter",
     "OpenRouterCatalog",
+    "GroqAdapter",
+    "GroqCatalog",
     # Config
     "AGENT_BENCHMARK",
     "AGENT_EVALUATOR",

@@ -1,0 +1,16 @@
+# EkagraAI runtime dependencies.
+#
+# The project runs on the Python 3.10+ standard library for everything except
+# one thing: validating provider structured output.
+#
+# jsonschema is a hard requirement, not an optional extra. The LLM foundation
+# asks a provider for JSON matching a schema and then relies on that JSON being
+# the shape it asked for, because the shape is the contract with the
+# deterministic state machine. Without this library the foundation cannot check
+# the contract, so a live run stops with a ConfigurationError instead of
+# quietly accepting unvalidated model output. See backend/llm/structured_output.py.
+#
+# Install with:
+#     pip install -r requirements.txt
+
+jsonschema>=4.0
