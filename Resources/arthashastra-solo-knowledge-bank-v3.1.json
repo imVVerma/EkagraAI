@@ -1,0 +1,3644 @@
+{
+  "metadata": {
+    "version": "3.1",
+    "domain": "Historical Statecraft & Governance Systems",
+    "subtopic_id": "`\"arthashastra\"`",
+    "subtopic": "Kautilya's Arthashastra",
+    "period": "Mauryan Empire, c. 321–297 BCE (Kautilya/Chanakya as chief minister to Chandragupta Maurya). The Arthashastra text itself is dated anywhere from the 4th century BCE to the 2nd century CE by different scholars; Mauryan-era composition is the traditional attribution used here.",
+    "purpose": null,
+    "consumers": "an LLM tutor (teaching loop, via OpenRouter) + an assessment/classification layer",
+    "source_markdown": "Resources/arthashastra-solo-knowledge-bank-v3.1.md",
+    "supersedes": [
+      "arthashastra-solo-knowledge-bank-v3.md",
+      "arthashastra-solo-knowledge-bank-v2.md",
+      "gap-closure-addendum.md"
+    ],
+    "supersedes_statement": "`arthashastra-solo-knowledge-bank-v3.md`, `arthashastra-solo-knowledge-bank-v2.md` and the separate `gap-closure-addendum.md` — this file is the single document the builder should regenerate JSON from. The addendum file should be retired once this is wired in, to avoid two sources of truth diverging again.",
+    "derived_from": "Resources/arthashastra-solo-knowledge-bank-v3.1.md",
+    "architecture_notes": [
+      "A transition is broken into explicit checkpoints — small, individually-detectable concepts the learner must demonstrate before assessment unlocks.",
+      "A pedagogy is drawn at random per transition; the tutor adapts its next move based on the learner's actual response, per the branching rules given per transition — not scripted dialogue.",
+      "Scenario stays fixed within a transition even across pedagogy switches after a failed assessment; only pedagogy style and assessment question-set change.",
+      "Three scenarios run in parallel: Border Aggression, Internal Rebellion, Trade Dispute."
+    ],
+    "source_status": {
+      "doctrinal_content_vetted": true,
+      "case_scenarios_are_original_pedagogical_constructions": true,
+      "reviewed_by_subject_matter_source": false,
+      "unverified_recall_item_ids": [],
+      "notes": [
+        "Doctrinal content is grounded in Shamasastry's translation and the overview document, cross-checked against the verified 31-item recall layer — item 11 (Rajamandala = 12 kings) is now independently confirmed, no open flags remain.",
+        "All case scenarios and complications remain original pedagogical constructions, not verbatim historical events — present to learners as illustrative (\"imagine a situation where...\"), not documented history.",
+        "This file has not yet been reviewed by a subject-matter source or the rest of the team beyond this authoring pass — flag for a pass before the chatbot goes live."
+      ]
+    },
+    "patch_source": "Resources/arthashastra-solo-knowledge-bank-v3.1-patch.md",
+    "patch_scope": "Exactly the 6 items below. Nothing else in V3 is touched — no case, teaching content, checkpoint, branching rule, assessment set, or SOLO level definition is reworded or removed. All fields here are new and additive.",
+    "patch_deferred": "the Arthashastra authorship/dating metadata question raised against the Wikipedia resource — needs subject-matter review before any `metadata.period` change. No doctrinal content invented. No runtime, scorer, prompt, or pilot-fixture changes. The SOLO progression itself is unchanged.",
+    "patch_application": "Insert-only. Every V3 line is preserved verbatim except two header lines (the document title and the backticked file list in **Supersedes:**). No V3 case, teaching content, checkpoint, branching rule, assessment set, SOLO level definition, global rule or recall item was reworded, removed, reordered or reinterpreted."
+  },
+  "doctrinal_anchors": [
+    {
+      "name": "Saptanga",
+      "v2_name": "Saptanga",
+      "description": "seven limbs of the state: swami (king), amatya (ministers), janapada (territory/people), durga (fort), kosha (treasury), danda/bala (army), mitra (ally)",
+      "source_note": null,
+      "provenance_id": "arthashastra.anchor.saptanga"
+    },
+    {
+      "name": "Shadgunya",
+      "v2_name": "Shadgunya",
+      "description": "six-fold foreign policy: sandhi (peace), vigraha (war), asana (neutrality), yana (marching/mobilization), samshraya (seeking a stronger protector), dvaidhibhava (dual policy)",
+      "source_note": null,
+      "provenance_id": "arthashastra.anchor.shadgunya"
+    },
+    {
+      "name": "Mandala theory",
+      "v2_name": "Mandala theory",
+      "description": "vijigishu (ambitious king, center), ari (immediate neighbor, natural rival), mitra (neighbor's neighbor, natural ally), madhyama (middle power), udasina (detached neutral power). Verified structure: 4 concentric circles of 3 kings each = 12 kings total, 60 elements of sovereignty, 72 total elements.",
+      "source_note": null,
+      "provenance_id": "arthashastra.anchor.mandala_theory"
+    },
+    {
+      "name": "Sama-dana-bheda-danda",
+      "v2_name": "Upayas",
+      "description": "sama (conciliation), dana (gifts/bribery), bheda (sowing dissension), danda (force).",
+      "source_note": "Runtime compatibility: stored as `name: \"Sama-dana-bheda-danda\"`, `v2_name: \"Upayas\"` — no further action needed.",
+      "provenance_id": "arthashastra.anchor.sama_dana_bheda_danda"
+    },
+    {
+      "name": "Raja dharma",
+      "v2_name": "Raja dharma",
+      "description": "the king's duty to protect the state and subjects, which can override conventional morality in Kautilya's realist frame",
+      "source_note": null,
+      "provenance_id": "arthashastra.anchor.raja_dharma"
+    },
+    {
+      "name": "Espionage apparatus",
+      "v2_name": "Espionage apparatus",
+      "description": "a structured spy network (ascetics, merchants, students, and others used as covert agents)",
+      "source_note": null,
+      "provenance_id": "arthashastra.anchor.espionage_apparatus"
+    }
+  ],
+  "solo_levels": {
+    "prestructural": "Denies or deflects the question, repeats it without engaging, or reaches a conclusion via an irrelevant/tangential fact unconnected to the case (transduction).",
+    "unistructural": "Reaches a conclusion using exactly one relevant piece of evidence or policy tool.",
+    "multistructural": "Uses multiple relevant pieces of evidence or tools, listed without being reconciled — may be internally inconsistent.",
+    "relational": "Reconciles multiple pieces of evidence/tools into one coherent, internally consistent judgment that explicitly weighs them against each other.",
+    "extended_abstract": "Treats the case as an instance of a general principle; names an assumption the principle depends on; and identifies a specific condition under which the conclusion would change. A vague 'it depends' without a named condition does NOT qualify."
+  },
+  "prerequisite_recall_layer": {
+    "source_heading": "3. Prerequisite recall layer (31 items, verified)",
+    "purpose": null,
+    "gate_rule": "learner must clear a majority (≥20/31, tune later) before Transition 1 begins.",
+    "item_count": 31,
+    "items": [
+      {
+        "id": 1,
+        "prompt": "Most popular ancient Indian polity guidebook",
+        "answer": "Kautiliya Arthashastra",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.1"
+      },
+      {
+        "id": 2,
+        "prompt": "Closest modern term for \"Arthashastra\"",
+        "answer": "Economics",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.2"
+      },
+      {
+        "id": 3,
+        "prompt": "Number of limbs of the state (saptanga)",
+        "answer": "Seven",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.3"
+      },
+      {
+        "id": 4,
+        "prompt": "Term for treasury",
+        "answer": "Kosha",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.4"
+      },
+      {
+        "id": 5,
+        "prompt": "\"Rajadharma\" means",
+        "answer": "Duties of a king",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.5"
+      },
+      {
+        "id": 6,
+        "prompt": "Sanskrit term for treaty",
+        "answer": "Sandhi",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.6"
+      },
+      {
+        "id": 7,
+        "prompt": "Ancient Indian polity rested on the foundation of",
+        "answer": "Wealth",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.7"
+      },
+      {
+        "id": 8,
+        "prompt": "Primary meaning of \"Dharma\"",
+        "answer": "Duty",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.8"
+      },
+      {
+        "id": 9,
+        "prompt": "A king was expected to look after the welfare of",
+        "answer": "His kingdom",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.9"
+      },
+      {
+        "id": 10,
+        "prompt": "The concept of Raja (king) emerged from the need for",
+        "answer": "Protection",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.10"
+      },
+      {
+        "id": 11,
+        "prompt": "Kings in the Rajmandala concept",
+        "answer": "Twelve",
+        "flag": null,
+        "resolution_note": "resolved — verified against IGNOU/eGyanKosh course material, Wikipedia's Rajamandala entry, and corroborating secondary scholarship: 4 circles × 3 kings = 12, consistent with the 72-element total. `flag` field removed.",
+        "provenance_id": "arthashastra.recall.11"
+      },
+      {
+        "id": 12,
+        "prompt": "\"Samanta\" indicates",
+        "answer": "King of a neighbouring state",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.12"
+      },
+      {
+        "id": 13,
+        "prompt": "Main subdivision of the text",
+        "answer": "Adhikarana (the 15 Books)",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.13"
+      },
+      {
+        "id": 14,
+        "prompt": "First topic in the Arthashastra",
+        "answer": "Education of the prince (Book 1)",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.14"
+      },
+      {
+        "id": 15,
+        "prompt": "Chapter on education of princes",
+        "answer": "Vinayadhikarikam",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.15"
+      },
+      {
+        "id": 16,
+        "prompt": "Chapter on department-head duties",
+        "answer": "Adhyakshaprachara",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.16"
+      },
+      {
+        "id": 17,
+        "prompt": "Adhyakshaprachara deals with",
+        "answer": "Internal administration",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.17"
+      },
+      {
+        "id": 18,
+        "prompt": "Kantakashodhana deals with",
+        "answer": "Anti-social elements (Removal of Thorns)",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.18"
+      },
+      {
+        "id": 19,
+        "prompt": "Final chapter's subject",
+        "answer": "Techniques of writing a treatise (Tantrayukti)",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.19"
+      },
+      {
+        "id": 20,
+        "prompt": "Kautilya's birth name",
+        "answer": "Vishnugupta",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.20"
+      },
+      {
+        "id": 21,
+        "prompt": "Another name for Kautilya",
+        "answer": "Chanakya",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.21"
+      },
+      {
+        "id": 22,
+        "prompt": "Chanakya's role in the Mauryan empire",
+        "answer": "Minister",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.22"
+      },
+      {
+        "id": 23,
+        "prompt": "Dynasty during which Kautilya was insulted",
+        "answer": "Nanda",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.23"
+      },
+      {
+        "id": 24,
+        "prompt": "Who insulted him",
+        "answer": "Dhanananda",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.24"
+      },
+      {
+        "id": 25,
+        "prompt": "Dynasty preceding the Mauryas",
+        "answer": "Nanda",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.25"
+      },
+      {
+        "id": 26,
+        "prompt": "Start of Chandragupta Maurya's reign",
+        "answer": "321 BCE",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.26"
+      },
+      {
+        "id": 27,
+        "prompt": "Capital of the Mauryan empire",
+        "answer": "Pataliputra",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.27"
+      },
+      {
+        "id": 28,
+        "prompt": "Kalinga is present-day",
+        "answer": "Odisha",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.28"
+      },
+      {
+        "id": 29,
+        "prompt": "Who found/first translated the manuscript",
+        "answer": "R. Shama Shastri",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.29"
+      },
+      {
+        "id": 30,
+        "prompt": "Megasthenes's nationality",
+        "answer": "Greek",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.30"
+      },
+      {
+        "id": 31,
+        "prompt": "Title of Megasthenes's account",
+        "answer": "Indica",
+        "flag": null,
+        "resolution_note": null,
+        "provenance_id": "arthashastra.recall.31"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "id": "C1",
+      "from_level": "prestructural",
+      "to_level": "unistructural",
+      "prerequisite": "Learner has cleared the prerequisite recall gate (≥20/31 on the recall layer). No prior judgment-level reasoning required.",
+      "concept_to_master": "The king is not fatalistic — he commands real levers of statecraft, and at least one of those levers (danda, sama, dana, bheda, espionage, enforcement) can be named as a concrete, case-relevant response.",
+      "target_signature": "A response that engages the case as a real decision and names exactly one specific, case-relevant policy tool with at least minimal justification.",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Agency",
+          "criterion": "engages the case as a real decision, not denial/deflection",
+          "provenance_id": "arthashastra.transition.C1.checkpoint.CP1",
+          "content_role": "checkpoint_definition"
+        },
+        {
+          "id": "CP2",
+          "name": "One tool",
+          "criterion": "names one specific, case-relevant policy tool/fact",
+          "provenance_id": "arthashastra.transition.C1.checkpoint.CP2",
+          "content_role": "checkpoint_definition"
+        }
+      ],
+      "branching_rules": [
+        {
+          "condition": "Denial/refusal/off-topic",
+          "outcome": "CP1 not met",
+          "tutor_action": "tutor reframes as a real decision, re-asks.",
+          "source_text": "Denial/refusal/off-topic → CP1 not met; tutor reframes as a real decision, re-asks.",
+          "provenance_id": "arthashastra.transition.C1.branching.0",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Names a tool, no reasoning",
+          "outcome": "CP1 met, CP2 partial",
+          "tutor_action": "tutor asks \"why would that help here?\"",
+          "source_text": "Names a tool, no reasoning → CP1 met, CP2 partial; tutor asks \"why would that help here?\"",
+          "provenance_id": "arthashastra.transition.C1.branching.1",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Names one clear, relevant tool + a one-line reason",
+          "outcome": "both met",
+          "tutor_action": "proceed to T2.",
+          "source_text": "Names one clear, relevant tool + a one-line reason → both met; proceed to T2.",
+          "provenance_id": "arthashastra.transition.C1.branching.2",
+          "content_role": "intervention_guidance"
+        }
+      ],
+      "cases": [
+        {
+          "id": "1A",
+          "title": "Border Aggression",
+          "scenario_text": "A neighboring kingdom's army has started massing troops near your shared border. What should the king do?",
+          "scenario_text_base": "A neighboring kingdom's army has started massing troops near your shared border. What should the king do?",
+          "complication": null,
+          "scenario_text_origin": "v2_markdown",
+          "scenario_text_origin_note": "(unchanged)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Nothing, kings can't control armies.",
+              "He should throw a feast to celebrate the harvest."
+            ],
+            "unistructural": [
+              "He should attack them first."
+            ],
+            "multistructural": [
+              "He could go to war, or try peace, or bribe their commanders."
+            ],
+            "relational": [
+              "Since the aggressor's other neighbor is hostile to them, I'd ally there first via mandala logic, using dana to stall while that alliance forms."
+            ],
+            "extended_abstract": [
+              "This is a balance-of-power problem — but mandala theory assumes territorial rivalry; it'd fail if the conflict were ideological instead."
+            ]
+          },
+          "level_examples_reference": null,
+          "level_example_annotations": {
+            "prestructural": "transduction",
+            "unistructural": "danda only",
+            "multistructural": "3 tools, unreconciled",
+            "relational": "technically requires the Transition-3 complication; if a learner spontaneously reaches this early, score it as Relational regardless of transition stage",
+            "extended_abstract": "same early-reach note"
+          },
+          "question_variants": [
+            "What should the king do, and why?",
+            "If you were advising the king, what is one thing he could do right now?",
+            "Name one thing the king could realistically do about this threat."
+          ],
+          "edge_case_notes": [
+            "Learners often answer \"ask his council\" — a process answer, not a policy tool. Probe further: \"what would the council likely recommend as an action?\""
+          ],
+          "mcq": {
+            "question": "Which of the following is a valid single policy response to a massing rival army?",
+            "options": [
+              {
+                "text": "Ignore it",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Mobilize the army (danda)",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Consult astrologers",
+                "is_correct": false,
+                "distractor_type": "irrelevant"
+              },
+              {
+                "text": "Declare friendship by decree",
+                "is_correct": false,
+                "distractor_type": "non_action"
+              }
+            ],
+            "provenance_id": "arthashastra.case.1A.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.1A.assessment.mcq.option.A",
+              "arthashastra.case.1A.assessment.mcq.option.B",
+              "arthashastra.case.1A.assessment.mcq.option.C",
+              "arthashastra.case.1A.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which of the following is a valid single policy response to a massing rival army?",
+                "options": [
+                  {
+                    "text": "Ignore it",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Mobilize the army (danda)",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Consult astrologers",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Declare friendship by decree",
+                    "is_correct": false,
+                    "distractor_type": "non_action"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What should the king do, and why?",
+                "pass_criteria": "pass = names one relevant tool + a reason."
+              },
+              "provenance_id": "arthashastra.case.1A.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "A king facing a massing rival force has which of these as a legitimate single-step response?",
+                "options": [
+                  {
+                    "text": "Do nothing and hope",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Send envoys to negotiate (sandhi)",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Abandon the border fort",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  },
+                  {
+                    "text": "Wait for the rival to attack first",
+                    "is_correct": false,
+                    "distractor_type": "non_action"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "If you were advising the king, what is one thing he could do right now?",
+                "pass_criteria": "pass = one relevant tool, stated as advice."
+              },
+              "provenance_id": "arthashastra.case.1A.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Of the following, which represents one concrete action available to the king?",
+                "options": [
+                  {
+                    "text": "Fortify the border garrison (danda-adjacent)",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Deny the threat exists",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Ask the merchants for help",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Disband the army",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one thing the king could realistically do about this threat.",
+                "pass_criteria": "pass = one relevant, case-specific tool."
+              },
+              "provenance_id": "arthashastra.case.1A.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "Walk through a fully solved mini-version: \"Here's how a king might reason: he has an army (danda) as one option — he could mobilize it to deter further advance.\" Ask the learner to restate in their own words.",
+            "Guided Questioning": "Ask \"What resources does a king have that he could use here?\" If no answer, narrow: \"Does the king have an army? What could he do with it?\"",
+            "Contrasting Cases": "Show two one-line reactions: (A) \"He panics and does nothing.\" (B) \"He orders the border garrison to prepare.\" Ask which is a real response and why."
+          },
+          "level_examples_origin_case": "1A",
+          "provenance_id": "arthashastra.case.1A",
+          "copy_paste_example": "A neighboring kingdom's army has started massing troops near your shared border.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.1A.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.1A.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.1A.level.prestructural.0",
+              "arthashastra.case.1A.level.prestructural.1"
+            ],
+            "relational": [
+              "arthashastra.case.1A.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.1A.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.1A.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.1A.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.1A.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.1A.edge.0"
+          ]
+        },
+        {
+          "id": "1B",
+          "title": "Internal Rebellion",
+          "scenario_text": "A border province's governor is suspected of secretly encouraging local unrest against the crown. What should the king do?",
+          "scenario_text_base": "A border province's governor is suspected of secretly encouraging local unrest against the crown. What should the king do?",
+          "complication": null,
+          "scenario_text_origin": "v2_markdown",
+          "scenario_text_origin_note": "(unchanged)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "He should just trust him.",
+              "The governor is probably just busy."
+            ],
+            "unistructural": [
+              "He should send spies to confirm it."
+            ],
+            "multistructural": [
+              "He could send spies, remove the governor, or just watch and wait."
+            ],
+            "relational": [
+              "Because removing him risks triggering the unrest we want to avoid, I'd use bheda covertly first, removing him only once his support is weakened."
+            ],
+            "extended_abstract": [
+              "This is an instance of managing popular-but-disloyal officials generally; bheda assumes a working spy network exists — without one, this fails."
+            ]
+          },
+          "level_examples_reference": null,
+          "level_example_annotations": {
+            "prestructural": null,
+            "unistructural": "espionage only",
+            "multistructural": "3 tools, unreconciled",
+            "relational": "full form requires T3's popularity complication",
+            "extended_abstract": "requires complication"
+          },
+          "question_variants": [
+            "What should the king do about the governor?",
+            "If you were the king's advisor, what's one step you'd suggest?",
+            "Name one action the king could take here."
+          ],
+          "edge_case_notes": [
+            "A jump to public execution is a valid Unistructural answer (one tool: danda) despite its severity — severity is not a proxy for depth; don't over-credit it."
+          ],
+          "mcq": {
+            "question": "What is the most appropriate first step?",
+            "options": [
+              {
+                "text": "Public execution",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Deploy the spy network to verify",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignore it",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Ask the public directly",
+                "is_correct": false,
+                "distractor_type": "wrong_direction"
+              }
+            ],
+            "provenance_id": "arthashastra.case.1B.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.1B.assessment.mcq.option.A",
+              "arthashastra.case.1B.assessment.mcq.option.B",
+              "arthashastra.case.1B.assessment.mcq.option.C",
+              "arthashastra.case.1B.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "What is the most appropriate first step?",
+                "options": [
+                  {
+                    "text": "Public execution",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Deploy the spy network to verify",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore it",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Ask the public directly",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What should the king do about the governor?",
+                "pass_criteria": "pass = one relevant tool + reason."
+              },
+              "provenance_id": "arthashastra.case.1B.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which of these is a legitimate single response to suspicion of disloyalty?",
+                "options": [
+                  {
+                    "text": "Immediate exile",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Quiet surveillance",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Public accusation",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Do nothing",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "If you were the king's advisor, what's one step you'd suggest?",
+                "pass_criteria": "pass = one relevant tool."
+              },
+              "provenance_id": "arthashastra.case.1B.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "One reasonable single action the king could take is:",
+                "options": [
+                  {
+                    "text": "Confirm loyalty via spies",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Assume guilt outright",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Promote the governor",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  },
+                  {
+                    "text": "Disregard the report",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one action the king could take here.",
+                "pass_criteria": "pass = one relevant tool."
+              },
+              "provenance_id": "arthashastra.case.1B.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"A king suspicious of an official might use his spy network to investigate before acting.\" Ask learner to restate.",
+            "Guided Questioning": "Ask \"What might a cautious king want to know before punishing the governor?\" Narrow: \"Does Kautilya's state have any way to gather secret information?\"",
+            "Contrasting Cases": "Show (A) \"The king executes him immediately.\" (B) \"The king sends a spy to confirm the suspicion first.\" Ask which fits a realist ruler and why."
+          },
+          "level_examples_origin_case": "1B",
+          "provenance_id": "arthashastra.case.1B",
+          "copy_paste_example": "A border province's governor is suspected of secretly encouraging local unrest against the crown.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.1B.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.1B.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.1B.level.prestructural.0",
+              "arthashastra.case.1B.level.prestructural.1"
+            ],
+            "relational": [
+              "arthashastra.case.1B.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.1B.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.1B.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.1B.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.1B.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.1B.edge.0"
+          ]
+        },
+        {
+          "id": "1C",
+          "title": "Trade Dispute",
+          "scenario_text": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. What should the king do?",
+          "scenario_text_base": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. What should the king do?",
+          "complication": null,
+          "scenario_text_origin": "v2_markdown",
+          "scenario_text_origin_note": "(unchanged)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Trade isn't the king's problem.",
+              "Merchants are always dishonest."
+            ],
+            "unistructural": [
+              "He should fine them."
+            ],
+            "multistructural": [
+              "He could fine them, negotiate a new deal, or cut off trade entirely."
+            ],
+            "relational": [
+              "Since we depend on this kingdom for an irreplaceable resource, I'd negotiate lower tariffs rather than fine them harshly."
+            ],
+            "extended_abstract": [
+              "This reflects the tension between short-term extraction and long-term relationship preservation under unequal leverage; it flips if the dependency were reversed."
+            ]
+          },
+          "level_examples_reference": null,
+          "level_example_annotations": {
+            "prestructural": "stereotype, not case-specific",
+            "unistructural": "taxation enforcement only",
+            "multistructural": "3 tools, unreconciled",
+            "relational": "full form requires T3's dependency complication",
+            "extended_abstract": "requires complication"
+          },
+          "question_variants": [
+            "What should the king do, and why?",
+            "If advising the king, what's one thing he could do?",
+            "Name one action available to the king."
+          ],
+          "edge_case_notes": [
+            "Learners sometimes answer in modern trade-policy language (\"impose sanctions\") — acceptable if it maps to a real upaya, but check it's genuine case engagement, not pattern-matched vocabulary."
+          ],
+          "mcq": {
+            "question": "What is a valid single response to tax-evading merchants?",
+            "options": [
+              {
+                "text": "Ignore them",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Fine them",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Declare war on their kingdom",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Do nothing",
+                "is_correct": false,
+                "distractor_type": "denial"
+              }
+            ],
+            "provenance_id": "arthashastra.case.1C.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.1C.assessment.mcq.option.A",
+              "arthashastra.case.1C.assessment.mcq.option.B",
+              "arthashastra.case.1C.assessment.mcq.option.C",
+              "arthashastra.case.1C.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "What is a valid single response to tax-evading merchants?",
+                "options": [
+                  {
+                    "text": "Ignore them",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Fine them",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Declare war on their kingdom",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Do nothing",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What should the king do, and why?",
+                "pass_criteria": "pass = one relevant tool + reason."
+              },
+              "provenance_id": "arthashastra.case.1C.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which is a legitimate first response?",
+                "options": [
+                  {
+                    "text": "Impose a fine or penalty",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Expel all merchants from the kingdom",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Ignore the smuggling",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Reward the merchants",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "If advising the king, what's one thing he could do?",
+                "pass_criteria": "pass = one relevant tool."
+              },
+              "provenance_id": "arthashastra.case.1C.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "One concrete single-step response is:",
+                "options": [
+                  {
+                    "text": "Enforce the existing tax law",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Abolish all taxation",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  },
+                  {
+                    "text": "Do nothing",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Attack the merchants' home kingdom",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one action available to the king.",
+                "pass_criteria": "pass = one relevant tool."
+              },
+              "provenance_id": "arthashastra.case.1C.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"A king could simply fine the smugglers — using state authority to enforce the tax law.\" Ask learner to restate.",
+            "Guided Questioning": "Ask \"What is the state's basic tool for enforcing its tax laws?\"",
+            "Contrasting Cases": "Show (A) \"He ignores it, trade isn't his concern.\" (B) \"He fines the merchants.\" Ask which reflects real statecraft."
+          },
+          "level_examples_origin_case": "1C",
+          "provenance_id": "arthashastra.case.1C",
+          "copy_paste_example": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.1C.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.1C.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.1C.level.prestructural.0",
+              "arthashastra.case.1C.level.prestructural.1"
+            ],
+            "relational": [
+              "arthashastra.case.1C.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.1C.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.1C.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.1C.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.1C.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.1C.edge.0"
+          ]
+        }
+      ],
+      "provenance_id": "arthashastra.transition.C1",
+      "scoring_guidance": {
+        "minimum_evidence": "Exactly one named, case-relevant tool + a one-line reason it applies.",
+        "insufficient_evidence": "A tool named with no reason (bare word answer); a process answer ('ask the council') instead of a policy tool.",
+        "common_false_positives": "Severity mistaken for depth — see 1B `edge_case_notes` (executing the governor is Unistructural, not higher, despite its severity).",
+        "reasoning_structure_required": "Engagement with the case + one causal link between tool and outcome. No comparison between tools required at this level."
+      },
+      "content_roles": {
+        "prerequisite": "prerequisite",
+        "target_signature": "transition_requirement",
+        "scoring_guidance": "transition_requirement",
+        "checkpoints": "checkpoint_definition",
+        "branching_rules": "intervention_guidance"
+      }
+    },
+    {
+      "id": "C2",
+      "from_level": "unistructural",
+      "to_level": "multistructural",
+      "prerequisite": "C1's target signature met — the learner has named one relevant policy tool with at least minimal justification.",
+      "concept_to_master": "The four upayas (sama-dana-bheda-danda) form a set, not a single fixed response — more than one lever is always available, even before those levers are weighed against each other.",
+      "target_signature": "A response naming at least three distinct policy tools (or explicitly invoking the upaya framework as a set), with no requirement of internal consistency or reconciliation between them.",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Second tool",
+          "criterion": "names a second, distinct tool beyond the first",
+          "provenance_id": "arthashastra.transition.C2.checkpoint.CP1",
+          "content_role": "checkpoint_definition"
+        },
+        {
+          "id": "CP2",
+          "name": "Tool set",
+          "criterion": "names a third tool, or explicitly references the upaya framework as a set",
+          "provenance_id": "arthashastra.transition.C2.checkpoint.CP2",
+          "content_role": "checkpoint_definition"
+        }
+      ],
+      "branching_rules": [
+        {
+          "condition": "Repeats the same tool in different words",
+          "outcome": "CP1 not met",
+          "tutor_action": "tutor prompts for a different kind of response.",
+          "source_text": "Repeats the same tool in different words → CP1 not met; tutor prompts for a different kind of response.",
+          "provenance_id": "arthashastra.transition.C2.branching.0",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Names exactly 2 distinct tools",
+          "outcome": "CP1 met, CP2 not yet",
+          "tutor_action": "tutor asks \"anything else in the king's toolkit?\"",
+          "source_text": "Names exactly 2 distinct tools → CP1 met, CP2 not yet; tutor asks \"anything else in the king's toolkit?\"",
+          "provenance_id": "arthashastra.transition.C2.branching.1",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Names ≥3 tools, or names the upaya framework",
+          "outcome": "both met",
+          "tutor_action": "Internal consistency is NOT required here.",
+          "source_text": "Names ≥3 tools, or names the upaya framework → both met. Internal consistency is NOT required here.",
+          "provenance_id": "arthashastra.transition.C2.branching.2",
+          "content_role": "intervention_guidance"
+        }
+      ],
+      "cases": [
+        {
+          "id": "2A",
+          "title": "Border Aggression",
+          "scenario_text": "A neighboring kingdom's army has started massing troops near your shared border. What should the king do?",
+          "scenario_text_base": "A neighboring kingdom's army has started massing troops near your shared border. What should the king do?",
+          "complication": null,
+          "scenario_text_origin": "authored_for_v2",
+          "scenario_text_origin_note": "(relabeled from `carried_forward_from_v1` — same underlying scenario as 1A by design, since no complication has been introduced yet at this transition; this is a deliberate reuse, not a fallback)",
+          "scenario_text_note": "identical to 1A's scenario_text by design — see note above",
+          "level_examples": {
+            "prestructural": [
+              "Nothing, kings can't control armies.",
+              "He should throw a feast to celebrate the harvest."
+            ],
+            "unistructural": [
+              "He should attack them first."
+            ],
+            "multistructural": [
+              "He could go to war, or try peace, or bribe their commanders."
+            ],
+            "relational": [
+              "Since the aggressor's other neighbor is hostile to them, I'd ally there first via mandala logic, using dana to stall while that alliance forms."
+            ],
+            "extended_abstract": [
+              "This is a balance-of-power problem — but mandala theory assumes territorial rivalry; it'd fail if the conflict were ideological instead."
+            ]
+          },
+          "level_examples_reference": "1A",
+          "level_example_annotations": {
+            "prestructural": "transduction",
+            "unistructural": "danda only",
+            "multistructural": "3 tools, unreconciled",
+            "relational": "technically requires the Transition-3 complication; if a learner spontaneously reaches this early, score it as Relational regardless of transition stage",
+            "extended_abstract": "same early-reach note"
+          },
+          "question_variants": [
+            "List the different ways the king could respond.",
+            "What are some different approaches the king could take?",
+            "Name a few options available to the king besides your first answer."
+          ],
+          "edge_case_notes": [
+            "Watch for the same upaya restated as two \"different\" tools (e.g. \"attack\" and \"go to war\") — not a second distinct tool."
+          ],
+          "mcq": {
+            "question": "Which pair represents two distinct upayas available to the king?",
+            "options": [
+              {
+                "text": "Danda and sandhi",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Danda and danda restated",
+                "is_correct": false,
+                "distractor_type": "single_tool_restated"
+              },
+              {
+                "text": "Ignoring the threat and hoping",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Waiting and waiting longer",
+                "is_correct": false,
+                "distractor_type": "non_action"
+              }
+            ],
+            "provenance_id": "arthashastra.case.2A.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.2A.assessment.mcq.option.A",
+              "arthashastra.case.2A.assessment.mcq.option.B",
+              "arthashastra.case.2A.assessment.mcq.option.C",
+              "arthashastra.case.2A.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which pair represents two distinct upayas available to the king?",
+                "options": [
+                  {
+                    "text": "Danda and sandhi",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Danda and danda restated",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Ignoring the threat and hoping",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Waiting and waiting longer",
+                    "is_correct": false,
+                    "distractor_type": "non_action"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "List the different ways the king could respond.",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              },
+              "provenance_id": "arthashastra.case.2A.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which of the following best reflects the range of options in Kautilyan doctrine?",
+                "options": [
+                  {
+                    "text": "Only war is ever appropriate",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "War, negotiation, and bribery are all valid tools",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only diplomacy is valid",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "The king has no real options",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What are some different approaches the king could take?",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              },
+              "provenance_id": "arthashastra.case.2A.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Kautilya's four upayas include which pair?",
+                "options": [
+                  {
+                    "text": "Sama and bheda",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Danda and danda",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Silence and denial",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name a few options available to the king besides your first answer.",
+                "pass_criteria": "pass = ≥2 additional distinct tools."
+              },
+              "provenance_id": "arthashastra.case.2A.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "Extend the solved example: \"Besides mobilizing the army (danda), the king could also try sandhi — offering peace terms — or dana, sending gifts to calm the rival.\"",
+            "Guided Questioning": "Ask \"Besides fighting, what else could the king try?\" then \"Is there a way to buy time or goodwill instead of force?\"",
+            "Contrasting Cases": "Show a list-style response (\"war, or peace, or bribery — all options\") vs. a single-tool response; ask what's different about the list version."
+          },
+          "level_examples_origin_case": "1A",
+          "provenance_id": "arthashastra.case.2A",
+          "copy_paste_example": "A neighboring kingdom's army has started massing troops near your shared border.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.2A.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.2A.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.2A.level.prestructural.0",
+              "arthashastra.case.2A.level.prestructural.1"
+            ],
+            "relational": [
+              "arthashastra.case.2A.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.2A.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.2A.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.2A.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.2A.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.2A.edge.0"
+          ]
+        },
+        {
+          "id": "2B",
+          "title": "Internal Rebellion",
+          "scenario_text": "A border province's governor is suspected of secretly encouraging local unrest against the crown. What should the king do?",
+          "scenario_text_base": "A border province's governor is suspected of secretly encouraging local unrest against the crown. What should the king do?",
+          "complication": null,
+          "scenario_text_origin": "authored_for_v2",
+          "scenario_text_origin_note": "(relabeled; identical scenario to 1B by design)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "He should just trust him.",
+              "The governor is probably just busy."
+            ],
+            "unistructural": [
+              "He should send spies to confirm it."
+            ],
+            "multistructural": [
+              "He could send spies, remove the governor, or just watch and wait."
+            ],
+            "relational": [
+              "Because removing him risks triggering the unrest we want to avoid, I'd use bheda covertly first, removing him only once his support is weakened."
+            ],
+            "extended_abstract": [
+              "This is an instance of managing popular-but-disloyal officials generally; bheda assumes a working spy network exists — without one, this fails."
+            ]
+          },
+          "level_examples_reference": "1B",
+          "level_example_annotations": {
+            "prestructural": null,
+            "unistructural": "espionage only",
+            "multistructural": "3 tools, unreconciled",
+            "relational": "full form requires T3's popularity complication",
+            "extended_abstract": "requires complication"
+          },
+          "question_variants": [
+            "List different ways the king could handle this.",
+            "What other approaches could the king take?",
+            "Beyond your first idea, what else could the king try?"
+          ],
+          "edge_case_notes": [
+            "\"Spy on him\" and \"investigate him\" are the same tool (espionage) under different phrasing — common false-positive for CP1."
+          ],
+          "mcq": {
+            "question": "Which two are distinct tools for handling a suspect official?",
+            "options": [
+              {
+                "text": "Espionage and removal",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Espionage restated twice",
+                "is_correct": false,
+                "distractor_type": "single_tool_restated"
+              },
+              {
+                "text": "Ignoring and ignoring",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "None",
+                "is_correct": false,
+                "distractor_type": "denial"
+              }
+            ],
+            "provenance_id": "arthashastra.case.2B.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.2B.assessment.mcq.option.A",
+              "arthashastra.case.2B.assessment.mcq.option.B",
+              "arthashastra.case.2B.assessment.mcq.option.C",
+              "arthashastra.case.2B.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which two are distinct tools for handling a suspect official?",
+                "options": [
+                  {
+                    "text": "Espionage and removal",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Espionage restated twice",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Ignoring and ignoring",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "None",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "List different ways the king could handle this.",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              },
+              "provenance_id": "arthashastra.case.2B.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which combination reflects real options?",
+                "options": [
+                  {
+                    "text": "Surveillance, dismissal, or covert division-sowing",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only public execution",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Only inaction",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Only promotion",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What other approaches could the king take?",
+                "pass_criteria": "pass = ≥2 tools."
+              },
+              "provenance_id": "arthashastra.case.2B.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Kautilya's toolkit for this situation would include:",
+                "options": [
+                  {
+                    "text": "Bheda and danda",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignoring the issue twice",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Just one fixed option",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Beyond your first idea, what else could the king try?",
+                "pass_criteria": "pass = ≥2 additional tools."
+              },
+              "provenance_id": "arthashastra.case.2B.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "Extend: \"Besides spying, the king could also consider removing the governor outright (danda-adjacent), or quietly turning his allies against him (bheda).\"",
+            "Guided Questioning": "Ask \"Is spying the only option, or are there other ways to handle a disloyal official?\"",
+            "Contrasting Cases": "Contrast a one-tool response with a multi-tool list; ask what's added in the second."
+          },
+          "level_examples_origin_case": "1B",
+          "provenance_id": "arthashastra.case.2B",
+          "copy_paste_example": "A border province's governor is suspected of secretly encouraging local unrest against the crown.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.2B.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.2B.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.2B.level.prestructural.0",
+              "arthashastra.case.2B.level.prestructural.1"
+            ],
+            "relational": [
+              "arthashastra.case.2B.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.2B.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.2B.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.2B.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.2B.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.2B.edge.0"
+          ]
+        },
+        {
+          "id": "2C",
+          "title": "Trade Dispute",
+          "scenario_text": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. What should the king do?",
+          "scenario_text_base": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. What should the king do?",
+          "complication": null,
+          "scenario_text_origin": "authored_for_v2",
+          "scenario_text_origin_note": "(relabeled; identical scenario to 1C by design)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Trade isn't the king's problem.",
+              "Merchants are always dishonest."
+            ],
+            "unistructural": [
+              "He should fine them."
+            ],
+            "multistructural": [
+              "He could fine them, negotiate a new deal, or cut off trade entirely."
+            ],
+            "relational": [
+              "Since we depend on this kingdom for an irreplaceable resource, I'd negotiate lower tariffs rather than fine them harshly."
+            ],
+            "extended_abstract": [
+              "This reflects the tension between short-term extraction and long-term relationship preservation under unequal leverage; it flips if the dependency were reversed."
+            ]
+          },
+          "level_examples_reference": "1C",
+          "level_example_annotations": {
+            "prestructural": "stereotype, not case-specific",
+            "unistructural": "taxation enforcement only",
+            "multistructural": "3 tools, unreconciled",
+            "relational": "full form requires T3's dependency complication",
+            "extended_abstract": "requires complication"
+          },
+          "question_variants": [
+            "List the king's options here.",
+            "What other approaches could the king consider?",
+            "Beyond your first answer, name another option."
+          ],
+          "edge_case_notes": [
+            "\"Talk to him nicely\" and \"negotiate\" are both sama — one tool, not two."
+          ],
+          "mcq": {
+            "question": "Which pair are distinct valid responses?",
+            "options": [
+              {
+                "text": "Fines and renegotiation",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Fines restated twice",
+                "is_correct": false,
+                "distractor_type": "single_tool_restated"
+              },
+              {
+                "text": "Ignoring twice",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "None",
+                "is_correct": false,
+                "distractor_type": "denial"
+              }
+            ],
+            "provenance_id": "arthashastra.case.2C.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.2C.assessment.mcq.option.A",
+              "arthashastra.case.2C.assessment.mcq.option.B",
+              "arthashastra.case.2C.assessment.mcq.option.C",
+              "arthashastra.case.2C.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Which pair are distinct valid responses?",
+                "options": [
+                  {
+                    "text": "Fines and renegotiation",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Fines restated twice",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Ignoring twice",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "None",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "List the king's options here.",
+                "pass_criteria": "pass = ≥2 distinct tools."
+              },
+              "provenance_id": "arthashastra.case.2C.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which combination reflects real options for this case?",
+                "options": [
+                  {
+                    "text": "Penalty, negotiation, or trade suspension",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Only ignoring it",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Only war",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Only reward",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What other approaches could the king consider?",
+                "pass_criteria": "pass = ≥2 tools."
+              },
+              "provenance_id": "arthashastra.case.2C.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Kautilya's framework would suggest which pair as options here?",
+                "options": [
+                  {
+                    "text": "Sama and danda",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Danda restated",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "No options exist",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Beyond your first answer, name another option.",
+                "pass_criteria": "pass = ≥2 additional tools."
+              },
+              "provenance_id": "arthashastra.case.2C.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "Extend: \"Besides fining them, the king could renegotiate the trade terms (sama), or threaten to cut off trade entirely (vigraha-adjacent).\"",
+            "Guided Questioning": "Ask \"Is a fine the only tool here, or could the king try something else?\"",
+            "Contrasting Cases": "Contrast a single-tool vs. multi-tool response; ask what's added."
+          },
+          "level_examples_origin_case": "1C",
+          "provenance_id": "arthashastra.case.2C",
+          "copy_paste_example": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.2C.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.2C.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.2C.level.prestructural.0",
+              "arthashastra.case.2C.level.prestructural.1"
+            ],
+            "relational": [
+              "arthashastra.case.2C.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.2C.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.2C.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.2C.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.2C.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.2C.edge.0"
+          ]
+        }
+      ],
+      "provenance_id": "arthashastra.transition.C2",
+      "scoring_guidance": {
+        "minimum_evidence": "≥3 distinct tools, or explicit naming of the upaya framework as a set.",
+        "insufficient_evidence": "Two tools that are the same upaya restated — see 2A/2B/2C `edge_case_notes` ('attack'/'go to war'; 'spy on him'/'investigate him'; 'talk nicely'/'negotiate' are each one tool, not two).",
+        "common_false_positives": "Naming 'sama, dana, bheda, danda' as a memorized list with no connection to the actual case does not meet this — the tools must be applied to the case, not recited.",
+        "reasoning_structure_required": "Listing only — no reconciliation expected or required at this level."
+      },
+      "content_roles": {
+        "prerequisite": "prerequisite",
+        "target_signature": "transition_requirement",
+        "scoring_guidance": "transition_requirement",
+        "checkpoints": "checkpoint_definition",
+        "branching_rules": "intervention_guidance"
+      }
+    },
+    {
+      "id": "C3",
+      "from_level": "multistructural",
+      "to_level": "relational",
+      "prerequisite": "C2's target signature met — the learner has named at least three distinct policy tools, or the upaya framework as a set, without needing to reconcile them yet.",
+      "concept_to_master": "Mandala theory (or, for the governance/trade cases, the equivalent structural trade-off) holds that the correct policy depends on relative position or risk exposure, not on tools considered in isolation — sound judgment reconciles multiple factors into one coherent course of action.",
+      "target_signature": "A single, internally consistent recommendation that explicitly weighs at least two factors against each other, grounded in the case's complication — not a list of options, and not a choice made without reference to that complication.",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Trade-offs",
+          "criterion": "tools aren't equally good here — some carry more risk/cost than others",
+          "provenance_id": "arthashastra.transition.C3.checkpoint.CP1",
+          "content_role": "checkpoint_definition"
+        },
+        {
+          "id": "CP2",
+          "name": "Positioning logic",
+          "criterion": "applies mandala-theory-style reasoning to the complication",
+          "provenance_id": "arthashastra.transition.C3.checkpoint.CP2",
+          "content_role": "checkpoint_definition"
+        },
+        {
+          "id": "CP3",
+          "name": "Reconciliation",
+          "criterion": "one coherent recommendation explicitly weighing ≥2 factors",
+          "provenance_id": "arthashastra.transition.C3.checkpoint.CP3",
+          "content_role": "checkpoint_definition"
+        }
+      ],
+      "branching_rules": [
+        {
+          "condition": "Lists tools with no connection to the complication",
+          "outcome": "no checkpoints met",
+          "tutor_action": "tutor points to the complication, re-asks.",
+          "source_text": "Lists tools with no connection to the complication → no checkpoints met; tutor points to the complication, re-asks.",
+          "provenance_id": "arthashastra.transition.C3.branching.0",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Acknowledges complication, doesn't use it to choose",
+          "outcome": "CP1 met only",
+          "tutor_action": "tutor asks \"given that, which option looks better or worse now?\"",
+          "source_text": "Acknowledges complication, doesn't use it to choose → CP1 met only; tutor asks \"given that, which option looks better or worse now?\"",
+          "provenance_id": "arthashastra.transition.C3.branching.1",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Uses complication for a relational/positional point, no integrated plan yet",
+          "outcome": "CP1+CP2 met",
+          "tutor_action": "tutor asks for one tying-together recommendation.",
+          "source_text": "Uses complication for a relational/positional point, no integrated plan yet → CP1+CP2 met; tutor asks for one tying-together recommendation.",
+          "provenance_id": "arthashastra.transition.C3.branching.2",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "One coherent recommendation weighing ≥2 factors",
+          "outcome": "all 3 met",
+          "tutor_action": null,
+          "source_text": "One coherent recommendation weighing ≥2 factors → all 3 met.",
+          "provenance_id": "arthashastra.transition.C3.branching.3",
+          "content_role": "intervention_guidance"
+        }
+      ],
+      "cases": [
+        {
+          "id": "3A",
+          "title": "Border Aggression",
+          "scenario_text": "A neighboring kingdom's army has started massing troops near your shared border. [+ The aggressor kingdom's other neighbor, on its far side, has historically been hostile to it.]",
+          "scenario_text_base": "A neighboring kingdom's army has started massing troops near your shared border.",
+          "complication": "+ The aggressor kingdom's other neighbor, on its far side, has historically been hostile to it.",
+          "scenario_text_origin": "v2_markdown",
+          "scenario_text_origin_note": "(unchanged)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "He should attack them, the complication doesn't matter."
+            ],
+            "unistructural": [
+              "He should ally with the far neighbor."
+            ],
+            "multistructural": [
+              "He could ally with the far neighbor, go to war, or bribe them — all could work."
+            ],
+            "relational": [
+              "Since the aggressor's other neighbor is already hostile to them, mandala theory says that neighbor is a natural ally — I'd seek that alliance first, using dana to stall the aggressor while it forms, holding danda in reserve."
+            ],
+            "extended_abstract": [
+              "This is a balance-of-power problem; mandala theory assumes rivalry is driven by territorial adjacency. If the conflict were ideological rather than territorial, an adjacent kingdom wouldn't act as a natural ally just from geography — the prediction would fail."
+            ]
+          },
+          "level_examples_reference": null,
+          "level_example_annotations": {
+            "prestructural": "ignores new information",
+            "unistructural": "names the relational fact, no other reasoning",
+            "multistructural": "listed, unconnected",
+            "relational": null,
+            "extended_abstract": null
+          },
+          "question_variants": [
+            "What is the single best course of action here, and why?",
+            "How should the king weigh his options, given the neighboring rivalry?",
+            "Give one coherent plan, explaining how it accounts for the wider political picture."
+          ],
+          "edge_case_notes": [
+            "Most common failure: learner correctly states the far-neighbor relationship but never converts it into an actual alliance recommendation — the relational fact is named but not acted on."
+          ],
+          "mcq": {
+            "question": "Given the aggressor's other neighbor is hostile to them, what is mandala theory's most coherent recommendation?",
+            "options": [
+              {
+                "text": "Attack immediately with no allies",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Seek alliance with that hostile neighbor first",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Use all four upayas simultaneously",
+                "is_correct": false,
+                "distractor_type": "non_reconciled_list"
+              },
+              {
+                "text": "Wait indefinitely",
+                "is_correct": false,
+                "distractor_type": "non_action"
+              }
+            ],
+            "provenance_id": "arthashastra.case.3A.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.3A.assessment.mcq.option.A",
+              "arthashastra.case.3A.assessment.mcq.option.B",
+              "arthashastra.case.3A.assessment.mcq.option.C",
+              "arthashastra.case.3A.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Given the aggressor's other neighbor is hostile to them, what is mandala theory's most coherent recommendation?",
+                "options": [
+                  {
+                    "text": "Attack immediately with no allies",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Seek alliance with that hostile neighbor first",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Use all four upayas simultaneously",
+                    "is_correct": false,
+                    "distractor_type": "non_reconciled_list"
+                  },
+                  {
+                    "text": "Wait indefinitely",
+                    "is_correct": false,
+                    "distractor_type": "non_action"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What is the single best course of action here, and why?",
+                "pass_criteria": "pass = one integrated recommendation citing ≥2 factors."
+              },
+              "provenance_id": "arthashastra.case.3A.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which reasoning best reflects relational (not just listed) thinking?",
+                "options": [
+                  {
+                    "text": "War or peace, pick one",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Since their other neighbor is hostile to them, that's our natural ally — approach them before escalating",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Use every tool at once",
+                    "is_correct": false,
+                    "distractor_type": "non_reconciled_list"
+                  },
+                  {
+                    "text": "Ignore positioning entirely",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "How should the king weigh his options, given the neighboring rivalry?",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3A.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "What is the key factor that should shape the king's single recommended action?",
+                "options": [
+                  {
+                    "text": "The size of his own army only",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  },
+                  {
+                    "text": "The aggressor's relationship with their other neighbor",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The weather",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Nothing external matters",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Give one coherent plan, explaining how it accounts for the wider political picture.",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3A.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"Since the aggressor's other neighbor is already hostile to them, mandala theory says that neighbor is a natural ally (mitra) — I'd seek an alliance there first, using dana to stall the aggressor while that alliance forms, holding danda in reserve.\"",
+            "Guided Questioning": "Ask \"Who is the aggressor's other neighbor to them — friend or rival? What does that suggest about who we should approach?\" Narrow toward mandala logic if stuck.",
+            "Contrasting Cases": "Show (A) lists all 4 tools with no connection between them. (B) explicitly uses the other-neighbor relationship to justify one sequenced plan. Ask what B does that A doesn't."
+          },
+          "level_examples_origin_case": "3A",
+          "provenance_id": "arthashastra.case.3A",
+          "copy_paste_example": "A neighboring kingdom's army has started massing troops near your shared border, and the aggressor's other neighbor has historically been hostile to it.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.3A.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.3A.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.3A.level.prestructural.0"
+            ],
+            "relational": [
+              "arthashastra.case.3A.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.3A.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.3A.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.3A.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.3A.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.3A.edge.0"
+          ]
+        },
+        {
+          "id": "3B",
+          "title": "Internal Rebellion",
+          "scenario_text": "A border province's governor is suspected of secretly encouraging local unrest against the crown. [+ The suspected governor is popular among the local population, and removing him abruptly could itself trigger unrest.]",
+          "scenario_text_base": "A border province's governor is suspected of secretly encouraging local unrest against the crown.",
+          "complication": "+ The suspected governor is popular among the local population, and removing him abruptly could itself trigger unrest.",
+          "scenario_text_origin": "v2_markdown",
+          "scenario_text_origin_note": "(unchanged)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Remove him immediately, popularity doesn't matter."
+            ],
+            "unistructural": [
+              "He's popular, so don't remove him."
+            ],
+            "multistructural": [
+              "He could remove him, or wait, or spy on him — his popularity is a factor too."
+            ],
+            "relational": [
+              "Because removing him abruptly risks triggering the very unrest we want to avoid, I'd use bheda — quietly isolating his allies first — then remove him only once his support has weakened."
+            ],
+            "extended_abstract": [
+              "This is an instance of managing popular-but-disloyal officials in any centralized state with charismatic local leaders. Bheda assumes a functioning covert-influence network exists; without one, this approach fails and a different tool — like co-optation — might work better."
+            ]
+          },
+          "level_examples_reference": null,
+          "level_example_annotations": {
+            "prestructural": null,
+            "unistructural": "names constraint, no path forward",
+            "multistructural": "listed, unreconciled",
+            "relational": null,
+            "extended_abstract": null
+          },
+          "question_variants": [
+            "What's the single best course of action, and why?",
+            "How should the king balance the risk of unrest against the need to act?",
+            "Give one coherent recommendation that accounts for his popularity."
+          ],
+          "edge_case_notes": [
+            "A response proposing open negotiation with the governor (rather than covert bheda) still counts as reconciled IF the unrest-risk trade-off is explicitly addressed — only flag as unreconciled if the tension is ignored entirely."
+          ],
+          "mcq": {
+            "question": "Given the governor's popularity, what is the most coherent single approach?",
+            "options": [
+              {
+                "text": "Remove him immediately",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Covertly weaken his support via bheda before acting",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Ignore the suspicion entirely",
+                "is_correct": false,
+                "distractor_type": "denial"
+              },
+              {
+                "text": "Publicly accuse him at once",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              }
+            ],
+            "provenance_id": "arthashastra.case.3B.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.3B.assessment.mcq.option.A",
+              "arthashastra.case.3B.assessment.mcq.option.B",
+              "arthashastra.case.3B.assessment.mcq.option.C",
+              "arthashastra.case.3B.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Given the governor's popularity, what is the most coherent single approach?",
+                "options": [
+                  {
+                    "text": "Remove him immediately",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Covertly weaken his support via bheda before acting",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Ignore the suspicion entirely",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  },
+                  {
+                    "text": "Publicly accuse him at once",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What's the single best course of action, and why?",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3B.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which response best reflects reconciled reasoning?",
+                "options": [
+                  {
+                    "text": "Just remove him",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Because he's popular, removing him abruptly risks unrest — weaken him quietly first",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do everything at once",
+                    "is_correct": false,
+                    "distractor_type": "non_reconciled_list"
+                  },
+                  {
+                    "text": "Nothing matters here",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "How should the king balance the risk of unrest against the need to act?",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3B.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "What factor most changes the right response here?",
+                "options": [
+                  {
+                    "text": "The governor's local popularity",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The weather",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "The price of grain",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Nothing",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Give one coherent recommendation that accounts for his popularity.",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3B.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"Since removing him outright risks the very unrest we want to avoid, bheda — quietly isolating his allies first — lets us weaken him without the visible trigger of a sudden removal.\"",
+            "Guided Questioning": "Ask \"What happens if the king removes him too quickly, given he's popular? What tool avoids that risk?\"",
+            "Contrasting Cases": "Contrast a \"just remove him\" answer with one that explicitly weighs his popularity before acting."
+          },
+          "level_examples_origin_case": "3B",
+          "provenance_id": "arthashastra.case.3B",
+          "copy_paste_example": "A border province's governor is suspected of secretly encouraging local unrest against the crown, and he is popular among the local population.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.3B.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.3B.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.3B.level.prestructural.0"
+            ],
+            "relational": [
+              "arthashastra.case.3B.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.3B.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.3B.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.3B.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.3B.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.3B.edge.0"
+          ]
+        },
+        {
+          "id": "3C",
+          "title": "Trade Dispute",
+          "scenario_text": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. [+ This trading kingdom is a key supplier of a resource your kingdom cannot easily source elsewhere.]",
+          "scenario_text_base": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders.",
+          "complication": "+ This trading kingdom is a key supplier of a resource your kingdom cannot easily source elsewhere.",
+          "scenario_text_origin": "v2_markdown",
+          "scenario_text_origin_note": "(unchanged)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Fine them regardless, the dependency doesn't matter."
+            ],
+            "unistructural": [
+              "We depend on them, so don't punish them."
+            ],
+            "multistructural": [
+              "We could fine them, negotiate, or ignore it — but we do depend on them."
+            ],
+            "relational": [
+              "Since we depend on this kingdom for a resource we can't easily replace, I'd negotiate a formal lower tariff instead of imposing punitive fines — sama over danda, since preserving the relationship matters more here than strict enforcement."
+            ],
+            "extended_abstract": [
+              "This reflects the general tension between short-term revenue extraction and long-term relationship preservation under unequal trade leverage. The right answer flips if the dependency were reversed — if we were the irreplaceable supplier instead, punitive tariffs would carry much less risk."
+            ]
+          },
+          "level_examples_reference": null,
+          "level_example_annotations": {
+            "prestructural": null,
+            "unistructural": "names constraint, no path forward",
+            "multistructural": "listed, unreconciled",
+            "relational": null,
+            "extended_abstract": null
+          },
+          "question_variants": [
+            "What's the single best course of action, and why?",
+            "How should the king weigh enforcement against the trade relationship?",
+            "Give one coherent plan accounting for the dependency."
+          ],
+          "edge_case_notes": [
+            "\"Cut off trade entirely, just to be safe\" is a strong example of unreconciled reasoning that sounds decisive — don't let confidence substitute for addressing the dependency."
+          ],
+          "mcq": {
+            "question": "Given the resource dependency, what is the most coherent approach?",
+            "options": [
+              {
+                "text": "Heavy fines regardless of relationship",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Renegotiate terms to preserve the relationship",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Cut off trade entirely",
+                "is_correct": false,
+                "distractor_type": "overreach"
+              },
+              {
+                "text": "Ignore the smuggling",
+                "is_correct": false,
+                "distractor_type": "denial"
+              }
+            ],
+            "provenance_id": "arthashastra.case.3C.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.3C.assessment.mcq.option.A",
+              "arthashastra.case.3C.assessment.mcq.option.B",
+              "arthashastra.case.3C.assessment.mcq.option.C",
+              "arthashastra.case.3C.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Given the resource dependency, what is the most coherent approach?",
+                "options": [
+                  {
+                    "text": "Heavy fines regardless of relationship",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Renegotiate terms to preserve the relationship",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Cut off trade entirely",
+                    "is_correct": false,
+                    "distractor_type": "overreach"
+                  },
+                  {
+                    "text": "Ignore the smuggling",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What's the single best course of action, and why?",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3C.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "Which reflects reconciled reasoning?",
+                "options": [
+                  {
+                    "text": "Fine them, simple",
+                    "is_correct": false,
+                    "distractor_type": "single_tool_restated"
+                  },
+                  {
+                    "text": "Since we depend on them, punitive fines risk the relationship — renegotiate instead",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Do everything at once",
+                    "is_correct": false,
+                    "distractor_type": "non_reconciled_list"
+                  },
+                  {
+                    "text": "Nothing matters",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "How should the king weigh enforcement against the trade relationship?",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3C.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "What factor should most shape the response?",
+                "options": [
+                  {
+                    "text": "Our dependency on this resource",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "The weather",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Unrelated court gossip",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Nothing",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Give one coherent plan accounting for the dependency.",
+                "pass_criteria": "pass = integrated judgment."
+              },
+              "provenance_id": "arthashastra.case.3C.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"Because we depend on this kingdom for an irreplaceable resource, punitive fines risk the relationship we need — sama (renegotiating terms) protects the resource flow while still addressing the smuggling.\"",
+            "Guided Questioning": "Ask \"What do we risk if we punish them too harshly, given we depend on them?\"",
+            "Contrasting Cases": "Contrast \"fine them heavily\" vs. \"renegotiate terms\" and ask which accounts for the dependency."
+          },
+          "level_examples_origin_case": "3C",
+          "provenance_id": "arthashastra.case.3C",
+          "copy_paste_example": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders, and this kingdom supplies a resource we can't easily source elsewhere.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.3C.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.3C.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.3C.level.prestructural.0"
+            ],
+            "relational": [
+              "arthashastra.case.3C.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.3C.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.3C.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.3C.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.3C.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.3C.edge.0"
+          ]
+        }
+      ],
+      "provenance_id": "arthashastra.transition.C3",
+      "scoring_guidance": {
+        "minimum_evidence": "One integrated recommendation explicitly weighing ≥2 factors tied to the case's complication.",
+        "insufficient_evidence": "Naming the complication without acting on it — see 3B `edge_case_notes` ('he's popular' stated with no resulting recommendation).",
+        "common_false_positives": "A confident single-tool answer that ignores the complication — see 3C `edge_case_notes` ('cut off trade entirely, just to be safe'). Confidence is not reconciliation.",
+        "reasoning_structure_required": "A trade-off is named AND resolved into one action — not merely acknowledged."
+      },
+      "content_roles": {
+        "prerequisite": "prerequisite",
+        "target_signature": "transition_requirement",
+        "scoring_guidance": "transition_requirement",
+        "checkpoints": "checkpoint_definition",
+        "branching_rules": "intervention_guidance"
+      }
+    },
+    {
+      "id": "C4",
+      "from_level": "relational",
+      "to_level": "extended_abstract",
+      "prerequisite": "C3's target signature met — the learner has produced one coherent, reconciled judgment for the specific case, explicitly weighing at least two factors against each other.",
+      "concept_to_master": "Each case is one instance of a recurring structural principle in statecraft; that principle rests on identifiable assumptions, and a mature response can name a specific condition under which the earlier conclusion would stop holding.",
+      "target_signature": "A response that (a) names the general principle the case instantiates, (b) identifies an assumption that principle depends on, and (c) names one specific, non-vague condition under which the conclusion would change.",
+      "checkpoints": [
+        {
+          "id": "CP1",
+          "name": "Generalization",
+          "criterion": "names the general principle the case instantiates",
+          "provenance_id": "arthashastra.transition.C4.checkpoint.CP1",
+          "content_role": "checkpoint_definition"
+        },
+        {
+          "id": "CP2",
+          "name": "Assumption",
+          "criterion": "identifies an assumption the principle depends on",
+          "provenance_id": "arthashastra.transition.C4.checkpoint.CP2",
+          "content_role": "checkpoint_definition"
+        },
+        {
+          "id": "CP3",
+          "name": "Boundary condition",
+          "criterion": "names a specific condition under which the conclusion would change (not a vague \"it depends\")",
+          "provenance_id": "arthashastra.transition.C4.checkpoint.CP3",
+          "content_role": "checkpoint_definition"
+        }
+      ],
+      "branching_rules": [
+        {
+          "condition": "Stays fully case-specific, no generalization attempt",
+          "outcome": "no checkpoints met",
+          "tutor_action": "tutor asks \"have you seen this kind of problem show up elsewhere?\"",
+          "source_text": "Stays fully case-specific, no generalization attempt → no checkpoints met; tutor asks \"have you seen this kind of problem show up elsewhere?\"",
+          "provenance_id": "arthashastra.transition.C4.branching.0",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Names the principle, doesn't examine assumptions",
+          "outcome": "CP1 met only",
+          "tutor_action": null,
+          "source_text": "Names the principle, doesn't examine assumptions → CP1 met only.",
+          "provenance_id": "arthashastra.transition.C4.branching.1",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Identifies an assumption but gives only a vague \"it depends\"",
+          "outcome": "CP1+CP2 met, CP3 explicitly NOT met",
+          "tutor_action": "the key false-positive to catch. Tutor directly asks \"under exactly what condition would this change?\"",
+          "source_text": "Identifies an assumption but gives only a vague \"it depends\" → CP1+CP2 met, CP3 explicitly NOT met — the key false-positive to catch. Tutor directly asks \"under exactly what condition would this change?\"",
+          "provenance_id": "arthashastra.transition.C4.branching.2",
+          "content_role": "intervention_guidance"
+        },
+        {
+          "condition": "Names principle + assumption + specific condition",
+          "outcome": "all 3 met",
+          "tutor_action": null,
+          "source_text": "Names principle + assumption + specific condition → all 3 met.",
+          "provenance_id": "arthashastra.transition.C4.branching.3",
+          "content_role": "intervention_guidance"
+        }
+      ],
+      "cases": [
+        {
+          "id": "4A",
+          "title": "Border Aggression",
+          "scenario_text": "A neighboring kingdom's army has started massing troops near your shared border. [+ The aggressor kingdom's other neighbor, on its far side, has historically been hostile to it.]",
+          "scenario_text_base": "A neighboring kingdom's army has started massing troops near your shared border.",
+          "complication": "+ The aggressor kingdom's other neighbor, on its far side, has historically been hostile to it.",
+          "scenario_text_origin": "authored_for_v2",
+          "scenario_text_origin_note": "(relabeled from `carried_forward_from_v1` — identical to 3A by design: the complication introduced at Transition 3 persists through Transition 4, since generalization builds on the already-complicated case rather than a fresh one)",
+          "scenario_text_note": "identical to 3A's scenario_text by design — see note above",
+          "level_examples": {
+            "prestructural": [
+              "He should attack them, the complication doesn't matter."
+            ],
+            "unistructural": [
+              "He should ally with the far neighbor."
+            ],
+            "multistructural": [
+              "He could ally with the far neighbor, go to war, or bribe them — all could work."
+            ],
+            "relational": [
+              "Since the aggressor's other neighbor is already hostile to them, mandala theory says that neighbor is a natural ally — I'd seek that alliance first, using dana to stall the aggressor while it forms, holding danda in reserve."
+            ],
+            "extended_abstract": [
+              "This is a balance-of-power problem; mandala theory assumes rivalry is driven by territorial adjacency. If the conflict were ideological rather than territorial, an adjacent kingdom wouldn't act as a natural ally just from geography — the prediction would fail."
+            ]
+          },
+          "level_examples_reference": "3A",
+          "level_example_annotations": {
+            "prestructural": "ignores new information",
+            "unistructural": "names the relational fact, no other reasoning",
+            "multistructural": "listed, unconnected",
+            "relational": null,
+            "extended_abstract": null
+          },
+          "question_variants": [
+            "Is mandala theory always the right lens here? When might it fail?",
+            "What does this case tell us about statecraft in general?",
+            "Name one specific condition under which your earlier recommendation would change."
+          ],
+          "edge_case_notes": [
+            "Watch for learners naming \"army size\" as the relevant assumption instead of \"territorial adjacency drives rivalry\" — this conflates military and territorial logic; treat CP2 as not fully met."
+          ],
+          "mcq": {
+            "question": "Mandala theory assumes rivalry is driven by territorial adjacency. Under which condition would its prediction most likely fail?",
+            "options": [
+              {
+                "text": "Similar army sizes",
+                "is_correct": false,
+                "distractor_type": "surface_feature"
+              },
+              {
+                "text": "Ideological/religious rather than territorial rivalry",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Same language",
+                "is_correct": false,
+                "distractor_type": "surface_feature"
+              },
+              {
+                "text": "Prior trade history",
+                "is_correct": false,
+                "distractor_type": "surface_feature"
+              }
+            ],
+            "provenance_id": "arthashastra.case.4A.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.4A.assessment.mcq.option.A",
+              "arthashastra.case.4A.assessment.mcq.option.B",
+              "arthashastra.case.4A.assessment.mcq.option.C",
+              "arthashastra.case.4A.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "Mandala theory assumes rivalry is driven by territorial adjacency. Under which condition would its prediction most likely fail?",
+                "options": [
+                  {
+                    "text": "Similar army sizes",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  },
+                  {
+                    "text": "Ideological/religious rather than territorial rivalry",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Same language",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  },
+                  {
+                    "text": "Prior trade history",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Is mandala theory always the right lens here? When might it fail?",
+                "pass_criteria": "pass = names a specific condition, not just \"it depends.\""
+              },
+              "provenance_id": "arthashastra.case.4A.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "This case is best understood as an instance of which general pattern?",
+                "options": [
+                  {
+                    "text": "Random chance",
+                    "is_correct": false,
+                    "distractor_type": "denial_of_premise"
+                  },
+                  {
+                    "text": "Balance-of-power / realist alliance-formation",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Religious doctrine",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  },
+                  {
+                    "text": "Pure economics",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What does this case tell us about statecraft in general?",
+                "pass_criteria": "pass = names the general principle explicitly."
+              },
+              "provenance_id": "arthashastra.case.4A.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Which of these is a genuine boundary condition, not a vague hedge?",
+                "options": [
+                  {
+                    "text": "It depends on the situation",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  },
+                  {
+                    "text": "It fails if the rivalry is ideological, not territorial",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Sometimes things change",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  },
+                  {
+                    "text": "Anything could happen",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name one specific condition under which your earlier recommendation would change.",
+                "pass_criteria": "pass = named, specific condition."
+              },
+              "provenance_id": "arthashastra.case.4A.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"This is really a balance-of-power problem — mandala theory is one version of a pattern seen across history (allying with your rival's rival). It assumes rivalry is driven by territorial adjacency. If the conflict were ideological rather than territorial, an adjacent kingdom wouldn't necessarily act as a natural ally just from geography — the prediction would fail.\"",
+            "Guided Questioning": "Ask \"Is this really only about this king and this rival, or is it an example of something bigger?\" Then \"What does mandala theory assume is true about why kingdoms fight? When might that assumption not hold?\"",
+            "Contrasting Cases": "Show a vague \"it depends on the situation\" answer vs. one naming a specific condition (ideological vs. territorial) that would flip the conclusion. Ask which is actually useful."
+          },
+          "level_examples_origin_case": "3A",
+          "provenance_id": "arthashastra.case.4A",
+          "copy_paste_example": "A neighboring kingdom's army has started massing troops near your shared border, and the aggressor's other neighbor has historically been hostile to it.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.4A.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.4A.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.4A.level.prestructural.0"
+            ],
+            "relational": [
+              "arthashastra.case.4A.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.4A.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.4A.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.4A.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.4A.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.4A.edge.0"
+          ]
+        },
+        {
+          "id": "4B",
+          "title": "Internal Rebellion",
+          "scenario_text": "A border province's governor is suspected of secretly encouraging local unrest against the crown. [+ The suspected governor is popular among the local population, and removing him abruptly could itself trigger unrest.]",
+          "scenario_text_base": "A border province's governor is suspected of secretly encouraging local unrest against the crown.",
+          "complication": "+ The suspected governor is popular among the local population, and removing him abruptly could itself trigger unrest.",
+          "scenario_text_origin": "authored_for_v2",
+          "scenario_text_origin_note": "(relabeled; identical to 3B by design)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Remove him immediately, popularity doesn't matter."
+            ],
+            "unistructural": [
+              "He's popular, so don't remove him."
+            ],
+            "multistructural": [
+              "He could remove him, or wait, or spy on him — his popularity is a factor too."
+            ],
+            "relational": [
+              "Because removing him abruptly risks triggering the very unrest we want to avoid, I'd use bheda — quietly isolating his allies first — then remove him only once his support has weakened."
+            ],
+            "extended_abstract": [
+              "This is an instance of managing popular-but-disloyal officials in any centralized state with charismatic local leaders. Bheda assumes a functioning covert-influence network exists; without one, this approach fails and a different tool — like co-optation — might work better."
+            ]
+          },
+          "level_examples_reference": "3B",
+          "level_example_annotations": {
+            "prestructural": null,
+            "unistructural": "names constraint, no path forward",
+            "multistructural": "listed, unreconciled",
+            "relational": null,
+            "extended_abstract": null
+          },
+          "question_variants": [
+            "When might this approach fail?",
+            "What does this tell us about governance more broadly?",
+            "Name a specific condition that would change your recommendation."
+          ],
+          "edge_case_notes": [
+            "Generalizing to \"corruption in general\" is too broad and should be redirected toward the more precise popular-support-vs-central-control pattern; accept adjacent framings that preserve that core tension."
+          ],
+          "mcq": {
+            "question": "The bheda-based solution assumes the king has which resource?",
+            "options": [
+              {
+                "text": "A large army",
+                "is_correct": false,
+                "distractor_type": "surface_feature"
+              },
+              {
+                "text": "A functioning covert-influence/spy network",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "Popular support",
+                "is_correct": false,
+                "distractor_type": "wrong_direction"
+              },
+              {
+                "text": "Foreign allies",
+                "is_correct": false,
+                "distractor_type": "surface_feature"
+              }
+            ],
+            "provenance_id": "arthashastra.case.4B.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.4B.assessment.mcq.option.A",
+              "arthashastra.case.4B.assessment.mcq.option.B",
+              "arthashastra.case.4B.assessment.mcq.option.C",
+              "arthashastra.case.4B.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "The bheda-based solution assumes the king has which resource?",
+                "options": [
+                  {
+                    "text": "A large army",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  },
+                  {
+                    "text": "A functioning covert-influence/spy network",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Popular support",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  },
+                  {
+                    "text": "Foreign allies",
+                    "is_correct": false,
+                    "distractor_type": "surface_feature"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "When might this approach fail?",
+                "pass_criteria": "pass = names a specific condition (e.g., no spy network)."
+              },
+              "provenance_id": "arthashastra.case.4B.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "This case is an instance of which general governance problem?",
+                "options": [
+                  {
+                    "text": "Managing popular-but-disloyal officials in a centralized state",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Currency policy",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Foreign trade",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Religious doctrine",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What does this tell us about governance more broadly?",
+                "pass_criteria": "pass = names the general pattern."
+              },
+              "provenance_id": "arthashastra.case.4B.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Which is a genuine boundary condition?",
+                "options": [
+                  {
+                    "text": "It depends",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  },
+                  {
+                    "text": "It fails without an effective spy network",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Maybe",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  },
+                  {
+                    "text": "Who knows",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name a specific condition that would change your recommendation.",
+                "pass_criteria": "pass = specific, named condition."
+              },
+              "provenance_id": "arthashastra.case.4B.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"This is an instance of managing popular-but-disloyal officials — a pattern in any centralized state with charismatic local leaders. Kautilya's bheda solution assumes a functioning covert-influence network exists; without one, this approach fails and something like co-optation might work better.\"",
+            "Guided Questioning": "Ask \"Is this only about this one governor, or a pattern you'd see elsewhere?\" Then \"What does this solution assume the king has access to? What if he didn't?\"",
+            "Contrasting Cases": "Contrast a vague \"it depends\" with a specific named condition (no spy network → solution fails)."
+          },
+          "level_examples_origin_case": "3B",
+          "provenance_id": "arthashastra.case.4B",
+          "copy_paste_example": "A border province's governor is suspected of secretly encouraging local unrest against the crown, and he is popular among the local population.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.4B.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.4B.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.4B.level.prestructural.0"
+            ],
+            "relational": [
+              "arthashastra.case.4B.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.4B.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.4B.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.4B.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.4B.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.4B.edge.0"
+          ]
+        },
+        {
+          "id": "4C",
+          "title": "Trade Dispute",
+          "scenario_text": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders. [+ This trading kingdom is a key supplier of a resource your kingdom cannot easily source elsewhere.]",
+          "scenario_text_base": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders.",
+          "complication": "+ This trading kingdom is a key supplier of a resource your kingdom cannot easily source elsewhere.",
+          "scenario_text_origin": "authored_for_v2",
+          "scenario_text_origin_note": "(relabeled; identical to 3C by design)",
+          "scenario_text_note": null,
+          "level_examples": {
+            "prestructural": [
+              "Fine them regardless, the dependency doesn't matter."
+            ],
+            "unistructural": [
+              "We depend on them, so don't punish them."
+            ],
+            "multistructural": [
+              "We could fine them, negotiate, or ignore it — but we do depend on them."
+            ],
+            "relational": [
+              "Since we depend on this kingdom for a resource we can't easily replace, I'd negotiate a formal lower tariff instead of imposing punitive fines — sama over danda, since preserving the relationship matters more here than strict enforcement."
+            ],
+            "extended_abstract": [
+              "This reflects the general tension between short-term revenue extraction and long-term relationship preservation under unequal trade leverage. The right answer flips if the dependency were reversed — if we were the irreplaceable supplier instead, punitive tariffs would carry much less risk."
+            ]
+          },
+          "level_examples_reference": "3C",
+          "level_example_annotations": {
+            "prestructural": null,
+            "unistructural": "names constraint, no path forward",
+            "multistructural": "listed, unreconciled",
+            "relational": null,
+            "extended_abstract": null
+          },
+          "question_variants": [
+            "When might punitive action actually be the better choice?",
+            "What general principle does this case illustrate?",
+            "Name a specific condition under which your recommendation would reverse."
+          ],
+          "edge_case_notes": [
+            "\"The king should always consider trade relationships\" is a shallow EA response — it restates the specific case's conclusion as a universal rule rather than naming the actual underlying principle (short-term vs. long-term value tension). Do not credit as true Extended Abstract."
+          ],
+          "mcq": {
+            "question": "The recommendation to renegotiate rather than punish assumes what?",
+            "options": [
+              {
+                "text": "We depend on them for a scarce resource",
+                "is_correct": true,
+                "distractor_type": null
+              },
+              {
+                "text": "They depend on us entirely",
+                "is_correct": false,
+                "distractor_type": "wrong_direction"
+              },
+              {
+                "text": "No trade exists",
+                "is_correct": false,
+                "distractor_type": "denial_of_premise"
+              },
+              {
+                "text": "Prices are fixed",
+                "is_correct": false,
+                "distractor_type": "irrelevant"
+              }
+            ],
+            "provenance_id": "arthashastra.case.4C.assessment.mcq",
+            "content_role": "assessment_evidence",
+            "option_provenance_ids": [
+              "arthashastra.case.4C.assessment.mcq.option.A",
+              "arthashastra.case.4C.assessment.mcq.option.B",
+              "arthashastra.case.4C.assessment.mcq.option.C",
+              "arthashastra.case.4C.assessment.mcq.option.D"
+            ]
+          },
+          "assessment_sets": [
+            {
+              "set": 1,
+              "objective": {
+                "question": "The recommendation to renegotiate rather than punish assumes what?",
+                "options": [
+                  {
+                    "text": "We depend on them for a scarce resource",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "They depend on us entirely",
+                    "is_correct": false,
+                    "distractor_type": "wrong_direction"
+                  },
+                  {
+                    "text": "No trade exists",
+                    "is_correct": false,
+                    "distractor_type": "denial_of_premise"
+                  },
+                  {
+                    "text": "Prices are fixed",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "When might punitive action actually be the better choice?",
+                "pass_criteria": "pass = names a specific condition (e.g., reversed dependency)."
+              },
+              "provenance_id": "arthashastra.case.4C.assessment.set1",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 2,
+              "objective": {
+                "question": "This case is an instance of which general tension?",
+                "options": [
+                  {
+                    "text": "Short-term extraction vs. long-term relationship preservation under unequal leverage",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Religious conflict",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "Military doctrine",
+                    "is_correct": false,
+                    "distractor_type": "irrelevant"
+                  },
+                  {
+                    "text": "None of the above",
+                    "is_correct": false,
+                    "distractor_type": "denial"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "What general principle does this case illustrate?",
+                "pass_criteria": "pass = names the pattern explicitly."
+              },
+              "provenance_id": "arthashastra.case.4C.assessment.set2",
+              "content_role": "assessment_evidence"
+            },
+            {
+              "set": 3,
+              "objective": {
+                "question": "Which is a genuine boundary condition here?",
+                "options": [
+                  {
+                    "text": "It depends on luck",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  },
+                  {
+                    "text": "It flips if we become the irreplaceable supplier instead",
+                    "is_correct": true,
+                    "distractor_type": null
+                  },
+                  {
+                    "text": "Anything's possible",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  },
+                  {
+                    "text": "Never changes",
+                    "is_correct": false,
+                    "distractor_type": "vague_hedge"
+                  }
+                ]
+              },
+              "subjective": {
+                "prompt": "Name a specific condition under which your recommendation would reverse.",
+                "pass_criteria": "pass = specific, named condition."
+              },
+              "provenance_id": "arthashastra.case.4C.assessment.set3",
+              "content_role": "assessment_evidence"
+            }
+          ],
+          "teaching_content": {
+            "Worked Example": "\"This reflects the general tension between short-term revenue extraction and long-term relationship preservation, which shows up whenever a state has unequal trade leverage. If the dependency were reversed — if we were the irreplaceable supplier — punitive tariffs would carry much less risk.\"",
+            "Guided Questioning": "Ask \"Is this only about this trade partner, or a bigger pattern in how states handle unequal dependencies?\" Then \"What would have to be different for punitive action to become the right call instead?\"",
+            "Contrasting Cases": "Contrast a vague answer with one naming the specific condition (reversed dependency) that flips the recommendation."
+          },
+          "level_examples_origin_case": "3C",
+          "provenance_id": "arthashastra.case.4C",
+          "copy_paste_example": "A distant kingdom's merchants are found smuggling goods to avoid taxation at your borders, and this kingdom supplies a resource we can't easily source elsewhere.",
+          "applicable_global_rules": [
+            "refusal_or_meta_answer",
+            "copy_paste_case",
+            "overlong_non_answer",
+            "correct_vocabulary_wrong_application",
+            "moral_objection"
+          ],
+          "content_roles": {
+            "scenario_text": "case_fact",
+            "scenario_text_base": "case_fact",
+            "complication": "case_fact",
+            "teaching_content": "teaching_content",
+            "edge_case_notes": "distractor_or_edge_case",
+            "mcq": "assessment_evidence",
+            "assessment_sets": "assessment_evidence"
+          },
+          "level_example_provenance_ids": {
+            "extended_abstract": [
+              "arthashastra.case.4C.level.extended_abstract.0"
+            ],
+            "multistructural": [
+              "arthashastra.case.4C.level.multistructural.0"
+            ],
+            "prestructural": [
+              "arthashastra.case.4C.level.prestructural.0"
+            ],
+            "relational": [
+              "arthashastra.case.4C.level.relational.0"
+            ],
+            "unistructural": [
+              "arthashastra.case.4C.level.unistructural.0"
+            ]
+          },
+          "teaching_provenance_ids": {
+            "Worked Example": "arthashastra.case.4C.teaching.Worked Example",
+            "Guided Questioning": "arthashastra.case.4C.teaching.Guided Questioning",
+            "Contrasting Cases": "arthashastra.case.4C.teaching.Contrasting Cases"
+          },
+          "edge_case_provenance_ids": [
+            "arthashastra.case.4C.edge.0"
+          ]
+        }
+      ],
+      "provenance_id": "arthashastra.transition.C4",
+      "scoring_guidance": {
+        "minimum_evidence": "Names the general principle + an assumption it depends on + one specific, non-vague boundary condition.",
+        "insufficient_evidence": "Names principle + assumption but gives 'it depends' with no named condition — capped per global rule `overlong_non_answer`.",
+        "common_false_positives": "Restating the specific case's conclusion as if it were the general principle — see 4C `edge_case_notes` ('always consider trade relationships' is not Extended Abstract).",
+        "reasoning_structure_required": "Three distinct moves in sequence: generalize → name assumption → name boundary condition. Two out of three caps below full EA credit."
+      },
+      "content_roles": {
+        "prerequisite": "prerequisite",
+        "target_signature": "transition_requirement",
+        "scoring_guidance": "transition_requirement",
+        "checkpoints": "checkpoint_definition",
+        "branching_rules": "intervention_guidance"
+      }
+    }
+  ],
+  "global_response_handling_rules": [
+    {
+      "pattern": "refusal_or_meta_answer",
+      "source_label": "Refusal/meta-answers",
+      "examples": [
+        "I don't know enough"
+      ],
+      "classification": "prestructural",
+      "instruction": "treat as checkpoint-not-met; redirect to the case",
+      "classification_note": null,
+      "source_text": "1. **Refusal/meta-answers** (\"I don't know enough\") → treat as checkpoint-not-met; redirect to the case. `classification: \"prestructural\"`",
+      "distinguishing_note": null,
+      "provenance_id": "arthashastra.rule.refusal_or_meta_answer"
+    },
+    {
+      "pattern": "copy_paste_case",
+      "source_label": "Copy-paste of the case text",
+      "examples": [],
+      "classification": "prestructural",
+      "instruction": "checkpoint not met (tautology)",
+      "classification_note": null,
+      "source_text": "2. **Copy-paste of the case text** with no reasoning added → checkpoint not met (tautology). `classification: \"prestructural\"`",
+      "distinguishing_note": "Copy-paste means the response restates the scenario_text (or a near-paraphrase of it) with zero added reasoning, tool, or judgment. An incorrect or off-topic answer that introduces *some* new content — even if wrong — is NOT copy-paste; it falls under a different rule (`refusal_or_meta_answer` if it evades the question, or ordinary incorrect-answer scoring otherwise).",
+      "provenance_id": "arthashastra.rule.copy_paste_case"
+    },
+    {
+      "pattern": "overlong_non_answer",
+      "source_label": "Vague hedging that sounds sophisticated but commits to nothing",
+      "examples": [
+        "it depends",
+        "many factors"
+      ],
+      "classification": "capped_at_multistructural",
+      "instruction": "never credit as Relational or Extended Abstract",
+      "classification_note": null,
+      "source_text": "3. **Vague hedging that sounds sophisticated but commits to nothing** (\"it depends,\" \"many factors\") → never credit as Relational or Extended Abstract. `classification: \"capped_at_multistructural\"`",
+      "distinguishing_note": null,
+      "provenance_id": "arthashastra.rule.overlong_non_answer"
+    },
+    {
+      "pattern": "correct_vocabulary_wrong_application",
+      "source_label": "Correct vocabulary, wrong substance",
+      "examples": [
+        "sandhi"
+      ],
+      "classification": "reclassify_by_substance",
+      "instruction": "classify by the substance of the described action, not the term used",
+      "classification_note": "(not a fixed level)",
+      "source_text": "4. **Correct vocabulary, wrong substance** (names \"sandhi\" but describes an action that's actually danda) → classify by the substance of the described action, not the term used. `classification: \"reclassify_by_substance\"` (not a fixed level)",
+      "distinguishing_note": null,
+      "provenance_id": "arthashastra.rule.correct_vocabulary_wrong_application"
+    },
+    {
+      "pattern": "moral_objection",
+      "source_label": "Moral/ethical objections to Kautilyan realism",
+      "examples": [],
+      "classification": "reclassify_by_reasoning_structure",
+      "instruction": "valid engagement; score on reasoning structure, not on agreement with the doctrine",
+      "classification_note": "(not a fixed level)",
+      "source_text": "5. **Moral/ethical objections to Kautilyan realism** → valid engagement; score on reasoning structure, not on agreement with the doctrine. `classification: \"reclassify_by_reasoning_structure\"` (not a fixed level)",
+      "distinguishing_note": null,
+      "provenance_id": "arthashastra.rule.moral_objection"
+    }
+  ],
+  "provenance_id_scheme": {
+    "format": "arthashastra.{object_type}.{local_path}",
+    "existing_local_ids_renamed": false,
+    "array_index_base": 0,
+    "array_index_base_note": "Array positions (level.{level}.{n}, branching.{n}, edge.{n}) are 0-based, matching the patch's concrete .1C.level.multistructural.0 example. The branching-rule base the patch left unstated has been resolved as 0-based: branching.0 is the first branching rule in that transition's branching_rules array, branching.1 the second, and so on. assessment.set{n} keeps the assessment set's own 1-based number and option.{letter} keeps its letter. These ids index fixed array positions and rename nothing.",
+    "patterns": [
+      {
+        "object_type": "Anchor",
+        "pattern": "arthashastra.anchor.{slug}",
+        "applied_to": "`.saptanga`, `.shadgunya`, `.mandala_theory`, `.sama_dana_bheda_danda`, `.raja_dharma`, `.espionage_apparatus`"
+      },
+      {
+        "object_type": "Recall item",
+        "pattern": "arthashastra.recall.{id}",
+        "applied_to": "`.1` through `.31`"
+      },
+      {
+        "object_type": "Transition",
+        "pattern": "arthashastra.transition.{id}",
+        "applied_to": "`.C1`, `.C2`, `.C3`, `.C4`"
+      },
+      {
+        "object_type": "Checkpoint",
+        "pattern": "arthashastra.transition.{tid}.checkpoint.{cid}",
+        "applied_to": "`.C1.CP1`, `.C1.CP2`, `.C2.CP1`, `.C2.CP2`, `.C3.CP1/.CP2/.CP3`, `.C4.CP1/.CP2/.CP3` (10 total — fixes `CP1`/`CP2` colliding across transitions)"
+      },
+      {
+        "object_type": "Branching rule",
+        "pattern": "arthashastra.transition.{tid}.branching.{n}",
+        "applied_to": "sequential index per transition's existing `branching_rules` array (14 total — these had no id before; index position is stable since the array order isn't expected to change)"
+      },
+      {
+        "object_type": "Case",
+        "pattern": "arthashastra.case.{id}",
+        "applied_to": "`.1A` through `.4C` (12 total)"
+      },
+      {
+        "object_type": "Level example",
+        "pattern": "arthashastra.case.{id}.level.{level}.{n}",
+        "applied_to": "e.g. `.1C.level.multistructural.0` — index within each case's existing `level_examples[level]` array"
+      },
+      {
+        "object_type": "Teaching cell",
+        "pattern": "arthashastra.case.{id}.teaching.{pedagogy_slug}",
+        "applied_to": "e.g. `.2B.teaching.guided_questioning`"
+      },
+      {
+        "object_type": "Assessment set",
+        "pattern": "arthashastra.case.{id}.assessment.set{n}",
+        "applied_to": "e.g. `.4A.assessment.set2`"
+      },
+      {
+        "object_type": "MCQ option",
+        "pattern": "arthashastra.case.{id}.assessment.set{n}.option.{letter}",
+        "applied_to": "e.g. `.1A.assessment.set1.option.B`"
+      },
+      {
+        "object_type": "Global rule",
+        "pattern": "arthashastra.rule.{pattern}",
+        "applied_to": "`.refusal_or_meta_answer`, `.copy_paste_case`, `.overlong_non_answer`, `.correct_vocabulary_wrong_application`, `.moral_objection` (pattern keys are already stable — reused directly as the id suffix)"
+      },
+      {
+        "object_type": "Edge case note",
+        "pattern": "arthashastra.case.{id}.edge.{n}",
+        "applied_to": "index within each case's existing `edge_case_notes` array"
+      }
+    ]
+  },
+  "content_role_registry": [
+    {
+      "content_role": "teaching_content",
+      "applies_to": "`cases[].teaching_content.*`"
+    },
+    {
+      "content_role": "checkpoint_definition",
+      "applies_to": "`transitions[].checkpoints[]`"
+    },
+    {
+      "content_role": "prerequisite",
+      "applies_to": "`transitions[].prerequisite` (new field, §1 above)"
+    },
+    {
+      "content_role": "case_fact",
+      "applies_to": "`cases[].scenario_text`, `.scenario_text_base`, `.complication`"
+    },
+    {
+      "content_role": "transition_requirement",
+      "applies_to": "`transitions[].target_signature`, `.scoring_guidance` (new field, §2 above)"
+    },
+    {
+      "content_role": "intervention_guidance",
+      "applies_to": "`transitions[].branching_rules[].tutor_action`"
+    },
+    {
+      "content_role": "distractor_or_edge_case",
+      "applies_to": "`cases[].mcq.options[].distractor_type`, `cases[].edge_case_notes[]`"
+    },
+    {
+      "content_role": "assessment_evidence",
+      "applies_to": "`cases[].assessment_sets[]`, `cases[].mcq`"
+    }
+  ],
+  "applicable_global_rules_default": [
+    "refusal_or_meta_answer",
+    "copy_paste_case",
+    "overlong_non_answer",
+    "correct_vocabulary_wrong_application",
+    "moral_objection"
+  ],
+  "reward_interaction": {
+    "heading": "reward_interaction",
+    "attempt_slot_model": "Each pedagogy attempt within a transition consumes one attempt slot in the platform's existing 5/4/3/2/1 attempt-based reward tier.",
+    "intervention_count_definition": "\"Intervention count\" (efficiency metric) = number of teaching turns + number of pedagogy switches consumed before the transition's assessment is passed."
+  },
+  "usage_instructions": "Teaching-loop source content for an LLM tutor. Checkpoints are gating criteria for transition advancement; per-pedagogy/per-scenario teaching content provides content-delivery templates and branching logic for the tutor LLM to generate live turns from — not scripted dialogue. Assessment question-sets are keyed to pedagogy-attempt number (1st/2nd/3rd) within a transition, not to scenario: scenario stays fixed across pedagogy switches within a transition; only the pedagogy and the question-set change.",
+  "content_gaps": [
+    {
+      "field": "metadata.purpose",
+      "status": "not_stated_in_v3",
+      "detail": "v1/v2 carried \"Source content for the AI tutor and assessment pipeline\"; v3 §0 omits it. Emitted as null. Non-structural metadata — confirm it is intentionally dropped."
+    },
+    {
+      "field": "prerequisite_recall_layer.purpose",
+      "status": "not_stated_in_v3",
+      "detail": "v2 §2 carried a purpose statement (factual-literacy check, not a judgment test). v3 §3 states only the gate rule, dropping the 'orient the learner first, don't reject them' guidance. Emitted as null; add if that framing is still wanted."
+    },
+    {
+      "field": "transitions[].prerequisite",
+      "status": "resolved_in_v31",
+      "detail": "v2 §3.x gave an explicit prerequisite per transition (recall gate cleared / one tool named / >=3 tools named / one reconciled judgment) and v3 omitted all four. Resolved by the v3.1 patch §1: a prerequisite is now stated for C1-C4 inline in the v3.1 Markdown and emitted as a string on all 4 transitions."
+    },
+    {
+      "field": "doctrinal_anchors[].description",
+      "status": "shortened_in_v3_review_wanted",
+      "detail": "4 anchor descriptions are shorter in v3 than v2. Content removed, not contradicted: Shadgunya: v2 \"six-fold foreign policy: sandhi (peace), vigraha (war), asana (neutrality), yana (marching/mobilization), samshraya (seeking a stronger protector), dvaidhibhava (dual policy — peace with one, war with another)\" -> v3 \"six-fold foreign policy: sandhi (peace), vigraha (war), asana (neutrality), yana (marching/mobilization), samshraya (seeking a stronger protector), dvaidhibhava (dual policy)\" | Mandala theory: v2 \"vijigishu (the ambitious king, center), ari (immediate neighbor, natural rival), mitra (neighbor's neighbor, natural ally), madhyama (a middle power able to tip the balance), udasina (a detached, neutral outside power)\" -> v3 \"vijigishu (ambitious king, center), ari (immediate neighbor, natural rival), mitra (neighbor's neighbor, natural ally), madhyama (middle power), udasina (detached neutral power). Verified structure: 4 concentric circles of 3 kings each = 12 kings total, 60 elements of sovereignty, 72 total elements.\" | Upayas: v2 \"sama (conciliation), dana (gifts/bribery), bheda (sowing dissension), danda (force)\" -> v3 \"sama (conciliation), dana (gifts/bribery), bheda (sowing dissension), danda (force).\" | Espionage apparatus: v2 \"a structured spy network (ascetics, merchants, students, and others used as covert agents) for internal and external intelligence\" -> v3 \"a structured spy network (ascetics, merchants, students, and others used as covert agents)\""
+    },
+    {
+      "field": "cases[].scenario_text_origin value 'v2_markdown'",
+      "status": "legacy_label_in_v3_source",
+      "detail": "v3 keeps the v2 provenance label 'v2_markdown' for cases 1A-1C and 3A-3C. Preserved verbatim so the JSON matches its source; it reads as stale provenance in a v3 file. Renaming to 'v3_markdown' would need a v3.md edit."
+    },
+    {
+      "field": "cases[].level_examples_reference / level_examples_origin_case",
+      "status": "shared_by_design",
+      "detail": "v3 states 2A/2B/2C reuse 1A/1B/1C's level examples and 4A/4B/4C reuse 3A/3B/3C's, so only 6 of the 12 sets are written out. This is intended duplication, not missing content; the JSON copies the referenced set and records the origin case id."
+    },
+    {
+      "field": "cases[].mcq.options[].distractor_type on the correct option",
+      "status": "null_by_design",
+      "detail": "v3 tags distractors inline and marks the correct option only with a checkmark, so the correct option's distractor_type is null in all 36 objective questions. Intentional, matching v2."
+    },
+    {
+      "field": "global_response_handling_rules[].classification for rules 4 and 5",
+      "status": "non_level_value_by_design",
+      "detail": "v3 assigns real classifications now (prestructural, capped_at_multistructural, reclassify_by_substance, reclassify_by_reasoning_structure). The last two are reclassification policies, not SOLO levels — v3 says so inline ('not a fixed level'). Consumers that expect a SOLO level here must special-case them."
+    },
+    {
+      "field": "global_response_handling_rules[].pattern",
+      "status": "mapped_to_v1_keys",
+      "detail": "v3 §8 restates the rules with its own labels and does not reuse v1's machine keys. backend/scoring_service.detect_early_rule matches the v1 keys, so each v3 rule is mapped to the equivalent v1 key and v3's literal label is kept in source_label."
+    },
+    {
+      "field": "reward_interaction placement",
+      "status": "emitted_top_level",
+      "detail": "v3 §0 nests reward_interaction under the Metadata section. It is emitted as a top-level key, matching the v1/v2 JSON shape that existing consumers read. Content is verbatim from §0."
+    },
+    {
+      "field": "usage_instructions type",
+      "status": "string_instead_of_dict",
+      "detail": "v3 §0 gives usage_instructions as a single prose string; v1/v2 used a dict of named instructions. Emitted verbatim as a string. content_loader.get_usage_instructions is annotated as returning a dict and no caller indexes it today, but that annotation is now wrong."
+    },
+    {
+      "field": "metadata.period (authorship/dating)",
+      "status": "deferred_outside_v31_patch",
+      "detail": "The authorship/dating question raised against the Wikipedia resource is explicitly deferred by the v3.1 patch and needs subject-matter review before any metadata.period change. No doctrinal content was invented; metadata.period is carried over verbatim from v3."
+    }
+  ]
+}

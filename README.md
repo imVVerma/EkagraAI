@@ -24,7 +24,8 @@ cd "/home/vaibhav/projects/EkagraAI Chatbot"
 pip install -r requirements.txt
 
 # 1. Verify the knowledge bank (single source of truth)
-python3 tools/validate_knowledge_bank_v3.py          # -> 1835 checks passed
+python3 tools/validate_knowledge_bank_v31.py         # -> 1020 checks passed
+python3 tools/validate_knowledge_bank_v3.py          # -> 1835 checks passed (v3 base)
 
 # 2. Run the offline test matrix (8 suites, 771 checks, no network)
 for t in tests/test_*.py; do python3 "$t"; done
@@ -103,6 +104,9 @@ EkagraAI Chatbot/
 ├── tools/
 │   ├── l1_pilot.py              # the controlled 12-case pilot
 │   ├── validate_knowledge_bank*.py, build_knowledge_bank_v3.py
+│   ├── apply_knowledge_bank_v31_patch.py   # v3 + patch -> v3.1 Markdown
+│   ├── build_knowledge_bank_v31.py         # v3.1 Markdown -> v3.1 JSON
+│   ├── diff_knowledge_bank_v3_v31.py       # structural diff + closure proof
 │   ├── model_benchmark.py       # compare candidate models, fixed task set
 │   └── cost_report.py           # experiment spend summary
 ├── tests/                       # 8 offline suites, 771 checks
@@ -110,14 +114,20 @@ EkagraAI Chatbot/
 ├── benchmark/                   # deterministic model scoring (evaluate.py)
 ├── prompts/                     # analyst / evaluator / learner / tutor
 ├── config/benchmark.json
-├── Resources/                   # knowledge bank v1/v2/v3, pricing, design docs
+├── Resources/                   # knowledge bank v1/v2/v3/v3.1, pricing, design docs
 ├── frontend/                    # minimal HTML/JS UI
 └── logs/experiments/<id>/runs/  # per-experiment evidence
 ```
 
-`Resources/arthashastra-solo-knowledge-bank-v3.json` is the current source of
-truth. The old `data/` directory is gone; the bank moved to `Resources/` and
-gained a Markdown source plus a builder (`tools/build_knowledge_bank_v3.py`).
+`Resources/arthashastra-solo-knowledge-bank-v3.1.md` is the current source of
+truth; its JSON (`...-v3.1.json`) is derived from it by
+`tools/build_knowledge_bank_v31.py` and is what the runtime loads. The old `data/`
+directory is gone; the bank moved to `Resources/` and gained a Markdown source
+plus a builder. v3.1 is v3 plus one additive patch
+(`Resources/arthashastra-solo-knowledge-bank-v3.1-patch.md`): 121 Markdown lines
+inserted, 2 header lines rewritten, **0 V3 lines deleted or reordered**, and
+`Resources/arthashastra-solo-knowledge-bank-v3.1-diff.md` records the structural
+diff. The v3 pair remains the immutable base.
 
 ---
 
@@ -125,7 +135,8 @@ gained a Markdown source plus a builder (`tools/build_knowledge_bank_v3.py`).
 
 | Component | File | Role |
 |---|---|---|
-| Knowledge bank v3 | `Resources/arthashastra-solo-knowledge-bank-v3.json` | Doctrinal anchors, SOLO definitions, transitions C1–C4 with cases, level examples, teaching content, assessment sets, 5 global handling rules, and a self-declared `content_gaps` section |
+| Knowledge bank v3.1 | `Resources/arthashastra-solo-knowledge-bank-v3.1.json` (from `...-v3.1.md`) | Current baseline. Doctrinal anchors, SOLO definitions, transitions C1–C4 with cases, level examples, teaching content, assessment sets, 5 global handling rules, plus the v3.1 additions: per-transition prerequisites and `scoring_guidance`, per-case `copy_paste_example` and `applicable_global_rules`, provenance ids, a `content_role` registry, and a self-declared `content_gaps` section |
+| Knowledge bank v3 | `Resources/arthashastra-solo-knowledge-bank-v3.json` | Immutable base for v3.1; verified byte-identical to v3.1 minus the patch additions |
 | Content loader | `backend/content_loader.py` | All accessors; nothing domain-specific in code |
 | Context selector | `backend/context_selector.py` | Chooses the bank material per case and records provenance (version, sha256, transition, case, pedagogy) |
 | State machine | `backend/state_machine.py` | Transition index, pedagogy pool, attempts, pass/fail -> retry/advance |
@@ -181,6 +192,19 @@ LLM1 stages as schema-validated structured output, budget and pacing, per-run
 evidence stores, and the pilot harness. Knowledge bank v3 was authored with a
 Markdown source, a builder, a validator (1835 checks) and a self-declared
 `content_gaps` section.
+
+**Knowledge bank v3.1.** An additive patch on top of v3, accepted as the current
+baseline after structural review. It adds transition prerequisites and
+`scoring_guidance`, per-case `copy_paste_example` and
+`applicable_global_rules`, a provenance-id scheme and a `content_role` registry.
+The relationship is verified insert-only: 121 Markdown lines inserted, 2 header
+lines rewritten, 0 V3 lines deleted or reordered, and stripping the additions
+from the JSON reproduces the v3 JSON exactly. Two conventions were settled in
+review and are documented in §10 of the bank: branching-rule provenance ids are
+0-based (`branching.0` is a transition's first branching rule), and the
+`copy_paste_example` near-paraphrases of `scenario_text` are intentional.
+Authorship and dating stay deferred in `content_gaps`; `metadata.period` is
+unchanged. No runtime, scorer, prompt or pilot-fixture change is part of this.
 
 **Pre-pilot hardening.** Eight offline suites were written to pin the
 preconditions a live run depends on. Each traces to an observed failure:
@@ -329,8 +353,9 @@ standalone script that exits non-zero on failure.
 | `test_pricing_resolution.py` | 64 | The `l1_pilot_003` regression |
 | `test_pilot_diagnostic_evidence.py` | 58 | All 21 evidence fields per interaction |
 
-Knowledge bank: `python3 tools/validate_knowledge_bank_v3.py` -> **1835 checks
-passed, 0 failed**.
+Knowledge bank: `python3 tools/validate_knowledge_bank_v31.py` -> **1020 checks
+passed, 0 failed** (v3.1 baseline). `python3 tools/validate_knowledge_bank_v3.py`
+-> **1835 checks passed, 0 failed** (immutable v3 base).
 
 Tests must never make network calls. Mock the provider with `build_provider=False`
 plus `MockLLMProvider`; an invalid mock mode silently reaches the real provider.

@@ -121,16 +121,111 @@ from backend.tutor_service import anchor_for_transition
 # Fixed strings, one per response type, so a run is reproducible: the same case
 # presents the same evidence every time, and any difference in the outcome is
 # attributable to LLM1 rather than to a fresh sample.
+#
+# The responses that are meant to *clear* a signature are written per transition.
+# One shared "correct" string cannot work: each transition has its own target
+# signature, so an answer that satisfies C1 (name one tool and say why) fails
+# C2 (three distinct tools), C3 (reconciled and grounded in the case's
+# complication) and C4 (principle, assumption and boundary condition). A single
+# fixed answer used to clear all four only because the scorer accepted any
+# response naming one doctrinal tool; under the per-transition signatures that
+# answer legitimately clears C1 alone.
+#
+# Each "correct" answer also lands on the level its own transition teaches, so a
+# run shows a clean ladder (C1 unistructural, C2 multistructural, C3 relational,
+# C4 extended abstract) rather than one answer being credited at four levels.
 
+#: Answers that must fail every signature. They are the retry evidence: if one
+#: of these ever cleared a transition, the retry ladder would not be testing
+#: anything.
 SYNTHETIC_RESPONSES = {
-    "correct": "He should send the spies first to learn the enemy's strength, "
-               "and only then negotiate from a position of knowing the terrain.",
-    "partially_correct": "He should send the spies first.",
     "incorrect": "He should ask his council for advice before doing anything.",
     "vague": "It depends on many factors and the situation is quite complex.",
     "off_topic": "The king should focus on building temples for the gods.",
     "copy_paste": "A neighbouring king is angry and the whole world is watching.",
 }
+
+#: C1: one named tool and a reason. Deliberately one tool, so this reads as the
+#: unistructural answer C1 actually asks for.
+_CORRECT_C1 = (
+    "He should send the spies north first: the garrison numbers and the terrain "
+    "decide the campaign, and a king who attacks without them is guessing."
+)
+
+#: C2: three distinct tools named and weighed, but not integrated into one
+#: judgement — a list plus a reason, which is what multistructural means.
+_CORRECT_C2 = (
+    "He could bribe the aggressor's commanders, negotiate a border settlement in "
+    "parallel, and keep the army massed on the frontier; bribery is the cheapest "
+    "of the three and an army is the dearest, so he should open with the bribe."
+)
+
+#: C3: two considerations reconciled into one recommendation, and explicitly
+#: acting on the case's own complication. ``{complication}`` is filled from the
+#: case under test, because C3's requirement is that the answer act on *that*
+#: case's complication; a generic answer cannot satisfy it by construction.
+_CORRECT_C3 = (
+    "Two considerations pull against each other: the immediate cost of giving way, "
+    "and the longer cost of conceding the precedent. {complication} That shifts the "
+    "balance, so a bribe to the officials and a negotiation with the guild are worth "
+    "more than an army sent now, because they buy leverage an army would spend. I "
+    "would open with the bribe and hold the army in reserve."
+)
+
+#: C4: the principle, the assumption it rests on, and a specific condition that "
+#: would break it.
+_CORRECT_C4 = (
+    "As a principle, border aggression is answered with deterrence rather than "
+    "concession; that assumes the aggressor is cost-sensitive, which is only "
+    "plausible while its treasury is stretched. If the treasury were full, or the "
+    "dispute were about legitimacy rather than land, the prediction would fail and "
+    "negotiation would be the better first move."
+)
+
+#: Partially correct: better than the wrong answers, still short of the target.
+#: C1's bar is one tool plus a reason, which almost any on-topic answer clears,
+#: so its partial answer is allowed to pass — that is a fact about C1, not a gap
+#: in the corpus. C2 is one tool short; C3 reconciles but ignores the
+#: complication; C4 states the principle without the assumption or condition.
+_PARTIAL_C1 = "He should send the spies first."
+_PARTIAL_C2 = "He could bribe the aggressor's commanders, or negotiate a settlement."
+_PARTIAL_C3 = (
+    "Two considerations pull against each other: the immediate cost of giving way, "
+    "and the longer cost of conceding the precedent, so a bribe to the officials and "
+    "a negotiation with the guild are worth more than an army sent now, because they "
+    "buy leverage an army would spend."
+)
+_PARTIAL_C4 = (
+    "As a principle, border aggression is answered with deterrence rather than "
+    "concession, because conceding sets a precedent that later aggression will exploit."
+)
+
+_CORRECT_BY_TRANSITION = {"C1": _CORRECT_C1, "C2": _CORRECT_C2, "C3": _CORRECT_C3, "C4": _CORRECT_C4}
+_PARTIAL_BY_TRANSITION = {"C1": _PARTIAL_C1, "C2": _PARTIAL_C2, "C3": _PARTIAL_C3, "C4": _PARTIAL_C4}
+
+
+def synthetic_response(response_type: str, transition_id: str, case: Dict[str, Any]) -> str:
+    """Return the fixed learner response for this evidence type and transition.
+
+    Kept a function rather than a table so the C3 answer can be filled with the
+    case's own complication: C3's signature is about acting on *this* case, so a
+    response that cannot name the case's complication could never clear it.
+    """
+    complication = (case.get("complication") or "").lstrip("+ ").strip()
+    if response_type == "correct":
+        template = _CORRECT_BY_TRANSITION.get(transition_id)
+    elif response_type == "partially_correct":
+        template = _PARTIAL_BY_TRANSITION.get(transition_id)
+    else:
+        return SYNTHETIC_RESPONSES[response_type]
+    if template is None:
+        raise KeyError(
+            f"no synthetic response for transition {transition_id!r}; "
+            "add one rather than falling back, since a fallback cannot be "
+            "assumed to clear an unknown signature"
+        )
+    return template.format(complication=complication)
+
 
 #: Each case walks this sequence until the scorer clears the response. The
 #: sequence exercises progression, failure and retry with the same evidence
@@ -666,13 +761,16 @@ class PilotRunner:
         used_response = ""
         try:
             for attempt, response_type in enumerate(sequence):
-                used_response = SYNTHETIC_RESPONSES[response_type]
+                used_response = synthetic_response(
+                    response_type, pilot_case.transition_id, case)
                 scoring = score_response_detailed(
                     response=used_response,
                     target_signature=transition["target_signature"],
                     level_examples=case.get("level_examples", {}),
                     rules=self.rules,
                     case_text=case.get("scenario_text", ""),
+                    complication=case.get("complication") or "",
+                    requirement=transition,
                 )
                 met = bool(scoring["target_signature_met"])
                 rule_applied = scoring.get("global_rule_applied")

@@ -1,0 +1,329 @@
+LLM1 + LLM2 Pilot Test 1
+
+You are working on the EkagraAI two-agent pilot. The deterministic/offline proof is now frozen and clean.
+
+CURRENT VERIFIED BASELINE
+
+* Knowledge Bank V3.1 is the active bank.
+* V3 validation: 1835/1835.
+* V3.1 validation: 1020/1020.
+* All reproducibility checks pass.
+* Two-agent offline chain: 43/43 cells pass.
+* Regression suite: 888/888 checks pass.
+* The runner correctly handles:
+
+  * intervention causality
+  * state-machine-selected next cases
+  * artifact/log linkage
+  * pedagogy-pool exhaustion
+  * retry/intervention flow
+* The matrix has been corrected and is frozen.
+* Do not modify the knowledge banks, scorer, learner profiles, or test matrix during this pilot unless a genuine runtime defect is demonstrated.
+
+GOAL
+
+Run the FIRST REAL live pilot using BOTH:
+
+1. LLM1 = tutor
+2. LLM2 = simulated learner
+
+The purpose of this run is to prove that the live two-agent chain works end-to-end with real provider calls while preserving the deterministic architecture.
+
+This is a wiring/integration proof, NOT yet the full 43-cell live experiment.
+
+PILOT CELL
+
+Use one representative passing cell:
+
+* Transition: C1
+* Case: 1A
+* Learner condition/profile: unistructural_single_tool
+* Intended demonstrated level: Unistructural
+* Expected progression: PASS → ADVANCE → C2
+
+The learner should produce a response that genuinely demonstrates the C1 target at the Unistructural level.
+
+Do not hardcode the final learner response. LLM2 must generate it according to its learner profile.
+
+AGENT RESPONSIBILITIES
+
+LLM2 is the simulated learner.
+
+LLM2 must:
+
+* receive only the context appropriate for the learner at that point
+* maintain its simulated learner state
+* follow the assigned learner profile
+* generate a natural learner response
+* not help LLM1
+* not reveal that it is being evaluated
+* not reveal the target signature merely because it knows the test condition
+* not deliberately optimize for passing
+* preserve mistakes when its assigned profile requires them
+* improve only when an intervention genuinely addresses the learner's problem
+
+LLM1 is the tutor.
+
+LLM1 must:
+
+* use Knowledge Bank V3.1 as the subject-matter source of truth
+* respond naturally to the learner
+* identify the evidence demonstrated by the learner
+* select an appropriate pedagogy
+* provide teaching/intervention when required
+* ask the next question when appropriate
+* stay within the current case and transition selected by the state machine
+* use only supported doctrine/case material
+* distinguish demonstrated understanding from merely asserted understanding
+
+LLM1 MUST NOT:
+
+* decide progression
+* directly modify SOLO state
+* declare checkpoint clearance as authoritative
+* invent doctrine or case facts
+* fabricate citations/provenance IDs
+* manufacture evidence that the learner did not provide
+* treat verbosity or sophistication as proof of a higher SOLO level
+* expose internal decision traces, model names, costs, or evaluation metadata to the learner
+
+AUTHORITATIVE COMPONENTS
+
+The following remain deterministic and authoritative:
+
+1. Knowledge Bank
+
+   * subject-matter source of truth
+
+2. Scorer
+
+   * determines demonstrated SOLO level
+   * evaluates target-signature requirements
+
+3. State machine
+
+   * determines progression
+   * determines retry/advance
+   * determines next case/transition
+   * determines pedagogy availability
+
+4. Harness
+
+   * records measured outcomes
+   * records token/cost/latency data
+   * assembles the final trace
+
+Do not allow either LLM to self-report measured outcomes.
+
+TRACE AUTHORSHIP
+
+Maintain the previously established separation.
+
+MODEL-AUTHORED FIELDS
+
+LLM2:
+
+* assigned learner profile
+* intended demonstrated level
+* simulated knowledge state
+* misconception/state
+* response strategy
+* generated learner response
+
+LLM1:
+
+* observed learner evidence interpretation
+* selected pedagogy
+* intervention
+* next question
+
+HARNESS-MEASURED FIELDS
+
+Do NOT ask either model to self-report these:
+
+* actual intervention_received
+* intervention_effect
+* actual updated learner state
+* actual outcome
+* scorer-assigned SOLO level
+* target_signature_met
+* missing target requirements
+* progression result
+* state-machine transition
+* case selected by the state machine
+* actual pedagogy-pool state
+* token usage
+* latency
+* cost
+* provider/runtime status
+
+The harness must construct these fields from actual artifacts and deterministic components.
+
+CAUSALITY REQUIREMENT
+
+Be extremely careful with intervention_received.
+
+For every turn:
+
+intervention_received MUST mean:
+"The intervention that was actually passed into this learner turn."
+
+It must NOT mean:
+"The intervention LLM1 authored after scoring this learner turn."
+
+If there was no intervention before a learner turn, intervention_received must be null.
+
+Do not infer intervention_effect during this first pilot. Leave it null unless the architecture already measures it deterministically.
+
+CASE TRANSITION REQUIREMENT
+
+After every progression decision:
+
+* obtain the next case/transition from the state machine
+* build the next learner/tutor turn from that selected case
+* never reuse the exhausted case's question merely because it was the previous turn
+
+The state machine is authoritative.
+
+PEDAGOGY REQUIREMENT
+
+Use the real pedagogy pool.
+
+Do not mark the pool exhausted until the reserved/pending pedagogy has actually been consumed.
+
+For this representative passing cell, the expected result should be a normal pass/advance path. Do not manufacture a failure simply to exercise intervention logic.
+
+LIVE PROVIDER REQUIREMENTS
+
+Use the configured real LLM1 and LLM2 providers.
+
+Do NOT:
+
+* silently fall back to mocks
+* silently fall back to deterministic responses
+* substitute fixture responses for live model responses
+* fabricate successful provider results
+
+If a provider call fails, record the real failure and stop/report it according to the existing runtime policy.
+
+Respect the configured request/session/experiment budgets.
+
+Use the existing experiment namespace mechanism. Do not reuse an old completed live experiment namespace.
+
+PERSISTENCE
+
+Persist the complete live artifacts using the existing experiment structure.
+
+At minimum capture:
+
+* experiment manifest/config
+* LLM1 request/response
+* LLM2 request/response
+* structured model decisions
+* learner state
+* scorer result
+* state-machine transition
+* intervention actually received
+* selected pedagogy
+* case/transition identifiers
+* provenance IDs
+* token usage
+* latency
+* cost
+* provider status
+* final session result
+
+Do not store hidden chain-of-thought.
+
+Only store structured decision/evidence fields already defined by the experiment schema.
+
+EXPECTED REPRESENTATIVE RESULT
+
+For:
+
+C1 / 1A / unistructural_single_tool
+
+we expect:
+
+LLM2 generates a natural Unistructural-level learner response
+↓
+LLM1 responds as tutor
+↓
+deterministic scorer evaluates actual response
+↓
+target signature is satisfied
+↓
+assigned SOLO level is Unistructural
+↓
+PROG-PASS-ADVANCE
+↓
+state machine selects C2
+
+The exact natural-language responses may differ. Do not assert textual equality.
+
+PROOF ASSERTIONS
+
+The pilot must verify at least:
+
+1. Both LLM1 and LLM2 actually made live provider calls.
+2. No mock/deterministic fallback occurred.
+3. LLM2 output is actually passed into LLM1.
+4. LLM1 output is actually passed into the subsequent pipeline.
+5. Scoring uses the real learner response.
+6. The scorer remains authoritative.
+7. State-machine progression remains authoritative.
+8. The selected case/transition comes from the state machine.
+9. intervention_received is causally correct.
+10. Artifact paths are linked correctly.
+11. Usage/cost records correspond to actual provider calls.
+12. The final progression is PASS → ADVANCE → C2.
+13. No knowledge-bank/scorer/matrix files were modified.
+
+FAILURE ATTRIBUTION
+
+If the pilot fails, classify the failure rather than masking it:
+
+* LLM1 failure
+* LLM2 failure
+* knowledge-bank failure
+* scorer failure
+* state-machine failure
+* context-selection failure
+* prompt/integration failure
+* provider/runtime failure
+* persistence/logging failure
+* evaluation-harness failure
+
+Do not immediately patch the system to make the test pass.
+
+OUTPUT
+
+At the end, produce a concise pilot report containing:
+
+1. experiment ID
+2. run ID
+3. provider/model used for LLM1
+4. provider/model used for LLM2
+5. number of actual LLM1 calls
+6. number of actual LLM2 calls
+7. total input/output tokens
+8. total cost
+9. latency per call and total session latency
+10. C1/1A result
+11. scorer result
+12. state-machine result
+13. final transition
+14. artifact/log paths
+15. whether every proof assertion passed
+16. any failures, classified by failure category
+17. exact files changed, if any
+
+IMPORTANT
+
+Do NOT expand to the full 43-cell live matrix in this run.
+
+Do NOT modify the frozen offline baseline merely to accommodate a live-model behavior.
+
+The purpose of this run is to prove one complete real LLM1 + LLM2 interaction before scaling the live experiment.
+
+If the representative cell passes cleanly, stop and report. Do not automatically launch additional live cells.

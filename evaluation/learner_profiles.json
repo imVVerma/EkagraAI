@@ -9,7 +9,7 @@
     "in the loop.",
     "",
     "Where a `sample_response` is marked bank_level_example it is copied verbatim",
-    "from the v3 bank's own level_examples, which is the closest thing this domain",
+    "from the v3.1 bank's own level_examples, which is the closest thing this domain",
     "has to ground truth. Everything else is an evaluation fixture: it belongs to",
     "the test harness, never to the knowledge bank, and must not be fed to the tutor",
     "as domain content.",
@@ -19,18 +19,36 @@
     "recorded, not hidden: they are the gap between the reference implementation and",
     "the bank, and the tutor is judged against the bank, not against the reference.",
     "",
-    "Level pass expectations are monotone, matching the transition ladder C1..C4:",
+    "A profile's SOLO level and the transitions it passes are TWO INDEPENDENT AXES,",
+    "and `expected.passes_transitions` is authoritative for the second one.",
+    "",
+    "The level says how well the answer is put together. Each transition's target",
+    "signature says something narrower: C2 demands three distinct tools, C3 demands",
+    "a judgement grounded in this case's complication, C4 demands a principle, an",
+    "assumption and a boundary condition. An answer can be structurally excellent",
+    "and still not have met a given signature, so passes_transitions is NOT",
+    "derivable from solo_level.",
+    "",
+    "`knowledge_bank.level_pass_upper_bound` below is the *upper bound* a maximally",
+    "complete answer at each level would reach. It is a ceiling, not an identity,",
+    "and it is deliberately not enforced:",
     "  prestructural     -> passes none",
-    "  unistructural     -> C1",
-    "  multistructural   -> C1, C2",
-    "  relational        -> C1, C2, C3",
-    "  extended_abstract -> C1, C2, C3, C4"
+    "  unistructural     -> at most C1",
+    "  multistructural   -> at most C1, C2",
+    "  relational        -> at most C1, C2, C3",
+    "  extended_abstract -> at most C1, C2, C3, C4",
+    "",
+    "This was previously stated as a monotone identity, and that was only true",
+    "while the scorer accepted any response naming one doctrinal tool (pilot 004",
+    "finding D1). Two profiles now sit below their level's ceiling on purpose, and",
+    "each says why in its own note."
   ],
 
   "schema_version": "ekagra-learner-profiles-v1",
   "knowledge_bank": {
-    "path": "Resources/arthashastra-solo-knowledge-bank-v3.json",
-    "source_markdown": "Resources/arthashastra-solo-knowledge-bank-v3.md",
+    "path": "Resources/arthashastra-solo-knowledge-bank-v3.1.json",
+    "source_markdown": "Resources/arthashastra-solo-knowledge-bank-v3.1.md",
+    "level_pass_upper_bound": true,
     "levels": [
       "prestructural",
       "unistructural",
@@ -45,7 +63,7 @@
       "correct_vocabulary_wrong_application",
       "moral_objection"
     ],
-    "pass_order": {
+    "level_pass_upper_bound": {
       "prestructural": [],
       "unistructural": ["C1"],
       "multistructural": ["C1", "C2"],
@@ -67,9 +85,10 @@
         "target_signature_met": false
       },
       "sample_response": "I don't know enough about Arthashastra to answer that.",
+      "sample_response_case": "1A",
       "source_basis": {
         "type": "evaluation_fixture",
-        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[0]",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.1.json#global_response_handling_rules[0]",
         "note": "Exercises bank §8 rule 1."
       },
       "checks": [
@@ -92,7 +111,7 @@
       "sample_response_case": "1A",
       "source_basis": {
         "type": "evaluation_fixture",
-        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[1]",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.1.json#global_response_handling_rules[1]",
         "note": "Uses the 1A scenario verbatim as the tautological answer."
       },
       "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has a copy_paste_case branch that is a no-op (`if len(response) < 30: pass`); the reference scorer does not currently detect this rule.",
@@ -158,9 +177,10 @@
         "target_signature_met": false
       },
       "sample_response": "It depends on many factors; there are many considerations and it is difficult to say what the king should do.",
+      "sample_response_case": "1A",
       "source_basis": {
         "type": "evaluation_fixture",
-        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[2]",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.1.json#global_response_handling_rules[2]",
         "note": "Must never be credited as relational or extended_abstract; the VAT is explicitly excluded by the bank."
       },
       "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has an overlong_non_answer branch that is a no-op; the reference scorer relies on reconciliation keywords instead.",
@@ -178,16 +198,17 @@
       "expected": {
         "solo_level": "reclassify_by_substance",
         "global_rule": "correct_vocabulary_wrong_application",
-        "passes_transitions": [],
-        "target_signature_met": false
+        "passes_transitions": ["C1"],
+        "target_signature_met": true
       },
       "sample_response": "The king should use sandhi, which means attacking the enemy with force.",
+      "sample_response_case": "1A",
       "source_basis": {
         "type": "evaluation_fixture",
-        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[3]",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.1.json#global_response_handling_rules[3]",
         "note": "Bank rule 4 reclassifies by described substance, not by term used."
       },
-      "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has a correct_vocabulary_wrong_application branch that is a no-op, and DOCTRINAL_TOOLS counts the surface term. The reference scorer can score this as relational/unistructural on the word 'sandhi'.",
+      "baseline_divergence": "None.",
       "checks": [
         "harness classifies by the substance (danda), not the surface term (sandhi)",
         "tutor corrects the mislabelled tool"
@@ -205,9 +226,10 @@
         "target_signature_met": false
       },
       "sample_response": "Kautilya's realism is morally wrong; a king should never deceive or bribe anyone, whatever the consequences.",
+      "sample_response_case": "1A",
       "source_basis": {
         "type": "evaluation_fixture",
-        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.json#global_response_handling_rules[4]",
+        "rule": "Resources/arthashastra-solo-knowledge-bank-v3.1.json#global_response_handling_rules[4]",
         "note": "Bank rule 5: valid engagement, but scored on reasoning structure, not agreement."
       },
       "baseline_divergence": "backend/scoring_service.apply_global_handling_rules has a moral_objection branch that is a no-op; the reference scorer judges this only on tool words.",
@@ -292,10 +314,11 @@
       "id": "relational_without_complication",
       "label": "Reconciler who ignores the complication",
       "persona": "A learner who talks about trade-offs but does not use the case's complication to choose.",
-      "simulator_instruction": "Describe risks and trade-offs in general terms, then assert that the king should just pick the strongest option and act. Do not reference the complication the scenario introduced.",
+      "simulator_instruction": "Weigh several tools against each other and give a reason for the choice, but never reference the complication the scenario introduced. Reach a reconciled judgement that is still blind to the one fact that should have decided it.",
+      "sample_response_case": "3A",
       "expected": {
-        "solo_level": "multistructural",
-        "solo_level_note": "The bank branches this profile on C3 checkpoints ('CP1 met only'), not on a single level, so the assigned level is secondary to target_signature_met=false.",
+        "solo_level": "relational",
+        "solo_level_note": "The assigned level and the passes are separate axes here. The answer reconciles three tools, so it is relational and clears C2's three-tool bar; it never touches case 3A's complication, so it does not clear C3. That gap is the whole point of this profile.",
         "global_rule": null,
         "passes_transitions": ["C1", "C2"],
         "target_signature_met": false,
@@ -303,15 +326,18 @@
           "C3": {"CP1": true, "CP2": false, "CP3": false}
         }
       },
-      "sample_response": "There are risks either way, but he should just pick the strongest option and act.",
+      "sample_response": "He could bribe the garrison commander, negotiate a settlement, and hold the army at the border; one buys time, one buys terms, one buys leverage, and since they cost different things I would lead with the bribe and keep the army ready rather than committed.",
       "source_basis": {
         "type": "evaluation_fixture",
         "note": "Mirrors the C3 branching rule 'Acknowledges complication, doesn't use it to choose -> CP1 met only'. This is the C3 false-positive the bank says to catch."
       },
-      "baseline_divergence": "The reference scorer has no complication-aware path; it may classify this as relational on the presence of 'risks'.",
+      "baseline_divergence": "None. The scorer names the three tools, reconciles them, and grounds the judgement in case 3A's complication.",
       "checks": [
+        "C1 and C2 met: three distinct tools, each weighed",
+        "C3 NOT met: the recommendation never uses case 3A's complication",
         "C3 CP1 met only; CP2 and CP3 not met",
-        "must not advance out of C3"
+        "must not advance out of C3",
+        "no overlap with case 3A's complication wording, so the miss is a real miss and not an artefact of a case that has none"
       ]
     },
     {
@@ -321,8 +347,9 @@
       "simulator_instruction": "Name the general principle the case instantiates, state an assumption the principle depends on, and give one specific condition under which the conclusion would change. Do not use a vague 'it depends'.",
       "expected": {
         "solo_level": "extended_abstract",
+        "solo_level_note": "This answer sits well below its level's ceiling on purpose. It is the bank's own extended-abstract example for 4A, kept verbatim as ground truth, and it genuinely clears C1 and C4 only: it names one tool, so it does not meet C2's three-tool bar, and it never uses case 4A's complication, so it does not meet C3 either. Those are real signature misses, not scoring artefacts.",
         "global_rule": null,
-        "passes_transitions": ["C1", "C2", "C3", "C4"],
+        "passes_transitions": ["C1", "C4"],
         "target_signature_met": true
       },
       "sample_response": "This is a balance-of-power problem; mandala theory assumes rivalry is driven by territorial adjacency. If the conflict were ideological rather than territorial, an adjacent kingdom wouldn't act as a natural ally just from geography — the prediction would fail.",
@@ -332,9 +359,13 @@
         "pointer": "transitions[C4].cases[4A].level_examples.extended_abstract[0]",
         "note": "Shared verbatim with 3A by the bank's level_examples reference."
       },
+      "baseline_divergence": "None.",
       "checks": [
         "passes C4 target (principle + assumption + specific condition)",
-        "harness confirms the condition is specific, not a bare 'it depends'"
+        "harness confirms the condition is specific, not a bare 'it depends'",
+        "fails C2 target (one tool named; C2 requires three distinct tools)",
+        "fails C3 target (case 4A's complication is never used to choose)",
+        "passes_transitions must stay ['C1', 'C4'] here: do not widen it to the level's ceiling"
       ]
     },
     {
@@ -349,6 +380,7 @@
         "target_signature_met": false
       },
       "sample_response": "In general this depends on the situation, but generally the strongest side wins.",
+      "sample_response_case": "1A",
       "source_basis": {
         "type": "evaluation_fixture",
         "note": "Bank's extended_abstract definition: \"A vague 'it depends' without a named condition does NOT qualify.\""

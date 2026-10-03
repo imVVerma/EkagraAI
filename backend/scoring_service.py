@@ -7,11 +7,18 @@ whether the target signature was met.
 
 No LLM calls. All classification is rule-based against the JSON
 knowledge bank content.
+
+Per-transition signature enforcement lives in
+:mod:`backend.signature_requirements`; this module decides which level a
+response earns and asks that module whether the transition's own
+``target_signature`` is satisfied.
 """
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 import re
+
+from backend import signature_requirements as sigreq
 
 
 # ---------------------------------------------------------------------------
@@ -63,10 +70,21 @@ _REFUSAL_MARKERS = (
 # Markers that hedge without committing. The bank names "it depends" and
 # "many factors" as the prototype: sophisticated-sounding, no decision in it.
 _HEDGE_MARKERS = (
-    "it depends", "many factors", "depends on the circumstances",
-    "hard to say", "difficult to say", "there are many", "many variables",
-    "each case is different", "it could be argued", "on balance",
-    "every situation is different", "it varies", "case by case",
+    "it depends",
+    "depends on the situation",
+    "depends on the circumstances",
+    "depends on",
+    "many factors",
+    "hard to say",
+    "difficult to say",
+    "there are many",
+    "many variables",
+    "each case is different",
+    "it could be argued",
+    "on balance",
+    "every situation is different",
+    "it varies",
+    "case by case",
 )
 
 # Terms the learner can *name* without having applied anything. Rule 4 is
@@ -104,11 +122,26 @@ _TERM_OWN_ACTIONS: Dict[str, Tuple[str, ...]] = {
 }
 
 # Which terms count as siblings, i.e. alternatives within one decision.
+#
+# The bank reads sandhi as a sibling of danda: rule 4's worked example is "names
+# 'sandhi' but describes an action that's actually danda". No family held both
+# before, so that case was undetectable and the response cleared C1 on the
+# strength of the word 'sandhi'.
+#
+# sandhi is declared a sibling of danda specifically rather than folded into the
+# whole upaya set. All five upayas are alternatives within one decision, but
+# making sandhi a sibling of every one of them also makes it a sibling of dana,
+# and the bank's own relational answers use dana *while* seeking an alliance —
+# case 3A's worked example. Those would then be reported as dana mislabelled,
+# which is the opposite of what rule 4 is for.
 _TERM_FAMILIES = (
     ("sama", "dana", "bheda", "danda"),
-    ("sandhi", "asana", "vigraha"),
+    ("danda", "sandhi"),
+    ("asana", "vigraha"),
     ("yana", "samshraya", "dvaidhibhava"),
 )
+
+_ALL_FAMILY_TERMS = frozenset(term for family in _TERM_FAMILIES for term in family)
 
 
 def _family_conflict(lowered: str, named: Set[str]) -> Optional[str]:
@@ -119,8 +152,17 @@ def _family_conflict(lowered: str, named: Set[str]) -> Optional[str]:
     nothing that belongs to T itself. That is the bank rule's case — a label
     the substance does not support — rather than a learner weighing two
     options, which is exactly what a relational answer looks like.
+
+    That last exclusion is enforced, not assumed. Rule 4 is about a single label
+    the substance does not support, so exactly one of these terms may be named.
+    Naming two or more is the learner putting options side by side, and the
+    bank's own relational examples do it: case 3A's answer uses dana and seeks an
+    alliance. Without this condition, widening the families to reach sandhi
+    against danda would report those answers as a mislabel.
     """
     if len(named) < 1:
+        return None
+    if len(named & _ALL_FAMILY_TERMS) != 1:
         return None
     described = _count_actions(lowered)
 
@@ -378,12 +420,28 @@ DOCTRINAL_TOOLS = {
 }
 
 
+def _resolve_requirement(
+    requirement: Any,
+) -> Optional[sigreq.SignatureRequirement]:
+    """Accept either a resolved requirement or the bank's transition dict.
+
+    Callers that hold a transition should pass the dict, so the gate follows the
+    bank's own ``id`` and ``to_level`` rather than re-deriving them from
+    ``target_signature`` prose at four separate call sites.
+    """
+    if requirement is None or isinstance(requirement, sigreq.SignatureRequirement):
+        return requirement
+    return sigreq.requirement_for_transition(requirement)
+
+
 def classify_solo_level(
     response: str,
     target_signature: str,
     level_examples: Dict[str, List[str]],
     rules: List[Dict[str, Any]],
     case_text: str = "",
+    complication: str = "",
+    requirement: Any = None,
 ) -> Dict[str, Any]:
     """Determine the SOLO level and whether the target signature was met.
 
@@ -391,17 +449,72 @@ def classify_solo_level(
     working, but rule 2 (copy-paste) can only be decided with it; without it
     that rule is skipped rather than guessed at.
 
+    *complication* is the case's complication. C3's requirement is that the
+    recommendation be grounded in it, so it must be supplied for C3 to be
+    reachable at all; without it C3 fails closed.
+
+    *requirement* is the transition dict (preferred) or an already-resolved
+    :class:`~backend.signature_requirements.SignatureRequirement`. It is derived
+    from *target_signature* only when neither is given.
+
     Returns {"assigned_solo_level": str, "target_signature_met": bool}.
     """
+    requirement = _resolve_requirement(requirement) or sigreq.requirement_for_signature(
+        target_signature
+    )
+
+
     # 1. Apply global response-handling rules first.
     match = apply_global_handling_rules(response, rules, case_text)
     if match is not None:
-        override = _apply_global_rule(match, response, target_signature, level_examples)
+        override = _apply_global_rule(
+            match, response, target_signature, level_examples, requirement, complication
+        )
         if override is not None:
-            return override
+            return _enforce_level_coherence(override, requirement)
 
     # 2. No global rule overrode the response: classify it on its own terms.
-    return _classify_by_structure(response, target_signature, level_examples)
+    return _enforce_level_coherence(
+        _classify_by_structure(
+            response, target_signature, level_examples, None, requirement, complication
+        ),
+        requirement,
+    )
+
+
+def _enforce_level_coherence(
+    result: Dict[str, Any],
+    requirement: Optional[sigreq.SignatureRequirement],
+) -> Dict[str, Any]:
+    """Pilot 004 finding D2: keep the verdict and the awarded level consistent.
+
+    Progression gates on ``target_signature_met`` alone, so a response could be
+    credited as meeting a transition's requirement while being classified below
+    the level that transition teaches. Two invariants:
+
+    * meeting the requirement implies the awarded level reaches
+      ``to_level`` — otherwise the credit is unsupportable;
+    * anything the bank's global rules capped stays capped, so this never
+      promotes a response a rule deliberately held down.
+    """
+    if requirement is None:
+        return result
+
+    target_rank = sigreq.level_rank(requirement.target_level)
+    awarded_rank = sigreq.level_rank(result.get("assigned_solo_level"))
+
+    if result.get("target_signature_met") and target_rank > awarded_rank:
+        return {
+            **result,
+            "target_signature_met": False,
+            "signature_unmet_reason": (
+                f"transition {requirement.transition_id} teaches "
+                f"{requirement.target_level}, but the response was classified "
+                f"{result.get('assigned_solo_level')}"
+            ),
+        }
+    return result
+
 
 
 def _classify_by_structure(
@@ -409,6 +522,8 @@ def _classify_by_structure(
     target_signature: str,
     level_examples: Dict[str, List[str]],
     found_tools: Optional[Set[str]] = None,
+    requirement: Optional[sigreq.SignatureRequirement] = None,
+    complication: str = "",
 ) -> Dict[str, Any]:
     """Classify a response from its vocabulary and structure alone.
 
@@ -422,30 +537,40 @@ def _classify_by_structure(
     tool_count = len(found_tools) if found_tools is not None else len(
         resp_words & DOCTRINAL_TOOLS
     )
+    reconciles = _has_reconciliation(resp_lower)
+
+    # The transition's own requirement decides the gate (D1). It is evaluated
+    # once, from the tools the response actually names, so every branch below
+    # shares one verdict instead of each re-asking a weaker question.
+    requirement = requirement or sigreq.requirement_for_signature(target_signature)
+    named = sorted(found_tools) if found_tools is not None else sorted(
+        resp_words & DOCTRINAL_TOOLS)
+    if requirement is None:
+        target_met = False
+    else:
+        target_met = sigreq.evaluate(
+            requirement,
+            response,
+            named_tools=named,
+            has_reconciliation=reconciles,
+            complication=complication,
+        ).met
 
     # 2. Determine SOLO level based on tool count and response structure
     assigned_level = "prestructural"
-    target_met = False
 
     # Check for Extended Abstract: generalisation beyond the case
     if _is_extended_abstract(response, target_signature):
         assigned_level = "extended_abstract"
-        target_met = True
     # Check for Relational: reconciles multiple factors with reasoning
-    elif tool_count >= 2 and _has_reconciliation(resp_lower):
+    elif tool_count >= 2 and reconciles:
         assigned_level = "relational"
-        if _target_signature_matches(response, target_signature):
-            target_met = True
     # Check for Multistructural: multiple tools but no reconciliation
     elif tool_count >= 2:
         assigned_level = "multistructural"
-        if _target_signature_matches(response, target_signature):
-            target_met = True
     # Check for Unistructural: at least one relevant tool
     elif tool_count >= 1:
         assigned_level = "unistructural"
-        if _target_signature_matches(response, target_signature):
-            target_met = True
     # Prestructural: no relevant tools, or just question repetition
     else:
         # But also check if response matches prestructural examples
@@ -459,11 +584,14 @@ def _classify_by_structure(
     return {"assigned_solo_level": assigned_level, "target_signature_met": target_met}
 
 
+
 def _apply_global_rule(
     match: GlobalRuleMatch,
     response: str,
     target_signature: str,
     level_examples: Dict[str, List[str]],
+    requirement: Optional[sigreq.SignatureRequirement] = None,
+    complication: str = "",
 ) -> Optional[Dict[str, Any]]:
     """Carry out the bank instruction implied by *match*'s classification.
 
@@ -484,7 +612,8 @@ def _apply_global_rule(
     # "capped_at_multistructural" — never credit as Relational or Extended
     # Abstract (rule 3).
     if classification == "capped_at_multistructural":
-        base = _classify_by_structure(response, target_signature, level_examples)
+        base = _classify_by_structure(
+            response, target_signature, level_examples, None, requirement, complication)
         if base["assigned_solo_level"] in _CAP_EXCLUDED_LEVELS:
             return {
                 "assigned_solo_level": "multistructural",
@@ -502,13 +631,16 @@ def _apply_global_rule(
             target_signature,
             level_examples,
             found_tools=described,
+            requirement=requirement,
+            complication=complication,
         )
 
     # "reclassify_by_reasoning_structure" — valid engagement; score on
     # reasoning structure, not on agreement with the doctrine (rule 5).
     if classification == "reclassify_by_reasoning_structure":
         lowered = response.strip().lower()
-        return _classify_by_reasoning_structure(response, target_signature, lowered)
+        return _classify_by_reasoning_structure(
+            response, target_signature, lowered, requirement)
 
     # Unrecognised classification: fall through to the structural ladder
     # rather than inventing behaviour for it.
@@ -519,6 +651,7 @@ def _classify_by_reasoning_structure(
     response: str,
     target_signature: str,
     lowered: str,
+    requirement: Optional[sigreq.SignatureRequirement] = None,
 ) -> Dict[str, Any]:
     """Classify by the shape of the reasoning, with no doctrinal vocabulary.
 
@@ -527,19 +660,34 @@ def _classify_by_reasoning_structure(
     response the bank says to credit. What counts here is how many distinct
     considerations they weigh, whether they reconcile them, and whether they
     generalise beyond the case.
+
+    D1: this path previously returned ``target_signature_met: True`` on every
+    branch above prestructural, so an objection that met no transition at all
+    still cleared the gate. The requirement is now evaluated here too.
     """
+    requirement = requirement or sigreq.requirement_for_signature(target_signature)
+    if requirement is None:
+        target_met = False
+    else:
+        target_met = sigreq.evaluate(
+            requirement,
+            response,
+            named_tools=_named_doctrinal_terms_in(response),
+            has_reconciliation=_has_reconciliation(lowered),
+        ).met
+
     if _is_extended_abstract(response, target_signature):
-        return {"assigned_solo_level": "extended_abstract", "target_signature_met": True}
+        return {"assigned_solo_level": "extended_abstract", "target_signature_met": target_met}
 
     considerations = _count_considerations(lowered)
     reconciles = _has_reconciliation(lowered)
 
     if considerations >= 2 and reconciles:
-        return {"assigned_solo_level": "relational", "target_signature_met": True}
+        return {"assigned_solo_level": "relational", "target_signature_met": target_met}
     if considerations >= 2:
-        return {"assigned_solo_level": "multistructural", "target_signature_met": True}
+        return {"assigned_solo_level": "multistructural", "target_signature_met": target_met}
     if considerations == 1 or reconciles:
-        return {"assigned_solo_level": "unistructural", "target_signature_met": True}
+        return {"assigned_solo_level": "unistructural", "target_signature_met": target_met}
     return {"assigned_solo_level": "prestructural", "target_signature_met": False}
 
 
@@ -583,35 +731,41 @@ def _has_reconciliation(response: str) -> bool:
 def _target_signature_matches(
     response: str,
     target_signature: str,
+    named_tools: Optional[Set[str]] = None,
+    has_reconciliation: bool = False,
+    complication: str = "",
+    requirement: Optional[sigreq.SignatureRequirement] = None,
 ) -> bool:
-    """Check if the response meets the transition target_signature.
+    """Check the response against the transition's own ``target_signature``.
 
-    For C1: "Response names at least one specific, case-relevant tool or fact,
-    not a repetition of the question or an irrelevant justification."
+    Pilot 004 finding D1: this used to accept any response naming one doctrinal
+    tool with three or more words that was not a restatement of the question. It
+    took ``target_signature`` as an argument and never read it, so C2's "at least
+    three distinct policy tools", C3's "explicitly weighs the factors" and C4's
+    "principle, assumption and boundary condition" were all satisfied by a
+    single-tool answer — 8 of 12 cases in that pilot were over-credited.
+
+    The requirement is now resolved from the signature and each clause checked.
+    An unrecognised signature fails closed (see signature_requirements).
     """
-    resp_lower = response.strip().lower()
-    resp_words = set(re.findall(r'\b\w+\b', resp_lower))
-
-    # Must name at least one doctrinal tool
-    found_tools = resp_words & DOCTRINAL_TOOLS
-    if not found_tools:
+    requirement = requirement or sigreq.requirement_for_signature(target_signature)
+    if requirement is None:
         return False
+    tools = sorted(named_tools) if named_tools is not None else _named_doctrinal_terms_in(response)
+    return sigreq.evaluate(
+        requirement,
+        response,
+        named_tools=tools,
+        has_reconciliation=has_reconciliation,
+        complication=complication,
+    ).met
 
-    # Must not be just a question repetition
-    question_variants = [
-        "what should the king do",
-        "how should the king respond",
-        "is there anything the king can do",
-    ]
-    for q in question_variants:
-        if q in resp_lower:
-            return False
 
-    # Must not be just a single word without substance
-    if len(resp_words) < 3:
-        return False
+def _named_doctrinal_terms_in(response: str) -> List[str]:
+    """Distinct doctrinal tools the response actually names."""
+    words = set(re.findall(r"\b\w+\b", response.strip().lower()))
+    return sorted(words & DOCTRINAL_TOOLS)
 
-    return True
 
 
 def _is_extended_abstract(
@@ -657,6 +811,8 @@ def score_response(
     level_examples: Dict[str, List[str]],
     rules: List[Dict[str, Any]],
     case_text: str = "",
+    complication: str = "",
+    requirement: Any = None,
 ) -> Dict[str, Any]:
     """Score a learner response and return {assigned_solo_level, target_signature_met}.
 
@@ -665,7 +821,8 @@ def score_response(
     included here — use score_response_detailed() for the auditable version.
     """
     result = classify_solo_level(
-        response, target_signature, level_examples, rules, case_text
+        response, target_signature, level_examples, rules, case_text,
+        complication, _resolve_requirement(requirement),
     )
     return result
 
@@ -676,6 +833,8 @@ def score_response_detailed(
     level_examples: Dict[str, List[str]],
     rules: List[Dict[str, Any]],
     case_text: str = "",
+    complication: str = "",
+    requirement: Any = None,
 ) -> Dict[str, Any]:
     """Score a response and record which global rule produced the outcome.
 
@@ -686,7 +845,8 @@ def score_response_detailed(
     decision-trace and research paths, not the learner-facing payload.
     """
     result = classify_solo_level(
-        response, target_signature, level_examples, rules, case_text
+        response, target_signature, level_examples, rules, case_text,
+        complication, _resolve_requirement(requirement),
     )
     match = apply_global_handling_rules(response, rules, case_text)
     return {

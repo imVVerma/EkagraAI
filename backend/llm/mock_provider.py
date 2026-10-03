@@ -36,8 +36,13 @@ _TEACHING = "teaching"
 _CHECKPOINT = "checkpoint_interaction"
 _FEEDBACK = "feedback"
 _INTERVENTION = "intervention"
+#: LLM2's response type. Handled here so a dry run can exercise the whole
+#: two-agent loop; without it a mock request for a learner turn would fall
+#: through to the teaching default and be rejected by the learner-turn schema,
+#: which would make a dry run look like a wiring failure.
+_LEARNER_TURN = "learner_turn"
 
-_RESPONSE_TYPES = {_TEACHING, _CHECKPOINT, _FEEDBACK, _INTERVENTION}
+_RESPONSE_TYPES = {_TEACHING, _CHECKPOINT, _FEEDBACK, _INTERVENTION, _LEARNER_TURN}
 
 
 def _response_type_from_schema(schema: Optional[Dict[str, Any]]) -> str:
@@ -72,6 +77,7 @@ class MockLLMProvider:
         guard: Any = None,
         mode: str = "valid",
         latency_ms: int = 0,
+        responders: Optional[Dict[str, Any]] = None,
     ):
         """Build a mock provider.
 
@@ -86,6 +92,13 @@ class MockLLMProvider:
                 ``"timeout"`` raises :class:`TimeoutError`;
                 ``"rate_limited"`` raises :class:`RateLimitedError`.
             latency_ms: reported latency, so summaries are realistic.
+            responders: per-response-type callables taking the
+                :class:`Request` and returning the JSON string to serve. This is
+                how a caller answers a turn that depends on run state the schema
+                cannot express — LLM2 must reply as the profile it was assigned,
+                and the profile is known to the runner, not to this provider. A
+                responder still goes through the same validation as any other
+                answer, so a bad one fails closed.
         """
         if mode not in ("valid", "malformed", "not_json", "timeout", "rate_limited"):
             raise ValueError(f"unknown mock mode {mode!r}")
@@ -95,6 +108,7 @@ class MockLLMProvider:
         self.guard = guard
         self.mode = mode
         self.latency_ms = latency_ms
+        self.responders = dict(responders or {})
 
         #: Every request this provider was asked to serve, in order. The pilot
         #: asserts against this to prove the LLM1 path was actually exercised,
@@ -151,7 +165,7 @@ class MockLLMProvider:
                 "Mock provider was configured to rate-limit.", status=429
             )
 
-        content = self._content_for(response_type)
+        content = self._content_for(response_type, request)
 
         input_tokens = max(1, sum(len(m.content) for m in request.messages) // 4)
         output_tokens = max(1, len(content) // 4)
@@ -228,7 +242,13 @@ class MockLLMProvider:
 
     # -- answer construction ----------------------------------------------
 
-    def _content_for(self, response_type: str) -> str:
+    def _content_for(self, response_type: str, request: Optional[Request] = None) -> str:
+        # A caller-supplied responder takes precedence, so a run that needs the
+        # answer to depend on its own state gets it without this provider having
+        # to know anything about that state. It still faces the same validation.
+        responder = self.responders.get(response_type)
+        if responder is not None:
+            return responder(request)
         if self.mode == "not_json":
             return "I think the king should probably do something sensible here."
         if self.mode == "malformed":
@@ -236,6 +256,19 @@ class MockLLMProvider:
             # required text, which is the kind of drift a lenient validator
             # would let through.
             return json.dumps({"response_type": response_type, "blocks": [{"type": "para"}]})
+        if response_type == _LEARNER_TURN:
+            return json.dumps(
+                {
+                    "response_type": "learner_turn",
+                    "profile_id": "mock-profile",
+                    "intended_demonstrated_level": "unistructural",
+                    "knowledge_state": "Names a single policy tool without weighing alternatives.",
+                    "misconception": "none",
+                    "response_strategy": "Name one tool and give a reason it applies.",
+                    "response": "He should use sandhi, which means attacking the enemy with force.",
+                    "source_context_ids": [],
+                }
+            )
         if response_type == _CHECKPOINT:
             return json.dumps(
                 {

@@ -113,6 +113,10 @@ class DecisionTraceStore:
     def _log_path(self, experiment_id: Optional[str]) -> str:
         return os.path.join(self._resolve_log_dir(experiment_id), self.TRACE_LOG_NAME)
 
+    def log_path(self, experiment_id: Optional[str] = None) -> str:
+        """Public accessor for the LLM1 decision-trace log path."""
+        return self._log_path(experiment_id)
+
     def _ensure_dir(self, experiment_id: Optional[str]) -> None:
         os.makedirs(self._resolve_log_dir(experiment_id), exist_ok=True)
 

@@ -178,6 +178,15 @@ class UsageStore:
     def _usage_log_path(self, experiment_id: Optional[str]) -> str:
         return os.path.join(self._resolve_log_dir(experiment_id), USAGE_LOG_NAME)
 
+    def usage_log_path(self, experiment_id: Optional[str] = None) -> str:
+        """Public accessor for the usage log path.
+
+        Exposed so a harness assembling a run's artifact index reads the path
+        from the store that writes it rather than rebuilding the directory
+        layout itself, which would drift from :meth:`_resolve_log_dir`.
+        """
+        return self._usage_log_path(experiment_id)
+
     def _summary_path(self, experiment_id: Optional[str]) -> str:
         return os.path.join(self._resolve_log_dir(experiment_id), SUMMARY_NAME)
 

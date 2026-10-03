@@ -627,6 +627,8 @@ class TutorHandler(BaseHTTPRequestHandler):
                 level_examples=case_level_examples,
                 rules=RULES,
                 case_text=case.get("scenario_text", ""),
+                complication=(case.get("complication") or "") if case else "",
+                requirement=transition,
             )
 
             target_met = scoring_result["target_signature_met"]

@@ -180,6 +180,10 @@ class ContextSelectionStore:
     def _log_path(self, experiment_id: Optional[str]) -> str:
         return os.path.join(self._resolve_log_dir(experiment_id), CONTEXT_LOG_NAME)
 
+    def log_path(self, experiment_id: Optional[str] = None) -> str:
+        """Public accessor for the source-context log path."""
+        return self._log_path(experiment_id)
+
     def record(
         self,
         *,

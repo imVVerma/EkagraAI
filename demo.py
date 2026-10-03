@@ -110,6 +110,9 @@ def run_demo():
         target_signature=target_signature,
         level_examples=case_level_examples,
         rules=rules,
+        case_text=case.get("scenario_text", ""),
+        complication=case.get("complication") or "",
+        requirement=transition,
     )
 
     assigned_level = scoring_result["assigned_solo_level"]
@@ -177,6 +180,9 @@ def run_demo():
                 target_signature=sm.current_transition["target_signature"],
                 level_examples=sm.current_case.get("level_examples", {}),
                 rules=rules,
+                case_text=sm.current_case.get("scenario_text", ""),
+                complication=sm.current_case.get("complication") or "",
+                requirement=sm.current_transition,
             )
             assigned_level2 = scoring_result2["assigned_solo_level"]
             target_met2 = scoring_result2["target_signature_met"]
