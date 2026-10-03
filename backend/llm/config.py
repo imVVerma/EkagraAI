@@ -64,6 +64,16 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_APP_TITLE = "EkagraAI"
 
+#: The version stamp for the prompts this foundation ships.
+#:
+#: Declared here, before :class:`Config`, so the configuration can resolve it
+#: rather than leaving it unset. It used to be applied only when writing a
+#: decision trace, so a usage record and the trace for the *same* call could
+#: disagree about which prompt version produced it -- the trace said
+#: ``ekagra-llm-foundation-v1`` while the usage record said ``null``. One
+#: authoritative value, read by every writer.
+DEFAULT_PROMPT_VERSION = "ekagra-llm-foundation-v1"
+
 #: Client identifier sent to providers.
 #:
 #: urllib's default is ``Python-urllib/3.x``, and Groq sits behind Cloudflare,
@@ -168,6 +178,11 @@ def _load_dotenv(path: Optional[str] = None) -> None:
 
     Deliberately minimal: ``KEY=value`` lines, ``#`` comments, optional quotes.
     Anything it cannot parse is left for the config layer to complain about.
+
+    *EKAGRA_DOTENV_PATH* redirects the file. It exists so a test can point at a
+    scratch file and be certain the developer's own ``.env`` cannot leak in:
+    this loader only skips a variable already present in the environment, so a
+    test that clears a variable has not prevented ``.env`` from refilling it.
     """
     target = path or os.path.join(PROJECT_ROOT, ".env")
     if not os.path.isfile(target):
@@ -334,7 +349,18 @@ class Config:
         self.require_pricing_for_guard = require_pricing_for_guard
         self.experiment_id = experiment_id
         self.run_id = run_id
+        # The prompt *file* selector, e.g. "v1". Left unset when the operator
+        # has not pinned one, because the loader treats None as "use the
+        # default prompt" and a non-None value as a filename. This is a
+        # different thing from the provenance stamp recorded on usage records
+        # and decision traces; see ``prompt_stamp``.
         self.prompt_version = prompt_version
+        # The provenance stamp for the prompt set in use. Resolved once, here,
+        # so the usage record and the decision trace for one call cannot
+        # disagree about which prompt produced it. Before this existed the
+        # trace back-filled the stamp on write and the usage record wrote null,
+        # so the same call was logged under two different versions.
+        self.prompt_stamp = (prompt_version or "").strip() or DEFAULT_PROMPT_VERSION
         self.configuration_version = configuration_version
         self.knowledge_bank_release = knowledge_bank_release
         self.api_key_source = api_key_source
@@ -497,7 +523,7 @@ class Config:
 def load_config(*, dotenv: bool = True) -> Config:
     """Build a :class:`Config` from the current environment."""
     if dotenv:
-        _load_dotenv()
+        _load_dotenv(os.environ.get("EKAGRA_DOTENV_PATH") or None)
 
     # Mode and provider
     mode = os.environ.get("EKAGRA_MODE", "").strip().lower() or "deterministic"
@@ -624,7 +650,7 @@ def knowledge_bank_provenance(path: Optional[str] = None) -> Dict[str, Any]:
 
 def prompt_version_default() -> str:
     """Version stamp for prompts built by this foundation."""
-    return "ekagra-llm-foundation-v1"
+    return DEFAULT_PROMPT_VERSION
 
 
 __all__: Dict[str, Any] = {

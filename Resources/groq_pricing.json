@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Verified prices for models this project will actually run, kept outside the",
+    "fetched catalogue on purpose. logs/groq_models.json is an API snapshot and is",
+    "overwritten wholesale by a refresh, so prices written into it would be",
+    "silently erased by the next sync. This file is the durable, reviewable record.",
+    "",
+    "The provider's /models endpoint publishes no prices, so every entry here is",
+    "hand-entered from a named source and carries the date it was read. A price",
+    "that is not in this table is unknown, and the budget guard refuses calls to",
+    "unknown models rather than treating them as free.",
+    "",
+    "Units are US dollars per one million tokens, matching how providers publish.",
+    "The loader converts to per-token before the budget guard ever sees them; do",
+    "not add per-token values here."
+  ],
+  "provider": "groq",
+  "prices": {
+    "openai/gpt-oss-120b": {
+      "input_per_million_usd": 0.15,
+      "output_per_million_usd": 0.60,
+      "source": "official Groq model/pricing documentation",
+      "retrieved": "2026-10-02"
+    }
+  }
+}

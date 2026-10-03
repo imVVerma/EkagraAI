@@ -90,6 +90,10 @@ class ModelCatalog:
         self.fetched_at = fetched_at
         self.source = source
         self.provider = provider
+        #: Set when verified prices were merged from a maintained table, so a
+        #: saved catalogue records where those prices came from. ``None`` when
+        #: every price came from the provider's own listing.
+        self.pricing_provenance: Optional[Dict[str, Any]] = None
         for entry in models or []:
             model_id = entry.get("id")
             if model_id:
@@ -141,6 +145,11 @@ class ModelCatalog:
             "source": self.source,
             "data": list(self._models.values()),
         }
+        # Provenance for prices that did not come from the provider's own feed,
+        # so a stored cost figure can still be traced to where it was verified.
+        provenance = getattr(self, "pricing_provenance", None)
+        if provenance:
+            payload["pricing_provenance"] = provenance
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, ensure_ascii=False, indent=2)
 

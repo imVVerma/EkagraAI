@@ -57,6 +57,20 @@ COST_SOURCES = AUTHORITATIVE_COST_SOURCES + (
 #: accumulate float noise, but never so coarsely that free stays free.
 COST_PRECISION = 10
 
+#: Which kind of run produced a record.
+#:
+#: A mock dry run and a live experiment may share a log directory, and when they
+#: do their rows are indistinguishable by cost: mock calls are free and live
+#: rejections cost nothing either, so a mixed log reads as a quiet afternoon
+#: rather than as a contaminated one. Records carry this field so the two can
+#: always be told apart, and aggregation reports them separately.
+KIND_LIVE = "live"
+KIND_MOCK = "mock"
+#: Used for records written before this field existed, so legacy rows are
+#: counted and shown rather than silently folded into the live totals.
+KIND_UNKNOWN = "unknown"
+RECORD_KINDS = (KIND_LIVE, KIND_MOCK, KIND_UNKNOWN)
+
 USAGE_LOG_NAME = "api_usage.jsonl"
 SUMMARY_NAME = "cost_summary.json"
 MANIFEST_NAME = "manifest.json"
@@ -109,6 +123,7 @@ class UsageRecord:
     latency_ms: Optional[int] = None
     finish_reason: Optional[str] = None
     status: str = "ok"
+    kind: str = KIND_LIVE
     error: Optional[str] = None
     error_type: Optional[str] = None
     prompt_version: Optional[str] = None
@@ -329,12 +344,62 @@ def total_spend(
     return _round(total)
 
 
+def record_kind(record: Dict[str, Any]) -> str:
+    """Return the run kind of *record*, normalising absent values.
+
+    Records written before the field existed have no ``kind``. They are reported
+    as ``unknown`` rather than assumed live: a legacy row cannot be shown to be
+    live, and quietly counting it as live is the failure this field exists to
+    prevent.
+    """
+    value = record.get("kind")
+    return value if value in RECORD_KINDS else KIND_UNKNOWN
+
+
 def build_summary(
     records: List[Dict[str, Any]],
     config: Optional[Config] = None,
     usage_log_path: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Roll up *records* into the cost summary dict."""
+    """Roll up *records* into the cost summary dict.
+
+    Mock and live records are never added together. The headline figures count
+    live records only; mock records are totalled separately and counted under
+    ``records_by_kind``. Mock calls cost nothing, so a mixed log would report a
+    correct total cost while reporting a completely fictional token count and
+    call count for the experiment — which is the specific way this goes wrong.
+    """
+    live_records = [r for r in records if record_kind(r) == KIND_LIVE]
+    mock_records = [r for r in records if record_kind(r) == KIND_MOCK]
+    unknown_records = [r for r in records if record_kind(r) == KIND_UNKNOWN]
+
+    summary = _rollup(live_records, config, usage_log_path)
+    summary["records_by_kind"] = {
+        KIND_LIVE: len(live_records),
+        KIND_MOCK: len(mock_records),
+        KIND_UNKNOWN: len(unknown_records),
+    }
+    summary["excluded_from_live_totals"] = {
+        "kind": [KIND_MOCK, KIND_UNKNOWN],
+        "records": len(mock_records) + len(unknown_records),
+        "mock_cost_usd": round(sum(float(r.get("request_cost") or 0.0)
+                                   for r in mock_records), COST_PRECISION),
+        "mock_input_tokens": sum(r.get("input_tokens", 0) for r in mock_records),
+        "mock_output_tokens": sum(r.get("output_tokens", 0) for r in mock_records),
+        "note": (
+            "Mock and unlabelled records are reported here and excluded from "
+            "every live figure above. They are not deleted."
+        ),
+    }
+    return summary
+
+
+def _rollup(
+    records: List[Dict[str, Any]],
+    config: Optional[Config] = None,
+    usage_log_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Sum *records* without regard to their kind."""
     if not records:
         return {
             "total_requests": 0,

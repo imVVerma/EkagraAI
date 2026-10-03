@@ -373,13 +373,25 @@ def test_pilot_calls_llm1():
             [sys.executable, os.path.join(ROOT, "tools", "l1_pilot.py"),
              "--dry-run", "--quiet",
              "--log-dir", log_dir,
-             "--experiment-id", "prepilot_valid"],
+             "--experiment-id", "prepilot_valid",
+             "--run-id", "prepilot_valid_run"],
             cwd=ROOT, capture_output=True, text=True, timeout=600,
+            env=_isolated_env({}),
         )
         check("the dry run exits cleanly", result.returncode == 0,
               (result.stderr or result.stdout)[-600:])
 
-        report_path = os.path.join(log_dir, "experiments", "prepilot_valid", "runs", "pilot_report.json")
+        # A dry run writes under a marked identifier so its records can never
+        # land in a live experiment's usage log. Asserted rather than assumed:
+        # inheriting the live id here is exactly the contamination this guards.
+        from tools.l1_pilot import dry_run_id as _dry_run_id_for_test
+
+        check("a dry run rewrites the experiment id so it cannot collide with a live run",
+              _dry_run_id_for_test("prepilot_valid", "x") == "prepilot_valid__dry_run",
+              _dry_run_id_for_test("prepilot_valid", "x"))
+
+        report_path = os.path.join(log_dir, "experiments", "prepilot_valid__dry_run",
+                                 "runs", "pilot_report.json")
         check("the pilot writes a report", os.path.exists(report_path), report_path)
         if not os.path.exists(report_path):
             return
@@ -427,14 +439,14 @@ def test_pilot_calls_llm1():
         check("every case was scored against its target signature",
               deterministic["target_signature_met"] == 12, repr(deterministic))
 
-        usage_rows = _usage_rows(log_dir, "prepilot_valid")
+        usage_rows = _usage_rows(log_dir, "prepilot_valid__dry_run")
         check("the usage log has one row per LLM1 call",
               len(usage_rows) == behaviour["total_llm1_calls"], f"{len(usage_rows)} rows")
         check("every usage row is attributed to the experiment",
-              all(row.get("experiment_id") == "prepilot_valid" for row in usage_rows),
+              all(row.get("experiment_id") == "prepilot_valid__dry_run" for row in usage_rows),
               repr(usage_rows[0].get("experiment_id")))
         check("every usage row is attributed to the run",
-              all(row.get("run_id") == "dry_run_001" for row in usage_rows),
+              all(row.get("run_id") == "prepilot_valid_run__dry_run" for row in usage_rows),
               repr(usage_rows[0].get("run_id")))
         check("the mock provider cost nothing",
               all(row.get("request_cost", 0) == 0 for row in usage_rows),
@@ -447,7 +459,7 @@ def test_pilot_calls_llm1():
               report["cost_and_usage"]["records"] == len(usage_rows),
               repr(report["cost_and_usage"]["records"]))
 
-        traces = os.path.join(log_dir, "experiments", "prepilot_valid", "runs",
+        traces = os.path.join(log_dir, "experiments", "prepilot_valid__dry_run", "runs",
                               "decision_traces.jsonl")
         check("the pilot writes decision traces", os.path.exists(traces), traces)
         trace_rows = [json.loads(line) for line in open(traces) if line.strip()]
@@ -483,7 +495,8 @@ def test_pilot_failures_are_typed_and_recorded():
                  "--log-dir", log_dir, "--experiment-id", f"prepilot_{mode}"],
                 cwd=ROOT, capture_output=True, text=True, timeout=600,
             )
-            report_path = os.path.join(log_dir, "experiments", f"prepilot_{mode}",
+            report_path = os.path.join(log_dir, "experiments",
+                                       f"prepilot_{mode}__dry_run",
                                        "runs", "pilot_report.json")
             if result.returncode != 0 or not os.path.exists(report_path):
                 check(f"the {mode} dry run reports a failure", False,
@@ -502,7 +515,7 @@ def test_pilot_failures_are_typed_and_recorded():
                   report["failure_analysis"]["errors_are_failures"] is True,
                   repr(report["failure_analysis"]["errors_are_failures"]))
 
-            rows = _usage_rows(log_dir, f"prepilot_{mode}")
+            rows = _usage_rows(log_dir, f"prepilot_{mode}__dry_run")
             check(f"the {mode} failure is recorded in the usage log",
                   len(rows) > 0, f"{len(rows)} rows")
             check(f"the {mode} row keeps its typed error",
@@ -814,7 +827,8 @@ def test_live_mode_refuses_without_valid_configuration():
         check("a dry run needs no credential", result.returncode == 0,
               (result.stderr or result.stdout)[-300:])
         report = json.load(open(os.path.join(
-            log_dir, "experiments", "prepilot_nokey", "runs", "pilot_report.json")))
+            log_dir, "experiments", "prepilot_nokey__dry_run", "runs",
+            "pilot_report.json")))
         check("a credential-free dry run still reports the LLM1 path",
               report["llm1_service_path"]["exercised"] is True, repr(report))
         check("a credential-free dry run used the mock provider",
@@ -886,9 +900,17 @@ def _isolated_env(overrides):
 
     A variable given as ``""`` is dropped rather than set to empty, so a test
     that means "unset" behaves the same way whether or not the value is present.
+
+    ``EKAGRA_DOTENV_PATH`` is also redirected to a file that does not exist.
+    Clearing a variable is not enough on its own: the dotenv loader only skips
+    variables already present in the environment, so a cleared one would be
+    refilled from the developer's own ``.env``. Without this, these tests pass or
+    fail depending on what happens to be saved locally — including, once a real
+    run is configured, quietly losing the very refusal they exist to assert.
     """
     env = {k: v for k, v in os.environ.items() if k not in _MANAGED_ENV}
     env.update({k: v for k, v in overrides.items() if v != ""})
+    env["EKAGRA_DOTENV_PATH"] = os.path.join(ROOT, ".env.__nonexistent_for_tests__")
     return env
 
 

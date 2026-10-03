@@ -16,7 +16,25 @@ from typing import Any, Dict, Optional
 
 from backend.content_loader import KNOWLEDGE_BANK_PATH
 from backend.llm.config import Config, knowledge_bank_provenance
-from backend.llm.usage_store import COST_SOURCE_UNPRICED, UsageRecord, UsageStore
+from backend.llm.usage_store import (
+    COST_SOURCE_UNPRICED,
+    KIND_LIVE,
+    UsageRecord,
+    UsageStore,
+)
+
+
+def kind_for(provider: Any) -> str:
+    """Return the usage-record kind that *provider*'s rows must carry.
+
+    Failures that never reach an adapter -- a mock provider that raises
+    before recording, a validation error in the tutor -- are still logged, by
+    whichever layer noticed them. Those layers cannot know whether the call was
+    real, so guessing `live` silently stamped mock rows as live: a dry run's
+    twelve deliberate timeouts were reported as twelve live failures. A
+    provider declares its own kind, and this reads it.
+    """
+    return getattr(provider, "record_kind", KIND_LIVE)
 
 
 def provenance_stamps() -> Dict[str, Any]:
@@ -52,6 +70,7 @@ def record_call(
     latency_ms: Optional[int] = None,
     finish_reason: Optional[str] = None,
     status: str = "ok",
+    kind: str = KIND_LIVE,
     error: Optional[str] = None,
     error_type: Optional[str] = None,
     test_case_id: Optional[str] = None,
@@ -90,6 +109,7 @@ def record_call(
         latency_ms=latency_ms,
         finish_reason=finish_reason,
         status=status,
+        kind=kind,
         error=config.redact(error) if error else None,
         error_type=error_type,
         test_case_id=test_case_id,
@@ -116,6 +136,7 @@ def record_failure(
     knowledge_bank_source: Optional[str] = None,
     test_case_id: Optional[str] = None,
     error_type: Optional[str] = None,
+    kind: str = KIND_LIVE,
 ) -> Optional[Dict[str, Any]]:
     """Record a call that failed, preserving the typed error name.
 
@@ -138,6 +159,7 @@ def record_failure(
         prompt_version=prompt_version,
         knowledge_bank_version=knowledge_bank_version,
         knowledge_bank_source=knowledge_bank_source,
+        kind=kind,
         request_cost=0.0,
         input_cost=0.0,
         output_cost=0.0,

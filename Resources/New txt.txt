@@ -1,0 +1,262 @@
+New txt
+
+The previous live pilot was blocked by the response-format envelope and logging/mode issues. Those have now been fixed and all verification tests pass.
+
+I have changed the experiment ID to a fresh value:
+
+`EKAGRA_EXPERIMENT_ID=l1_pilot_002`
+
+Keep the configured:
+
+* provider: `groq`
+* model: `openai/gpt-oss-120b`
+* mode: `live`
+* deterministic fallback: disabled
+* run ID: `run_001`
+
+The previous `l1_pilot_001` directory is historical evidence. Do not modify, archive, delete, or append to it.
+
+## Preflight
+
+Before making ANY inference call:
+
+1. Load configuration through the normal configuration path.
+2. Confirm mode resolves to `live`.
+3. Confirm provider is `groq`.
+4. Confirm model is `openai/gpt-oss-120b`.
+5. Confirm `EKAGRA_GROQ_API_KEY` is the credential source.
+6. Confirm deterministic fallback is disabled.
+7. Confirm experiment ID is `l1_pilot_002`.
+8. Confirm the target run/log directory is clean and contains no non-live rows.
+9. Confirm verified Groq pricing is available.
+10. Confirm request/session/experiment budget enforcement is active.
+11. Confirm strict structured-output validation is enabled.
+12. Confirm the provider request will use the `json_schema` envelope.
+13. Confirm no secrets will be written to logs or output.
+
+If any prerequisite fails, STOP. Do not modify anything to make the run proceed.
+
+## Run
+
+If preflight passes, run the existing 12-case live pilot:
+
+```bash
+python3 tools/l1_pilot.py
+```
+
+Do NOT use `--dry-run`.
+
+Do NOT change the pilot cases.
+
+Do NOT change prompts, schemas, scoring, state-machine logic, Knowledge Bank V3, provider, model, or budget ceilings.
+
+Do NOT silently retry with another provider or model.
+
+Do NOT enable deterministic fallback.
+
+## Diagnostic objective
+
+This run is specifically to test the actual LLM1 pipeline now that the provider wire format works.
+
+For every case, inspect:
+
+### Provider
+
+* actual provider
+* actual model
+* HTTP/provider success or failure
+* provider request ID
+* latency
+* typed errors
+
+### Structured output
+
+Verify:
+
+* response is returned
+* JSON parses
+* correct response type
+* strict schema validation succeeds
+* required fields are present
+* no malformed output
+* no schema drift
+
+If a structured-output failure occurs, preserve the exact failure rather than loosening the schema.
+
+### Grounding
+
+For every successful LLM1 output, assess whether the generated content is grounded in the selected Knowledge Bank V3 context.
+
+Flag only concrete issues such as:
+
+* unsupported doctrinal claims
+* invented Arthashastra concepts
+* invented case facts
+* contradictions with selected context
+* irrelevant content
+
+Do not treat stylistic variation as a grounding failure.
+
+### State-machine authority
+
+Verify that:
+
+* scoring determines demonstrated SOLO level
+* state machine determines progression
+* checkpoint clearance remains authoritative
+* retry count remains authoritative
+* scenario remains authoritative
+* pedagogy history remains authoritative
+* LLM1 cannot advance the learner merely by declaring success
+
+### Retry/intervention
+
+For failing cases, verify:
+
+* correct transition remains active
+* scenario handling follows the existing rules
+* an unused pedagogy is selected where required
+* a new intervention/question is generated
+* reassessment occurs
+* no premature advancement occurs
+
+### Logging
+
+Verify every live record contains the required:
+
+* experiment ID
+* run ID
+* provider
+* model
+* role
+* KB release
+* KB SHA
+* prompt/config versions
+* token usage
+* cost
+* latency
+* success/failure
+* error information
+* provider request ID where available
+* `kind=live`
+
+Confirm no mock rows enter the live experiment logs.
+
+### Cost
+
+Report:
+
+* total input tokens
+* total output tokens
+* total cost
+* average cost/call
+* request budget consumption
+* session budget consumption
+* experiment budget consumption
+
+If a budget ceiling is reached, stop safely.
+
+## Important
+
+Do not fix implementation problems during the run.
+
+If something fails:
+
+1. record it;
+2. classify it;
+3. continue independent cases where safe;
+4. report it afterward.
+
+We want an honest diagnostic baseline.
+
+## Final report
+
+Produce:
+
+### 1. Executive result
+
+* PASS / PARTIAL / BLOCKED
+* cases attempted/completed
+* successful calls
+* failed calls
+
+### 2. Case matrix
+
+| Case | Scenario | Input | Calls | Result | Failure | Notes |
+| ---- | -------- | ----- | ----: | ------ | ------- | ----- |
+
+### 3. LLM1 integration
+
+* provider
+* model
+* provider success rate
+* structured-output success rate
+* failure types
+* fallback incidents
+* provider request IDs
+
+### 4. Grounding
+
+For successful calls:
+
+* grounded
+* suspected grounding issue
+* case/call
+* concrete explanation
+
+### 5. State-machine integrity
+
+Report whether:
+
+* scoring remained authoritative
+* progression remained authoritative
+* checkpoints remained authoritative
+* retry behavior remained authoritative
+
+### 6. Performance/cost
+
+* latency min/max/average
+* token totals
+* total cost
+* budget consumption
+
+### 7. Logging/reproducibility
+
+Confirm:
+
+* experiment/run separation
+* live-only records
+* decision traces
+* usage records
+* cost summary
+* provider request IDs
+* KB provenance
+
+### 8. Failure taxonomy
+
+Classify failures into:
+
+* provider/API
+* authentication/configuration
+* structured output/schema
+* grounding
+* prompt behavior
+* state-machine integration
+* scoring
+* logging/observability
+* budget
+* timeout/rate limit
+
+### 9. Next actions
+
+Separate findings into:
+
+* MUST FIX
+* SHOULD FIX
+* OBSERVATION ONLY
+
+Do not rank or select models based on this pilot. This is still the diagnostic baseline.
+
+Finally, report the exact command used and the resulting artifact locations.
+
+Never print the API key or any secret.

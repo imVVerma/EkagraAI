@@ -56,8 +56,9 @@ from backend.llm.errors import (
     TimeoutError,
 )
 from backend.llm.pricing import ModelCatalog as PricingCatalog
+from backend.llm.pricing_table import apply_pricing_table, pricing_provenance
 from backend.llm.provider_interface import LLMProvider, Request, Message
-from backend.llm.providers._recording import record_failure
+from backend.llm.providers._recording import kind_for, record_failure
 from backend.llm.usage_store import UsageStore
 from backend.llm1_schema import (
     CheckpointResponse,
@@ -70,6 +71,8 @@ from backend.llm1_schema import (
     parse_teaching_response,
     tutor_response_schema,
 )
+from backend.llm.context_store import ContextSelectionStore
+from backend.llm.generated_store import GeneratedContentStore
 from backend.llm.decision_trace import (
     DecisionTrace,
     DecisionTraceStore,
@@ -214,6 +217,15 @@ class LLM1Config:
     trace_store: DecisionTraceStore
     usage_store: Optional[UsageStore] = None
     budget_guard: Optional[BudgetGuard] = None
+    #: Where generated content is persisted for later audit. Optional so that a
+    #: caller assembling LLM1Config by hand is not forced to provide one; when
+    #: it is absent the tutor still runs and simply records nothing extra.
+    generated_store: Optional[GeneratedContentStore] = None
+
+    #: Where the Knowledge Bank material handed to each call is persisted, next
+    #: to the generated content it produced. Optional for the same reason: a
+    #: caller assembling LLM1Config by hand is not forced to supply one.
+    context_store: Optional[ContextSelectionStore] = None
 
     @property
     def experiment_id(self) -> Optional[str]:
@@ -263,12 +275,16 @@ def build_llm1_config(mode: str = "live", *, config: Optional[Config] = None,
     bank = load_knowledge_bank()
     context_selector = ContextSelector(bank)
     trace_store = DecisionTraceStore(config.log_dir)
+    generated_store = GeneratedContentStore(config.log_dir)
+    context_store = ContextSelectionStore(config.log_dir)
 
     return LLM1Config(
         provider=provider,
         config=config,
         context_selector=context_selector,
         trace_store=trace_store,
+        generated_store=generated_store,
+        context_store=context_store,
         usage_store=usage_store,
         budget_guard=budget_guard,
     )
@@ -286,15 +302,57 @@ def _load_pricing_catalog(config: Config) -> Optional[PricingCatalog]:
     The cache path is provider-scoped, so a Groq run can never be priced from
     OpenRouter's file. See :meth:`Config.catalog_path`.
 
-    Only the cache is read. Listing models is itself an authenticated provider
-    call, and this function must not make one.
+    Verified prices the provider's listing omits are then merged in from the
+    maintained table, so the guard has real numbers to check for the models this
+    project actually runs. Anything not in that table stays unpriced and is
+    refused.
+
+    Only the cache and the local price table are read. Listing models is itself
+    an authenticated provider call, and this function must not make one.
+
+    A snapshot that has merely aged past its freshness window is reloaded with
+    that one gate switched off. See the comment at the call site: for a provider
+    that publishes no prices, a stale snapshot would otherwise silently take the
+    verified prices down with it.
     """
     try:
-        return PricingCatalog.from_cache(
+        catalog = PricingCatalog.from_cache(
             config.catalog_path(), provider=config.provider
         )
+        if catalog is None:
+            # A provider that publishes no token prices of its own -- Groq's
+            # /models listing carries none -- gets its costs from the maintained
+            # table, which is durable and versioned independently of any
+            # snapshot. So the snapshot's freshness governs how current the *model
+            # list* is, not whether a price exists at all, and letting an expired
+            # snapshot discard the whole catalogue also discarded the prices
+            # merged into it. That is how a run with verified, in-repo pricing
+            # came to be refused as unpriced: the TTL passed, the catalogue went
+            # with it, `apply_pricing_table` was never reached, and the guard was
+            # handed nothing to bound the request with.
+            #
+            # Reload the same provider-scoped file with only the freshness gate
+            # relaxed. Everything that makes a snapshot *trustworthy* is still
+            # enforced: the file must exist, parse, and declare this provider.
+            # A missing file still yields no catalogue, so a model with no
+            # snapshot behind it stays unknown and is still refused; and
+            # `apply_pricing_table` below still prices only the models the
+            # snapshot actually lists. Only "old" is forgiven here, never
+            # "absent", "corrupt", "another provider's" or "unpriced".
+            catalog = PricingCatalog.from_cache(
+                config.catalog_path(), provider=config.provider, ttl_seconds=0
+            )
     except Exception:  # noqa: BLE001 - an unreadable cache is the guard's problem
         return None
+    if catalog is None:
+        return None
+    try:
+        _, applied = apply_pricing_table(catalog, config.provider)
+    except Exception:  # noqa: BLE001 - a bad table leaves prices absent, not wrong
+        return catalog
+    if applied:
+        catalog.pricing_provenance = pricing_provenance(applied, config.provider)
+    return catalog
 
 
 def _build_provider(
@@ -359,11 +417,18 @@ def record_llm1_failure(
             model=model,
             error=RuntimeError(f"{failure.category}: {failure.message}"),
             requested_model=model,
-            prompt_version=llm1.config.prompt_version,
+            # The provenance stamp, not the file selector: this is the field
+            # that lands on the usage record, and it must name the prompt set
+            # that produced the answer.
+            prompt_version=llm1.config.prompt_stamp,
             knowledge_bank_version=knowledge_bank_provenance().get("sha256"),
             knowledge_bank_source=knowledge_bank_provenance().get("source"),
             test_case_id=case_id or transition_id or None,
             error_type=failure.error_type,
+            # Not assumed live: if a mock provider raised before it could
+            # record anything, this row is the only trace of that call and
+            # would otherwise be filed as a real provider failure.
+            kind=kind_for(llm1.provider),
         )
 
     trace = DecisionTrace(
@@ -376,7 +441,7 @@ def record_llm1_failure(
         identified_gap=failure.category,
         branch_decision="fail",
         progression_decision="blocked",
-        prompt_version=llm1.config.prompt_version or "",
+        prompt_version=llm1.config.prompt_stamp,
     )
     llm1.trace_store.record(trace, llm1.config.experiment_id)
 
@@ -512,7 +577,10 @@ def _complete(
             request,
             agent=AGENT_TUTOR,
             session_id=llm1.session_id(transition_id),
-            prompt_version=llm1.config.prompt_version,
+            # The provenance stamp, not the file selector: this is the field
+            # that lands on the usage record, and it must name the prompt set
+            # that produced the answer.
+            prompt_version=llm1.config.prompt_stamp,
             test_case_id=case_id or transition_id or None,
             **_provenance_stamps(),
         )
@@ -528,6 +596,81 @@ def _complete(
             attempt_number=attempt_number,
         )
         raise LLM1Error(failure.message, failure=failure) from exc
+
+
+def _record_selected_context(
+    llm1: LLM1Config,
+    *,
+    stage: str,
+    transition_id: str,
+    case_id: Optional[str],
+    pedagogy: str,
+    solo_level: str,
+    selected: Any,
+    rendered_summary: str,
+) -> None:
+    """Persist what the Knowledge Bank supplied and what the model was shown.
+
+    Written immediately before the request is built, so the log holds the context
+    for calls that then fail -- which is precisely when the reason a call failed
+    is hardest to reconstruct. The generated-content log cannot cover this: it
+    only has rows for calls that returned text, so the material behind a failed
+    or rejected call would be missing exactly when it is most needed.
+
+    ``rendered_summary`` is the same string placed in the user prompt, not a
+    re-render of it, so a diff between the two columns of the row is evidence of
+    what the wiring withheld rather than an artefact of logging.
+    """
+    store = getattr(llm1, "context_store", None)
+    if store is None:
+        return
+    store.record(
+        experiment_id=llm1.config.experiment_id,
+        stage=stage,
+        transition_id=transition_id,
+        case_id=case_id,
+        pedagogy=pedagogy,
+        solo_level=solo_level,
+        selected=selected,
+        rendered_summary=rendered_summary,
+    )
+
+
+def _record_generated(
+    llm1: LLM1Config,
+    *,
+    stage: str,
+    transition_id: str,
+    case_id: Optional[str],
+    response_type: str,
+    response: Any,
+) -> None:
+    """Persist what LLM1 generated, so the run can be audited afterwards.
+
+    Written next to the usage record and the decision trace, in its own log.
+    The usage record says a call happened and what it cost; the trace says what
+    the tutor was deciding; neither carries the text, and the text is the only
+    thing that can be checked for grounding, doctrinal invention or a badly
+    phrased question. Called only after validation, so a rejected response never
+    reaches the log as though the model had produced it.
+    """
+    store = getattr(llm1, "generated_store", None)
+    if store is None:
+        return
+    payload = response if isinstance(response, dict) else response.__dict__
+    provenance = knowledge_bank_provenance()
+    store.record(
+        experiment_id=llm1.config.experiment_id,
+        stage=stage,
+        transition_id=transition_id,
+        case_id=case_id or transition_id or None,
+        response_type=response_type,
+        payload=payload,
+        agent=AGENT_TUTOR,
+        prompt_version=llm1.config.prompt_stamp,
+        knowledge_bank_release=provenance.get("version"),
+        knowledge_bank_sha256=provenance.get("sha256"),
+    )
 
 
 def generate_teaching_turn_llm1(
@@ -550,8 +693,14 @@ def generate_teaching_turn_llm1(
     selected = select_relevant_context(
         llm1.context_selector, transition_id, case_id or "", pedagogy, solo_level
     )
+    context_summary = _build_context_summary(selected)
+    _record_selected_context(
+        llm1, stage="teaching_turn", transition_id=transition_id, case_id=case_id,
+        pedagogy=pedagogy, solo_level=solo_level, selected=selected,
+        rendered_summary=context_summary,
+    )
 
-    user_prompt = f"""{_build_context_summary(selected)}
+    user_prompt = f"""{context_summary}
 
 Pedagogy: {pedagogy}
 Concept to Master: {concept_to_master}
@@ -586,8 +735,13 @@ Generate a teaching turn for this pedagogy. Return structured JSON matching the 
     )
     trace.selected_pedagogy = response.pedagogy or pedagogy
     trace.source_context_ids = response.source_context_ids
-    trace.prompt_version = llm1.config.prompt_version or ""
+    trace.prompt_version = llm1.config.prompt_stamp
     llm1.trace_store.record(trace, llm1.config.experiment_id)
+
+    _record_generated(
+        llm1, stage="teaching_turn", transition_id=transition_id, case_id=case_id,
+        response_type="teaching", response=response,
+    )
 
     return response
 
@@ -609,8 +763,14 @@ def generate_checkpoint_llm1(
     selected = select_relevant_context(
         llm1.context_selector, transition_id, case_id, pedagogy, solo_level
     )
+    context_summary = _build_context_summary(selected)
+    _record_selected_context(
+        llm1, stage="checkpoint", transition_id=transition_id, case_id=case_id,
+        pedagogy=pedagogy, solo_level=solo_level, selected=selected,
+        rendered_summary=context_summary,
+    )
 
-    user_prompt = f"""{_build_context_summary(selected)}
+    user_prompt = f"""{context_summary}
 
 Pedagogy: {pedagogy}
 
@@ -654,8 +814,13 @@ Return structured JSON matching the checkpoint_interaction schema.
     trace.source_context_ids = response.source_context_ids
     trace.checkpoint = response.target_checkpoint
     trace.selected_pedagogy = response.pedagogy or pedagogy
-    trace.prompt_version = llm1.config.prompt_version or ""
+    trace.prompt_version = llm1.config.prompt_stamp
     llm1.trace_store.record(trace, llm1.config.experiment_id)
+
+    _record_generated(
+        llm1, stage="checkpoint", transition_id=transition_id, case_id=case_id,
+        response_type="checkpoint_interaction", response=response,
+    )
 
     return response
 
@@ -683,8 +848,14 @@ def generate_feedback_llm1(
     selected = select_relevant_context(
         llm1.context_selector, transition_id, case_id, "", solo_level
     )
+    context_summary = _build_context_summary(selected)
+    _record_selected_context(
+        llm1, stage="feedback", transition_id=transition_id, case_id=case_id,
+        pedagogy="", solo_level=solo_level, selected=selected,
+        rendered_summary=context_summary,
+    )
 
-    user_prompt = f"""{_build_context_summary(selected)}
+    user_prompt = f"""{context_summary}
 
 Learner Response: {learner_response}
 Assigned SOLO Level: {assigned_level}
@@ -725,8 +896,13 @@ Generate feedback for the learner. Return structured JSON matching the feedback 
     )
     trace.current_state = "feedback_generated"
     trace.source_context_ids = response.source_context_ids
-    trace.prompt_version = llm1.config.prompt_version or ""
+    trace.prompt_version = llm1.config.prompt_stamp
     llm1.trace_store.record(trace, llm1.config.experiment_id)
+
+    _record_generated(
+        llm1, stage="feedback", transition_id=transition_id, case_id=case_id,
+        response_type="feedback", response=response,
+    )
 
     return response
 
@@ -748,8 +924,14 @@ def generate_intervention_llm1(
     selected = select_relevant_context(
         llm1.context_selector, transition_id, case_id, pedagogy, solo_level
     )
+    context_summary = _build_context_summary(selected)
+    _record_selected_context(
+        llm1, stage="intervention", transition_id=transition_id, case_id=case_id,
+        pedagogy=pedagogy, solo_level=solo_level, selected=selected,
+        rendered_summary=context_summary,
+    )
 
-    user_prompt = f"""{_build_context_summary(selected)}
+    user_prompt = f"""{context_summary}
 
 All pedagogies have been exhausted for this transition. Generate an intervention
 to help the learner. Return structured JSON matching the intervention schema.
@@ -783,8 +965,13 @@ to help the learner. Return structured JSON matching the intervention schema.
     )
     trace.current_state = "intervention_generated"
     trace.source_context_ids = response.source_context_ids
-    trace.prompt_version = llm1.config.prompt_version or ""
+    trace.prompt_version = llm1.config.prompt_stamp
     llm1.trace_store.record(trace, llm1.config.experiment_id)
+
+    _record_generated(
+        llm1, stage="intervention", transition_id=transition_id, case_id=case_id,
+        response_type="intervention", response=response,
+    )
 
     return response
 

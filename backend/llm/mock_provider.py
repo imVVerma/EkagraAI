@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 from backend.llm.errors import RateLimitedError, TimeoutError
 from backend.llm.provider_interface import Completion, Request, Usage
 from backend.llm.providers._recording import record_call
+from backend.llm.usage_store import KIND_MOCK
 
 #: Which response type a request is asking for, read from the schema itself
 #: rather than from the caller, so the mock cannot be handed the wrong answer.
@@ -57,6 +58,10 @@ class MockLLMProvider:
     It implements the same ``complete`` contract as the OpenRouter and Groq
     adapters, so it can be handed to the LLM1 tutor service directly.
     """
+
+    #: Every row this provider produces is mock, including failures it raises
+    #: before it can record them itself.
+    record_kind = KIND_MOCK
 
     def __init__(
         self,
@@ -197,6 +202,9 @@ class MockLLMProvider:
             latency_ms=self.latency_ms,
             finish_reason="stop",
             status="ok",
+            # Passed explicitly as well as declared on the class: a row the
+            # caller asks for is a row someone might later read on its own.
+            kind=KIND_MOCK,
             test_case_id=test_case_id,
         )
 

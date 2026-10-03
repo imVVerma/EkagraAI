@@ -1,0 +1,65 @@
+{
+  "total_requests": 36,
+  "total_input_tokens": 32053,
+  "total_output_tokens": 19025,
+  "total_tokens": 51078,
+  "authoritative_cost": 0.0,
+  "estimated_cost": 0.016222950000000003,
+  "unpriced_cost": 0.0,
+  "total_cost": 0.01622295,
+  "cost_by_source": {
+    "openrouter_usage": 0.0,
+    "openrouter_generation": 0.0,
+    "estimated_from_pricing": 0.01622295,
+    "unpriced": 0.0
+  },
+  "cost_by_model": {
+    "openai/gpt-oss-120b": 0.01622295
+  },
+  "cost_by_session": {
+    "l1_pilot_004:run_001:C1": 0.0036189,
+    "l1_pilot_004:run_001:C2": 0.0038934,
+    "l1_pilot_004:run_001:C3": 0.004392,
+    "l1_pilot_004:run_001:C4": 0.00431865
+  },
+  "cost_by_agent": {
+    "tutor": 0.01622295
+  },
+  "cost_by_provider": {
+    "groq": 0.01622295
+  },
+  "cost_by_role": {
+    "tutor": 0.01622295
+  },
+  "cost_by_experiment": {
+    "l1_pilot_004": 0.01622295
+  },
+  "models": {
+    "tutor": "openai/gpt-oss-120b",
+    "evaluator": null,
+    "learner": null,
+    "analyst": null
+  },
+  "by_source": {
+    "openrouter_usage": 0.0,
+    "openrouter_generation": 0.0,
+    "estimated_from_pricing": 0.01622295,
+    "unpriced": 0.0
+  },
+  "records_by_kind": {
+    "live": 36,
+    "mock": 0,
+    "unknown": 0
+  },
+  "excluded_from_live_totals": {
+    "kind": [
+      "mock",
+      "unknown"
+    ],
+    "records": 0,
+    "mock_cost_usd": 0,
+    "mock_input_tokens": 0,
+    "mock_output_tokens": 0,
+    "note": "Mock and unlabelled records are reported here and excluded from every live figure above. They are not deleted."
+  }
+}

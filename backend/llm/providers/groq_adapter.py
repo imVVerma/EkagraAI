@@ -15,9 +15,11 @@ from backend.llm.structured_output import validate_structured_output_or_none
 from backend.llm.usage_store import (
     COST_SOURCE_ESTIMATED_FROM_PRICING,
     COST_SOURCE_UNPRICED,
+    KIND_LIVE,
     UsageStore,
 )
 from backend.llm.providers._recording import record_call, record_failure, split_estimate
+from backend.llm.providers._request_body import json_schema_envelope
 from backend.llm.provider_interface import (
     LLMProvider,
     Request,
@@ -134,6 +136,10 @@ class HttpResponse:
 class GroqAdapter(LLMProvider):
     """Groq implementation of the LLMProvider protocol."""
 
+    #: Rows from this adapter are real provider calls. Declared so the layers
+    #: that log a failure the adapter never saw cannot mislabel them as mock.
+    record_kind = KIND_LIVE
+
     GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
     def __init__(
@@ -247,7 +253,9 @@ class GroqAdapter(LLMProvider):
             "max_tokens": request.max_tokens,
         }
         if request.response_format:
-            body["response_format"] = request.response_format
+            # The schema is wrapped, not sent bare: response_format is an
+            # envelope. See providers/_request_body.py.
+            body["response_format"] = json_schema_envelope(request.response_format)
 
         started = time.perf_counter()
         try:

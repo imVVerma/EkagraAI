@@ -1,0 +1,49 @@
+{
+  "total_requests": 48,
+  "total_input_tokens": 25603,
+  "total_output_tokens": 2616,
+  "total_tokens": 28219,
+  "authoritative_cost": 0.0,
+  "estimated_cost": 0.0,
+  "unpriced_cost": 0.0,
+  "total_cost": 0.0,
+  "cost_by_source": {
+    "openrouter_usage": 0.0,
+    "openrouter_generation": 0.0,
+    "estimated_from_pricing": 0.0,
+    "unpriced": 0.0
+  },
+  "cost_by_model": {
+    "openai/gpt-oss-120b": 0.0
+  },
+  "cost_by_session": {
+    "l1_pilot_001:run_001:C1": 0.0,
+    "l1_pilot_001:run_001:C2": 0.0,
+    "l1_pilot_001:run_001:C3": 0.0,
+    "l1_pilot_001:run_001:C4": 0.0
+  },
+  "cost_by_agent": {
+    "tutor": 0.0
+  },
+  "cost_by_provider": {
+    "groq": 0.0
+  },
+  "cost_by_role": {
+    "tutor": 0.0
+  },
+  "cost_by_experiment": {
+    "l1_pilot_001": 0.0
+  },
+  "models": {
+    "tutor": "openai/gpt-oss-120b",
+    "evaluator": null,
+    "learner": null,
+    "analyst": null
+  },
+  "by_source": {
+    "openrouter_usage": 0.0,
+    "openrouter_generation": 0.0,
+    "estimated_from_pricing": 0.0,
+    "unpriced": 0.0
+  }
+}

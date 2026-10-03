@@ -32,6 +32,11 @@ from backend.llm.groq_catalog import (
     normalize_models,
 )
 from backend.llm.pricing import DEFAULT_CATALOG_TTL_SECONDS, ModelCatalog
+from backend.llm.pricing_table import (
+    apply_pricing_table,
+    load_pricing_table,
+    pricing_provenance,
+)
 from backend.llm.providers import GroqCatalog, OpenRouterCatalog
 
 failures = []
@@ -448,6 +453,102 @@ def test_priced_model_is_not_reported_free():
         shutil.rmtree(log_dir, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# 9. Verified prices a provider's listing omits
+# ---------------------------------------------------------------------------
+
+def test_verified_prices_are_merged_with_provenance():
+    print("\n[Verified prices: merged, sourced, and never invented]")
+    log_dir = tempfile.mkdtemp(prefix="ekagra-cat-prices-")
+    try:
+        # A listing shaped like the real one, so the model the table prices is
+        # actually offered. Whether a model is priced depends on both agreeing.
+        listing = {"object": "list", "data": [
+            {"id": "openai/gpt-oss-120b", "object": "model",
+             "created": 1744143436, "owned_by": "OpenAI", "context_window": 131072},
+            {"id": "openai/gpt-oss-20b", "object": "model",
+             "created": 1744143437, "owned_by": "OpenAI", "context_window": 131072},
+        ]}
+        transport = StubTransport(StubResponse(200, listing))
+        config = make_config(log_dir)
+        raw = GroqCatalogClient(config, transport=transport).fetch()
+
+        check("the fetched listing states no price at all",
+              not raw.has_known_pricing("openai/gpt-oss-120b"))
+        check("no listed model is priced before the table is merged",
+              not any(raw.has_known_pricing(m) for m in raw.ids()))
+
+        table = load_pricing_table(PROVIDER_GROQ)
+        check("a Groq price table is present", table is not None)
+        if table is None:
+            return
+        check("the table is filed under the provider it prices",
+              table.get("provider") == PROVIDER_GROQ, repr(table.get("provider")))
+
+        catalog, applied = apply_pricing_table(raw, PROVIDER_GROQ)
+        check("the merge reports what it applied", isinstance(applied, list))
+
+        priced = {a["model"] for a in applied}
+        check("a model in both the listing and the table is priced",
+              "openai/gpt-oss-120b" in priced, str(sorted(priced)))
+
+        info = catalog.get("openai/gpt-oss-120b")
+        prices = (info or {}).get("pricing") or {}
+        check("the per-million input price became a per-token price",
+              abs(prices.get("prompt", 0) - 1.5e-7) < 1e-15, repr(prices.get("prompt")))
+        check("the per-million output price became a per-token price",
+              abs(prices.get("completion", 0) - 6e-7) < 1e-15, repr(prices.get("completion")))
+
+        estimate = catalog.estimate_cost(
+            "openai/gpt-oss-120b", prompt_tokens=1_000_000,
+            max_completion_tokens=1_000_000)
+        check("one million tokens each way costs exactly the listed rate",
+              abs(estimate - 0.75) < 1e-9, repr(estimate))
+
+        # A model the table does not name must stay unpriced, not be guessed.
+        check("a model absent from the table is still unpriced",
+              not catalog.has_known_pricing("openai/gpt-oss-20b"))
+        check("an unpriced model is still not called free",
+              not catalog.is_free("openai/gpt-oss-20b"))
+
+        prov = pricing_provenance(applied, PROVIDER_GROQ)
+        check("provenance is produced for what was applied", prov is not None)
+        entry = (prov or {}).get("entries", [{}])[0]
+        check("provenance names a source", bool(entry.get("source")), repr(entry))
+        check("provenance records when it was read", bool(entry.get("retrieved")),
+              repr(entry))
+
+        # A price with only one half cannot bound a run, so it must be skipped.
+        partial = ModelCatalog(
+            [{"id": "half/model", "pricing": {}}, {"id": "absent/model", "pricing": {}}],
+            provider=PROVIDER_GROQ)
+        _, applied_partial = apply_pricing_table(partial, PROVIDER_GROQ)
+        check("a model the provider no longer offers is not priced",
+              all(a["model"] != "absent/model" for a in applied_partial),
+              str(applied_partial))
+        check("a half-supplied price does not half-apply",
+              all(a["model"] != "half/model" for a in applied_partial),
+              str(applied_partial))
+        check("nothing applied means no provenance block",
+              pricing_provenance([], PROVIDER_GROQ) is None)
+
+        # A table filed under the wrong provider is not trusted.
+        check("a table for another provider is ignored",
+              load_pricing_table("some-other-provider") is None)
+
+        saved = os.path.join(log_dir, "saved.json")
+        catalog.pricing_provenance = prov
+        catalog.save(saved)
+        with open(saved, "r", encoding="utf-8") as fh:
+            blob = json.load(fh)
+        check("the saved catalogue records its provenance",
+              "pricing_provenance" in blob, str(sorted(blob.keys())))
+        check("the saved provenance names the table",
+              "groq_pricing.json" in json.dumps(blob["pricing_provenance"]))
+    finally:
+        shutil.rmtree(log_dir, ignore_errors=True)
+
+
 def main():
     test_catalog_paths_are_provider_scoped()
     test_fetch_is_metadata_only()
@@ -457,6 +558,7 @@ def main():
     test_cache_round_trip_and_ttl()
     test_bad_responses_are_not_cached()
     test_priced_model_is_not_reported_free()
+    test_verified_prices_are_merged_with_provenance()
 
     print("\n" + "=" * 64)
     print(f"[Summary] {passed} checks passed")

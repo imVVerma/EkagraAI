@@ -66,6 +66,7 @@ import json
 import os
 import sys
 import time
+import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -91,6 +92,7 @@ from backend.llm.config import (
 )
 from backend.llm.errors import EkagraLLMError
 from backend.llm.mock_provider import MockLLMProvider, mock_pricing_catalog
+from backend.llm.pacing import TokenPacer, tpm_limit_from_env
 from backend.llm.pricing import ModelCatalog as PricingCatalog
 from backend.llm.usage_store import UsageStore
 from backend.llm1_tutor import (
@@ -102,8 +104,12 @@ from backend.llm1_tutor import (
     generate_intervention_llm1,
     generate_teaching_turn_llm1,
 )
-from backend.llm.decision_trace import DecisionTraceStore
-from backend.scoring_service import score_response
+from backend.llm.decision_trace import (
+    DecisionTraceStore,
+    trace_checkpoint_response,
+    trace_progression_decision,
+)
+from backend.scoring_service import score_response_detailed
 from backend.state_machine import TutorStateMachine
 from backend.tutor_service import anchor_for_transition
 
@@ -187,12 +193,47 @@ class CaseResult:
     attempt_log: List[Dict[str, Any]] = field(default_factory=list)
     pedagogy: str = ""
 
+    # Knowledge Bank and integration evidence, kept apart on purpose. A rule
+    # the scorer could not apply is a gap in the bank; material the bank held
+    # but the prompt never carried is a gap in the wiring. Averaging the two
+    # would send both to the same fix.
+    kb_unmapped_rules: List[Any] = field(default_factory=list)
+    kb_skipped_rules: List[Any] = field(default_factory=list)
+    context_fields_omitted: List[str] = field(default_factory=list)
+    target_signature: str = ""
+    target_solo_level: str = ""
+
     # Cost
     cost_usd: float = 0.0
 
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
+
+#: The namespace a mock dry run writes to, unconditionally.
+#:
+#: A dry run must never share a usage log with a live experiment. The mock
+#: provider costs nothing, so when both wrote to one experiment the summary
+#: showed a correct $0.00 total beside a completely fictional call and token
+#: count, which reads like a real, very quiet run. Forced identifiers make the
+#: overlap impossible rather than merely unlikely.
+DRY_RUN_SUFFIX = "__dry_run"
+DRY_RUN_EXPERIMENT_ID = "l1_pilot" + DRY_RUN_SUFFIX
+DRY_RUN_RUN_ID = "dry_run_001"
+
+
+def dry_run_id(configured: Optional[str], default: str) -> str:
+    """Return the identifier a dry run must write under.
+
+    Never returns *configured* unchanged. A mock run and a live run sharing one
+    identifier is what let 36 mock rows land in a live experiment's usage log,
+    and the resulting summary reported a plausible $0.00 total next with a
+    fabricated call count.
+    """
+    base = (configured or default).strip() or default
+    if base.endswith(DRY_RUN_SUFFIX):
+        return base
+    return f"{base}{DRY_RUN_SUFFIX}"
 
 #: Statuses that mean "LLM1 did not work", as opposed to "the learner did not
 #: meet the signature". Kept explicit so the summary cannot blur them.
@@ -239,6 +280,69 @@ class PilotSafetyError(RuntimeError):
     """The run was refused before any request was made."""
 
 
+def unlabelled_rows_in_usage_log(config: Config) -> List[str]:
+    """Return descriptions of existing usage rows that are not labelled live.
+
+    A live pilot's ``api_usage.jsonl`` is supposed to contain only that pilot's
+    own live calls. A directory that already holds rows without an explicit
+    ``kind: live`` label cannot satisfy that, and appending to it would put the
+    new run's real calls alongside records that may be mock or may predate the
+    ``kind`` field entirely. The evidence is left untouched; the caller is
+    expected to refuse rather than to rewrite it.
+    """
+    try:
+        path = UsageStore(config)._usage_log_path(config.experiment_id)
+    except Exception:  # noqa: BLE001 - a path we cannot resolve is not evidence
+        return []
+    if not os.path.exists(path):
+        return []
+    offending: List[str] = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for lineno, line in enumerate(handle, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    offending.append(f"line {lineno}: unreadable")
+                    continue
+                if row.get("kind") != "live":
+                    kind = row.get("kind") or "no kind field"
+                    offending.append(
+                        f"line {lineno}: kind={kind} "
+                        f"status={row.get('status')} model={row.get('model')}"
+                    )
+    except OSError:
+        return []
+    return offending
+
+
+def existing_run_artifacts(config: Config) -> List[str]:
+    """Names of files already present in this experiment's ``runs/`` directory.
+
+    The pilot writes four artifacts into ``runs/`` — ``api_usage.jsonl``,
+    ``cost_summary.json``, ``decision_traces.jsonl`` and ``pilot_report.json``.
+    If any of them is already there, this experiment namespace has already been
+    used by a run, and re-running would append to the usage log and overwrite the
+    report rather than recording a clean new run.
+
+    ``run_id`` does not segment that directory, so a namespace is one run and the
+    guard protects at the experiment level. The files are listed, not touched;
+    the caller refuses and points the operator at a fresh ``EKAGRA_EXPERIMENT_ID``.
+    """
+    try:
+        runs_dir = Path(
+            UsageStore(config)._usage_log_path(config.experiment_id)
+        ).parent
+    except Exception:  # noqa: BLE001 - an unresolvable path holds no evidence
+        return []
+    if not runs_dir.is_dir():
+        return []
+    return sorted(entry.name for entry in runs_dir.iterdir() if entry.is_file())
+
+
 def verify_live_configuration(config: Config) -> None:
     """Check provider, model, credential, identifiers and budget before any call.
 
@@ -279,6 +383,40 @@ def verify_live_configuration(config: Config) -> None:
         "request/session/experiment ceilings must all be positive",
     ))
 
+    # Checked separately from the list above: the detail is a multi-line
+    # breakdown of existing evidence, and the summary line should read as a
+    # refusal rather than as one more missing setting.
+    contaminated = unlabelled_rows_in_usage_log(config)
+    if contaminated:
+        shown = contaminated[:5]
+        more = len(contaminated) - len(shown)
+        raise PilotSafetyError(
+            "Refusing to run the live pilot. This experiment's usage log already "
+            "holds rows that are not labelled live, so appending to it would mix "
+            "this pilot's calls with older or mock records:\n  - "
+            + "\n  - ".join(shown)
+            + (f"\n  - ... and {more} more" if more > 0 else "")
+            + "\n\nThose records are evidence and have not been touched. Give "
+            "this run a fresh EKAGRA_EXPERIMENT_ID (the previous one is kept "
+            "intact for the record) and try again."
+        )
+
+    # A namespace that already completed a run holds all-live rows, so the
+    # contamination check above would let it through. Refuse it here instead,
+    # because re-running would append to the usage log and overwrite the report
+    # of the run whose evidence it is. One experiment id is one run.
+    artifacts = existing_run_artifacts(config)
+    if artifacts:
+        raise PilotSafetyError(
+            "Refusing to run the live pilot. This experiment's run directory "
+            "already holds completed evidence, so re-running would append to "
+            "the usage log and overwrite the report:\n  - "
+            + "\n  - ".join(artifacts)
+            + "\n\nThose files are kept intact for the record. Give this run a "
+            "fresh EKAGRA_EXPERIMENT_ID (the next number, e.g. l1_pilot_003) and "
+            "try again."
+        )
+
     failed = [detail for _, ok, detail in checks if not ok]
     if failed:
         raise PilotSafetyError(
@@ -299,6 +437,7 @@ class PilotRunner:
         experiment_id: Optional[str] = None,
         run_id: Optional[str] = None,
         tutor_model: Optional[str] = None,
+        pacer: Optional["TokenPacer"] = None,
     ):
         self.dry_run = dry_run
         self.mock_mode = mock_mode
@@ -330,11 +469,38 @@ class PilotRunner:
             # A dry run needs a credential-shaped config and a model id so the
             # real code paths resolve them, but never uses them.
             self.config.tutor_model = self.config.tutor_model or "mock/mock-tutor:v1"
-            self.config.experiment_id = self.config.experiment_id or "l1_pilot_dry_run"
-            self.config.run_id = self.config.run_id or "dry_run_001"
+            # Always rewritten, never merely defaulted. These previously fell
+            # back only when unset, so a dry run inherited whatever live
+            # identifiers the environment carried and appended 36 mock rows to
+            # that experiment's usage log. Mock calls are free, so the
+            # contamination showed up as a correct $0.00 total beside a wholly
+            # fictional call and token count.
+            #
+            # The caller's own label is kept and marked rather than discarded,
+            # so `--experiment-id foo` writes to `foo__dry_run`: still obviously
+            # the same run, and impossible to confuse with a live `foo`.
+            self.config.experiment_id = dry_run_id(
+                self.config.experiment_id, DRY_RUN_EXPERIMENT_ID
+            )
+            self.config.run_id = dry_run_id(self.config.run_id, DRY_RUN_RUN_ID)
 
         self.llm1 = self._build_llm1()
         self.results: List[CaseResult] = []
+        # Paces the run against the provider's token ceiling. Injected so a test
+        # can exercise the waiting logic with a fake clock rather than by
+        # sleeping through a real one-minute window.
+        # Pacing only means anything against a real provider. A dry run is served
+        # by the mock, which never makes a request and whose token counts are
+        # estimates from prompt length -- reserving rate-limit room against those
+        # would add minutes of real sleeping to a run that spends no quota.
+        self.pacing_enabled = not dry_run
+        self.pacer = pacer if pacer is not None else TokenPacer(
+            tpm_limit=tpm_limit_from_env()
+        )
+        #: Highest number of cases ever in flight. The pilot must keep this at 1;
+        #: asserted by the test that the run is genuinely sequential.
+        self.max_concurrent_cases = 0
+        self._cases_in_flight = 0
 
     # -- construction ------------------------------------------------------
 
@@ -388,6 +554,20 @@ class PilotRunner:
         return machine
 
     def run_case(self, pilot_case: PilotCase) -> CaseResult:
+        """Run one case and record the cost of the calls it actually made.
+
+        The snapshot is taken here rather than at each return site inside the
+        body because there are a dozen of them, and every one has to end up
+        with a cost that belongs to this case alone. A path that returned
+        without attributing its calls would silently lose them, and a path that
+        attributed by session would claim its transition's neighbours' spend.
+        """
+        before = self._usage_keys()
+        result = self._run_case_body(pilot_case)
+        result.cost_usd = self._cost_of_new_records(before)
+        return result
+
+    def _run_case_body(self, pilot_case: PilotCase) -> CaseResult:
         """Run one case, reporting LLM1 failures as failures."""
         result = CaseResult(
             case_id=f"{pilot_case.transition_id}/{pilot_case.case_id}",
@@ -415,6 +595,15 @@ class PilotRunner:
         machine = self._state_machine_for(pilot_case.transition_id)
         pedagogy = machine.select_pedagogy() or "Worked Example"
         result.pedagogy = pedagogy
+        # Recorded so a report reader can see what the transition was asking for
+        # next to what the scorer awarded. The two are compared, not assumed to
+        # agree: the pilot's whole value is noticing when they do not.
+        result.target_signature = transition.get("target_signature") or ""
+        result.target_solo_level = (
+            transition.get("target_solo_level")
+            or transition.get("target_level")
+            or ""
+        )
         anchor_name = anchor_for_transition(pilot_case.transition_id, self.anchor_names)
 
         started = time.time()
@@ -478,7 +667,7 @@ class PilotRunner:
         try:
             for attempt, response_type in enumerate(sequence):
                 used_response = SYNTHETIC_RESPONSES[response_type]
-                scoring = score_response(
+                scoring = score_response_detailed(
                     response=used_response,
                     target_signature=transition["target_signature"],
                     level_examples=case.get("level_examples", {}),
@@ -486,16 +675,50 @@ class PilotRunner:
                     case_text=case.get("scenario_text", ""),
                 )
                 met = bool(scoring["target_signature_met"])
-                # Each attempt is logged so a retry is visible as a retry, not
-                # folded into the case's final verdict.
-                result.attempt_log.append({
+                rule_applied = scoring.get("global_rule_applied")
+                # The learner's own words are recorded on every attempt. Without
+                # them a retry sequence is unreadable: "attempt 2 was scored
+                # unistructural" cannot be told apart from a differently-worded
+                # attempt 2 that was scored the same way, and the deterministic
+                # decision cannot be re-checked against the evidence it was made
+                # from after the run.
+                entry = {
                     "attempt": attempt + 1,
                     "response_type": response_type,
+                    "learner_response": used_response,
                     "assigned_level": scoring["assigned_solo_level"],
                     "target_signature_met": met,
+                    "rule_applied": rule_applied,
+                    "rule_classification": (rule_applied or {}).get("classification"),
+                    "kb_unmapped_rules": scoring.get("unmapped_global_rules") or [],
+                    "kb_skipped_rules": scoring.get("skipped_global_rules") or [],
                     "outcome": "cleared" if met else "retry",
-                })
+                }
+                result.attempt_log.append(entry)
+                result.kb_unmapped_rules.extend(entry["kb_unmapped_rules"])
+                result.kb_skipped_rules.extend(entry["kb_skipped_rules"])
                 result.attempts_used = attempt + 1
+                # A trace per attempt, so the learner evidence, the level the
+                # scorer assigned and the rule it fired sit in the trace log
+                # rather than only in the report. `trace_checkpoint_response`
+                # exists for exactly this and the pilot was not calling it.
+                self.llm1.trace_store.record(
+                    trace_checkpoint_response(
+                        session_id=self.llm1.session_id(pilot_case.transition_id),
+                        transition_id=pilot_case.transition_id,
+                        case_id=pilot_case.case_id,
+                        solo_level="",
+                        learner_response=used_response,
+                        assessed_level=scoring["assigned_solo_level"],
+                        target_signature_met=met,
+                        scoring_rule=(rule_applied or {}).get("pattern"),
+                        scoring_classification=(rule_applied or {}).get("classification"),
+                        identified_gap="" if met else "target signature not met",
+                        attempt_number=attempt + 1,
+                        trace_id=self._trace_id(),
+                    ),
+                    self.llm1.config.experiment_id,
+                )
                 if met:
                     break
                 machine.increment_attempt()
@@ -508,8 +731,15 @@ class PilotRunner:
 
         result.scorer_assigned_level = scoring["assigned_solo_level"]
         result.scorer_target_met = bool(scoring["target_signature_met"])
-        result.scoring_rule_applied = scoring.get("rule_applied")
-        result.scoring_rule_classification = scoring.get("rule_classification")
+        # Taken from the last attempt that actually had a rule fire, not from the
+        # final attempt. On a retry sequence the rule that shaped the case is
+        # usually not the last one: the closing attempt is a clean pass with no
+        # rule at all, so reading the rule off the final attempt reported "no
+        # rule applied" for cases the bank's own global rule had just decided.
+        _fired = [e for e in result.attempt_log if e.get("rule_applied")]
+        _final_rule = (_fired[-1]["rule_applied"] if _fired else {}) or {}
+        result.scoring_rule_applied = _final_rule.get("pattern")
+        result.scoring_rule_classification = _final_rule.get("classification")
 
         # 4. LLM1 feedback on what the scorer decided.
         try:
@@ -563,8 +793,30 @@ class PilotRunner:
                 return self._record_llm1_failure(result, exc, "intervention", started)
             result.status = "FAIL"
 
+        # The progression decision as its own trace row. `attempt_log` says
+        # what each attempt scored; this says what the state machine then did
+        # about it, which is a separate decision by a separate component and the
+        # one most often wrong for reasons that have nothing to do with LLM1.
+        self.llm1.trace_store.record(
+            trace_progression_decision(
+                session_id=self.llm1.session_id(pilot_case.transition_id),
+                transition_id=pilot_case.transition_id,
+                solo_level=result.scorer_assigned_level,
+                passed=bool(result.scorer_target_met),
+                retry_count=result.attempts_used,
+                next_pedagogy=result.progression.split(":", 1)[-1]
+                if ":" in result.progression else "",
+                intervention_type=(
+                    result.progression.split(":", 1)[-1]
+                    if result.progression.startswith("intervention") else None
+                ),
+                trace_id=self._trace_id(),
+            ),
+            self.llm1.config.experiment_id,
+        )
+        result.context_fields_omitted = self._context_gaps_for(pilot_case.case_id)
+
         result.llm1_latency_ms = int((time.time() - started) * 1000)
-        result.cost_usd = self._case_cost(result)
         return result
 
     def _record_llm1_failure(
@@ -582,30 +834,129 @@ class PilotRunner:
         result.error = failure.message
         result.llm1_generated = False
         result.llm1_latency_ms = int((time.time() - started) * 1000)
-        result.cost_usd = self._case_cost(result)
         return result
 
-    def _case_cost(self, result: CaseResult) -> float:
-        """Return the cost recorded for this case's session, from the usage log."""
+    @staticmethod
+    def _trace_id() -> str:
+        return str(uuid.uuid4())
+
+    def _context_gaps_for(self, case_id: str) -> List[str]:
+        """Return which bank fields this case's prompts withheld, in order.
+
+        Read back from the context log rather than recomputed, so the figure in
+        the report is the one that was actually recorded during the run.
+        """
+        store = getattr(self.llm1, "context_store", None)
+        if store is None:
+            return []
+        names: List[str] = []
+        for row in store.context_for(self.llm1.config.experiment_id, case_id):
+            for entry in row.get("omitted_from_summary") or []:
+                field_name = entry.get("field")
+                if field_name and field_name not in names:
+                    names.append(field_name)
+        return names
+
+    @staticmethod
+    def _record_key(record: Dict[str, Any]) -> tuple:
+        """Return a stable identity for a usage record.
+
+        Used to tell which records a case added. Keys on identity rather than
+        position so a re-read or a concurrent append cannot shift the boundary,
+        and includes the cost so two records that happen to share a request id
+        are still told apart.
+        """
+        return (
+            record.get("request_id"),
+            record.get("session_id"),
+            record.get("test_case_id"),
+            record.get("timestamp"),
+            record.get("request_cost"),
+        )
+
+    def _usage_keys(self) -> set:
+        """Return the identities of every usage record written so far."""
+        if self.llm1.usage_store is None:
+            return set()
+        records = self.llm1.usage_store.records(self.llm1.config.experiment_id)
+        return {self._record_key(r) for r in records}
+
+    def _cost_of_new_records(self, before: set) -> float:
+        """Return the cost of usage records written since *before* was taken.
+
+        Attributing cost by the records a case actually appended -- rather than
+        by its session -- is what makes the per-case figures add up. A session is
+        per-transition, so every case in a transition saw the whole transition's
+        spend: the second case of a transition re-reported the first case's
+        calls as its own, and the per-case column overran the experiment total.
+        """
         if self.llm1.usage_store is None:
             return 0.0
         records = self.llm1.usage_store.records(self.llm1.config.experiment_id)
-        session_id = self.llm1.session_id(result.transition_id)
         return sum(
             float(r.get("request_cost") or 0.0)
             for r in records
-            if r.get("session_id") == session_id
+            if self._record_key(r) not in before
         )
 
     # -- run ---------------------------------------------------------------
 
-    def run(self) -> List[CaseResult]:
-        """Run every case, continuing past failures to independent cases."""
+    def run(self, quiet: bool = False) -> List[CaseResult]:
+        """Run every case in turn, continuing past failures to independent cases.
+
+        One case at a time, and each case is *finished* before the next begins.
+        The pilot was already written as a plain loop, so the twelve cases never
+        overlapped -- but a case takes about 4,200 tokens and returns in under two
+        seconds, so twelve of them still asked the provider for roughly 60,000
+        tokens a minute and were rate-limited after the second. Sequencing alone
+        therefore changes nothing; what the provider actually needs is room in
+        its token window, which is what the pacer arranges.
+
+        Failures do not stop the run and are not retried here: a rate-limited case
+        is recorded as it happened and the loop moves on, so the report is an
+        honest account of the run rather than a repaired one.
+        """
         for pilot_case in PILOT_CASES:
-            result = self.run_case(pilot_case)
+            if self.pacing_enabled:
+                self.pacer.wait_for_capacity()
+            self._cases_in_flight += 1
+            self.max_concurrent_cases = max(
+                self.max_concurrent_cases, self._cases_in_flight
+            )
+            try:
+                result = self.run_case(pilot_case)
+                self._feed_pacer(pilot_case.case_id)
+            finally:
+                # Decremented on every path: a case that raises must not leave
+                # the counter showing work still in flight.
+                self._cases_in_flight -= 1
             self.results.append(result)
-            self._print_case(result)
+            if not quiet:
+                self._print_case(result)
         return self.results
+
+    def _feed_pacer(self, case_id: str) -> None:
+        """Tell the pacer what *case_id* consumed, so the next wait is accurate.
+
+        Read back from the usage log rather than assumed: the measured cost is
+        what the provider charged, which is the only figure the next case has to
+        fit around.
+        """
+        if self.llm1.usage_store is None or not self.pacing_enabled:
+            return
+        records = self.llm1.usage_store.records(self.llm1.config.experiment_id)
+        mine = [
+            r for r in records
+            if r.get("test_case_id") == case_id and r.get("status") == "ok"
+        ]
+        if not mine:
+            return
+        self.pacer.observe(
+            sum(int(r.get("total_tokens") or 0) for r in mine)
+        )
+        self.pacer.note_case_tokens(
+            sum(int(r.get("total_tokens") or 0) for r in mine)
+        )
 
     def _print_case(self, result: CaseResult) -> None:
         marker = "PASS" if result.status == "PASS" else result.status
@@ -713,12 +1064,26 @@ class PilotRunner:
             "has_credential": self.config.has_api_key,
             "model": self.config.tutor_model,
             "mode": self.config.mode,
-            "prompt_version": self.config.prompt_version or prompt_version_default(),
+            "prompt_version": self.config.prompt_stamp,
+            "prompt_file_version": self.config.prompt_version or "v1",
             "configuration_version": self.config.configuration_version,
             "knowledge_bank": {
                 "release": provenance.get("version"),
                 "sha256": provenance.get("sha256"),
                 "source": provenance.get("source"),
+            },
+            "pacing": {
+                "strategy": "sequential, one case at a time",
+                "enabled": self.pacing_enabled,
+                "reason": (
+                    None if self.pacing_enabled
+                    else "dry run: served by the mock provider, no request is made"
+                ),
+                "max_concurrent_cases": self.max_concurrent_cases,
+                "tokens_per_minute_limit": self.pacer.tpm_limit,
+                "effective_tokens_per_minute_limit": self.pacer.effective_limit,
+                "wait_seconds_total": round(self.pacer.waited_seconds, 3),
+                "waits": self.pacer.waits,
             },
             "budget": {
                 "request_usd": self.config.max_request_cost_usd,
@@ -745,6 +1110,13 @@ class PilotRunner:
                 self.config.log_dir, "experiments", str(self.config.experiment_id),
                 "runs", "api_usage.jsonl",
             ),
+            # Named in the report so an auditor knows the generated text is on
+            # disk and where. Without it the run looks un-auditable, which is
+            # how l1_pilot_002 read despite the content having existed.
+            "generated_content_log": os.path.join(
+                self.config.log_dir, "experiments", str(self.config.experiment_id),
+                "runs", "llm1_generated.jsonl",
+            ),
         }
 
     def write_report(self, report: Dict[str, Any]) -> str:
@@ -757,6 +1129,25 @@ class PilotRunner:
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(report, handle, indent=2)
         return str(path)
+
+
+def _dry_run_for(*, mock: bool) -> bool:
+    """Decide whether this run uses the mock provider.
+
+    The mode comes from :func:`load_config`, not from ``os.environ`` directly.
+    The dotenv loader has not run at that point, so reading the environment
+    directly cannot see ``EKAGRA_MODE`` set in ``.env`` and silently dry-runs a
+    run that was explicitly configured live. That failure is invisible from the
+    outside: the run prints a clean 12/12 against the mock provider, at no cost,
+    having made no inference call at all.
+
+    ``--dry-run`` still forces a dry run, so the mock stays available without
+    editing configuration. Nothing here falls back the other way: a live mode is
+    never downgraded, and a dry run is never silently upgraded to a live one.
+    """
+    if mock:
+        return True
+    return load_config().mode != "live"
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -781,7 +1172,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    dry_run = args.dry_run or not os.environ.get("EKAGRA_MODE", "").strip().lower() == "live"
+    # Resolve the mode through load_config, not straight from os.environ. The
+    dry_run = _dry_run_for(mock=args.dry_run)
 
     try:
         runner = PilotRunner(
@@ -810,11 +1202,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"fallback      : {runner.config.allow_deterministic_fallback}")
     print("=" * 72)
 
-    if not args.quiet:
-        runner.run()
-    else:
-        for pilot_case in PILOT_CASES:
-            runner.results.append(runner.run_case(pilot_case))
+    # One path for both modes. --quiet used to run its own loop over the cases,
+    # which silently skipped pacing and concurrency tracking -- so the mode the
+    # tests exercise was the one mode that could never be rate-limited.
+    runner.run(quiet=args.quiet)
 
     report = runner.build_report()
     path = runner.write_report(report)
